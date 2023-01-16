@@ -3,7 +3,8 @@ package com.github.likavn.notify.provider.redis;
 import com.github.likavn.notify.base.BaseDelayMsgHandler;
 import com.github.likavn.notify.constant.MsgConstant;
 import com.github.likavn.notify.utils.SpringUtil;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 
@@ -16,8 +17,8 @@ import java.util.Set;
  * @author likavn
  * @since 2023/01/01
  */
-@Slf4j
 public class RedisDelayMsgListener extends BaseDelayMsgHandler {
+    private static final Logger logger = LoggerFactory.getLogger(RedisDelayMsgListener.class);
 
     private final ZSetOperations zSetOps;
 
@@ -54,7 +55,7 @@ public class RedisDelayMsgListener extends BaseDelayMsgHandler {
                 try {
                     receiver(value);
                 } catch (Exception ex) {
-                    log.error("DelayMessageListener", ex);
+                    logger.error("DelayMessageListener", ex);
                 }
             });
         }

@@ -3,7 +3,6 @@ package com.github.likavn.notify.base;
 import com.github.likavn.notify.api.MsgSender;
 import com.github.likavn.notify.domain.MsgRequest;
 import com.github.likavn.notify.utils.SpringUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.Assert;
 
 import java.util.Objects;
@@ -15,7 +14,6 @@ import java.util.UUID;
  * @author likavn
  * @since 2023/01/01
  */
-@Slf4j
 public abstract class DefaultMsgSender implements MsgSender {
 
     /**

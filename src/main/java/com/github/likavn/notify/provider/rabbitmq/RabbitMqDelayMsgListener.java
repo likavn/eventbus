@@ -5,7 +5,8 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.Connection;
@@ -16,8 +17,8 @@ import org.springframework.amqp.rabbit.connection.Connection;
  * @author likavn
  * @since 2023/01/01
  */
-@Slf4j
 public class RabbitMqDelayMsgListener extends BaseDelayMsgHandler {
+    private static final Logger logger = LoggerFactory.getLogger(RabbitMqDelayMsgListener.class);
     /**
      * 消费者个数
      */
@@ -50,14 +51,14 @@ public class RabbitMqDelayMsgListener extends BaseDelayMsgHandler {
                     try {
                         receiver(body);
                     } catch (Exception ex) {
-                        log.error("DelayMessageListener", ex);
+                        logger.error("DelayMessageListener", ex);
                     }
                 }
             };
 
             channel.basicConsume(delayQueue.getName(), true, defaultConsumer);
         } catch (Exception e) {
-            log.error("DelayMessageListener.initRabbitMq", e);
+            logger.error("DelayMessageListener.initRabbitMq", e);
         }
     }
 

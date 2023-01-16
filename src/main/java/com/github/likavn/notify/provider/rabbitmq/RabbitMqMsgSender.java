@@ -5,7 +5,8 @@ import com.github.likavn.notify.config.NotifyRabbitMqConfig;
 import com.github.likavn.notify.constant.MsgConstant;
 import com.github.likavn.notify.domain.MsgRequest;
 import com.github.likavn.notify.utils.WrapUtils;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
@@ -17,8 +18,8 @@ import java.util.UUID;
  * @author likavn
  * @since 2023/01/01
  */
-@Slf4j
 public class RabbitMqMsgSender extends DefaultMsgSender {
+    private static final Logger logger = LoggerFactory.getLogger(RabbitMqMsgSender.class);
     /**
      * 消息过期时间，避免消息未消费导致消息堆积
      */
@@ -49,7 +50,7 @@ public class RabbitMqMsgSender extends DefaultMsgSender {
     public void sendDelayMessage(MsgRequest<?> request, long delayTime) {
         before(request);
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
-        log.info("发送消息id={}", correlationData.getId());
+        logger.debug("发送消息id={}", correlationData.getId());
         rabbitTemplate.convertAndSend(
                 NotifyRabbitMqConfig.getDelayExchangeName(),
                 NotifyRabbitMqConfig.getDelayRoutingName(),

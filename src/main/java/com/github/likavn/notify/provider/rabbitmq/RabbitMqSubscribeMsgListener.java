@@ -6,7 +6,8 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.Connection;
 
@@ -18,8 +19,8 @@ import java.util.List;
  * @author likavn
  * @since 2023/01/01
  **/
-@Slf4j
 public class RabbitMqSubscribeMsgListener {
+    private static final Logger logger = LoggerFactory.getLogger(RabbitMqSubscribeMsgListener.class);
 
     @SuppressWarnings("all")
     public RabbitMqSubscribeMsgListener(List<SubMsgConsumer> consumers,
@@ -73,7 +74,7 @@ public class RabbitMqSubscribeMsgListener {
                     try {
                         consumer.accept(body);
                     } catch (Exception ex) {
-                        log.error("BaseMsgReceiver.initRabbitMq", ex);
+                        logger.error("BaseMsgReceiver.initRabbitMq", ex);
                     }
                 }
             };
@@ -83,7 +84,7 @@ public class RabbitMqSubscribeMsgListener {
             // 参数三：消息接收者
             createChannel.basicConsume(queueName, true, defaultConsumer);
         } catch (Exception e) {
-            log.error("BaseMsgReceiver.initRabbitMq", e);
+            logger.error("BaseMsgReceiver.initRabbitMq", e);
         }
     }
 
