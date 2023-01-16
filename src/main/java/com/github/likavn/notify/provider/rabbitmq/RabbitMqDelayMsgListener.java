@@ -1,7 +1,6 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
-import com.github.likavn.notify.base.BaseDelayMsgListener;
-import com.github.likavn.notify.utils.WrapUtils;
+import com.github.likavn.notify.base.BaseDelayMsgHandler;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
@@ -18,7 +17,7 @@ import org.springframework.amqp.rabbit.connection.Connection;
  * @since 2023/01/01
  */
 @Slf4j
-public class RabbitMqDelayMsgListener extends BaseDelayMsgListener {
+public class RabbitMqDelayMsgListener extends BaseDelayMsgHandler {
     /**
      * 消费者个数
      */
@@ -49,7 +48,7 @@ public class RabbitMqDelayMsgListener extends BaseDelayMsgListener {
                                            AMQP.BasicProperties properties,
                                            byte[] body) {
                     try {
-                        handler(WrapUtils.convertByBytes(body));
+                        receiver(body);
                     } catch (Exception ex) {
                         log.error("DelayMessageListener", ex);
                     }

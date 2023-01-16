@@ -1,9 +1,7 @@
-package com.github.likavn.notify.base;
+package com.github.likavn.notify.api;
 
-import com.github.likavn.notify.api.DelayMsgListener;
-import com.github.likavn.notify.api.MsgSender;
 import com.github.likavn.notify.domain.MsgRequest;
-import com.github.likavn.notify.domain.SubMsgListener;
+import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.utils.SpringUtil;
 import com.github.likavn.notify.utils.WrapUtils;
 import org.slf4j.Logger;
@@ -20,8 +18,8 @@ import java.util.List;
  * @author likavn
  * @since 2023/01/01
  */
-public abstract class BaseSubscribeMsgListener<T> implements DelayMsgListener<T> {
-    private static final Logger logger = LoggerFactory.getLogger(BaseSubscribeMsgListener.class);
+public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
+    private static final Logger logger = LoggerFactory.getLogger(SubscribeMsgListener.class);
 
     @Resource
     private MsgSender msgSender;
@@ -32,7 +30,7 @@ public abstract class BaseSubscribeMsgListener<T> implements DelayMsgListener<T>
     private long triggerTime = 1000 * 60 * 10L;
 
     /**
-     * 一定时间内的业务事件处理失败时的重试次数，默认为5次
+     * 一定时间内的业务事件处理失败时的重试次数，默认为3次
      */
     private int retry = 3;
 
@@ -56,8 +54,8 @@ public abstract class BaseSubscribeMsgListener<T> implements DelayMsgListener<T>
      *
      * @param codes 消息编码
      */
-    protected BaseSubscribeMsgListener(List<String> codes) {
-        this(SpringUtil.getAppName(), codes.toArray(new String[0]));
+    protected SubscribeMsgListener(List<String> codes) {
+        this(SpringUtil.getServiceId(), codes.toArray(new String[0]));
     }
 
     /**
@@ -66,7 +64,7 @@ public abstract class BaseSubscribeMsgListener<T> implements DelayMsgListener<T>
      * @param serviceId 消息服务的ID
      * @param codes     消息编码
      */
-    protected BaseSubscribeMsgListener(String serviceId, String... codes) {
+    protected SubscribeMsgListener(String serviceId, String... codes) {
         this.serviceId = serviceId;
         this.codes = codes;
     }
@@ -79,7 +77,7 @@ public abstract class BaseSubscribeMsgListener<T> implements DelayMsgListener<T>
      * @param serviceId   消息服务的ID
      * @param codes       消息编码
      */
-    protected BaseSubscribeMsgListener(long triggerTime, int retry, String serviceId, String... codes) {
+    protected SubscribeMsgListener(long triggerTime, int retry, String serviceId, String... codes) {
         this(serviceId, codes);
         this.triggerTime = triggerTime;
         this.retry = retry;
@@ -94,7 +92,7 @@ public abstract class BaseSubscribeMsgListener<T> implements DelayMsgListener<T>
      * @param serviceId   消息服务的ID
      * @param codes       消息编码
      */
-    protected BaseSubscribeMsgListener(long triggerTime, int retry, int consumerNum, String serviceId, String... codes) {
+    protected SubscribeMsgListener(long triggerTime, int retry, int consumerNum, String serviceId, String... codes) {
         this(serviceId, codes);
         this.triggerTime = triggerTime;
         this.retry = retry;
@@ -104,13 +102,13 @@ public abstract class BaseSubscribeMsgListener<T> implements DelayMsgListener<T>
     /**
      * 获取处理器
      */
-    public List<SubMsgListener> getSubMsgListeners() {
+    public List<SubMsgConsumer> getSubMsgConsumers() {
         if (null == serviceId) {
             return Collections.emptyList();
         }
-        List<SubMsgListener> listeners = new ArrayList<>();
+        List<SubMsgConsumer> listeners = new ArrayList<>();
         for (String code : codes) {
-            listeners.add(SubMsgListener.builder()
+            listeners.add(SubMsgConsumer.builder()
                     .listener(this)
                     .consumerNum(consumerNum)
                     .serviceId(serviceId)
@@ -121,21 +119,11 @@ public abstract class BaseSubscribeMsgListener<T> implements DelayMsgListener<T>
     }
 
     /**
-     * 接收
-     *
-     * @param msgRequest bean
-     */
-    public void receiverDelivery(MsgRequest<T> msgRequest) {
-        // 设置处理器
-        receiver(msgRequest);
-    }
-
-    /**
      * 接收器
      *
      * @param msgRequest msgRequest
      */
-    private void receiver(MsgRequest<T> msgRequest) {
+    public void receiver(MsgRequest<T> msgRequest) {
         if (logger.isDebugEnabled()) {
             logger.debug("BaseMsgReceiver.receiver msg：{}", WrapUtils.toJson(msgRequest));
         }

@@ -1,6 +1,6 @@
 package com.github.likavn.notify.prop;
 
-import com.github.likavn.notify.domain.SubMsgListener;
+import com.github.likavn.notify.domain.SubMsgConsumer;
 import lombok.Data;
 
 import java.util.List;
@@ -22,5 +22,5 @@ public class NotifyProperties {
     /**
      * 订阅器
      */
-    List<SubMsgListener> subMsgListeners;
+    List<SubMsgConsumer> subMsgConsumers;
 }

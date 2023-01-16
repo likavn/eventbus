@@ -8,17 +8,29 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.lang.Nullable;
 
+import java.util.Objects;
 import java.util.Properties;
 
 /**
+ * SpringUtil
+ *
  * @author likavn
  * @since 2023/01/01
  **/
 public class SpringUtil implements ApplicationContextAware {
     private static final Logger log = LoggerFactory.getLogger(SpringUtil.class);
+    /**
+     * 应用ID
+     */
+    private static String serviceId;
+
+    /**
+     * ctx
+     */
     private static ApplicationContext context;
 
     @Override
+    @SuppressWarnings("all")
     public void setApplicationContext(@Nullable ApplicationContext context) throws BeansException {
         SpringUtil.context = context;
     }
@@ -58,12 +70,15 @@ public class SpringUtil implements ApplicationContextAware {
     /**
      * 获取应用名称
      */
-    public static String getAppName() {
-        Properties props = System.getProperties();
-        String appName = props.getProperty("spring.application.name");
-        if (null == appName || appName.isEmpty()) {
-            appName = props.getProperty("sun.java.command");
+    public static String getServiceId() {
+        if (Objects.nonNull(serviceId)) {
+            return serviceId;
         }
-        return appName;
+        Properties props = System.getProperties();
+        serviceId = props.getProperty("spring.application.name");
+        if (null == serviceId || serviceId.isEmpty()) {
+            serviceId = props.getProperty("sun.java.command");
+        }
+        return serviceId;
     }
 }

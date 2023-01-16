@@ -7,6 +7,8 @@ package com.github.likavn.notify.constant;
  * @since 2023/01/01
  */
 public class MsgConstant {
+    private MsgConstant() {
+    }
 
     /**
      * rabbitMq交换机

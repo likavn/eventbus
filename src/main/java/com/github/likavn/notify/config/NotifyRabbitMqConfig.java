@@ -38,7 +38,7 @@ public class NotifyRabbitMqConfig {
     private static final String DELAY_ROUTING_NAME;
 
     static {
-        String appName = SpringUtil.getAppName();
+        String appName = SpringUtil.getServiceId();
         DELAY_EXCHANGE_NAME = String.format(MsgConstant.DELAY_EXCHANGE, appName);
         DELAY_QUEUE_NAME = String.format(MsgConstant.DELAY_QUEUE, appName);
         DELAY_ROUTING_NAME = String.format(MsgConstant.DELAY_ROUTING_KEY, appName);
@@ -108,7 +108,7 @@ public class NotifyRabbitMqConfig {
     @ConditionalOnBean(CachingConnectionFactory.class)
     public RabbitMqSubscribeMsgListener rabbitMqSubscribeMsgListener(
             CachingConnectionFactory connectionFactory, NotifyProperties config) {
-        return new RabbitMqSubscribeMsgListener(config.getSubMsgListeners(), connectionFactory);
+        return new RabbitMqSubscribeMsgListener(config.getSubMsgConsumers(), connectionFactory);
     }
 
     public static String getDelayExchangeName() {

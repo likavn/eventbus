@@ -38,7 +38,7 @@ public interface MsgSender {
      * @param delayTime 延时时间，单位：秒
      */
     @SuppressWarnings("all")
-    default void sendDelayMessage(Class<? extends DelayMsgListener> handler, Object body, long delayTime) {
+    default void sendDelayMessage(Class<? extends DelayMsgListener<?>> handler, Object body, long delayTime) {
         sendDelayMessage(MsgRequest.builder().handler(handler).body(body).build(), delayTime);
     }
 
@@ -62,7 +62,7 @@ public interface MsgSender {
             return false;
         }
         if (!Objects.nonNull(request.getServiceId())) {
-            request.setServiceId(SpringUtil.getAppName());
+            request.setServiceId(SpringUtil.getServiceId());
         }
         if (!Objects.nonNull(request.getRequestId())) {
             request.setRequestId(UUID.randomUUID().toString().replaceAll("-", ""));

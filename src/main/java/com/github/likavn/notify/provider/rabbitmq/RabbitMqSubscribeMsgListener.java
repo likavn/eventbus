@@ -1,8 +1,7 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
 import com.github.likavn.notify.constant.MsgConstant;
-import com.github.likavn.notify.domain.SubMsgListener;
-import com.github.likavn.notify.utils.WrapUtils;
+import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
@@ -14,6 +13,8 @@ import org.springframework.amqp.rabbit.connection.Connection;
 import java.util.List;
 
 /**
+ * rabbitMq消息订阅器
+ *
  * @author likavn
  * @since 2023/01/01
  **/
@@ -21,11 +22,11 @@ import java.util.List;
 public class RabbitMqSubscribeMsgListener {
 
     @SuppressWarnings("all")
-    public RabbitMqSubscribeMsgListener(List<SubMsgListener> subMsgListeners,
+    public RabbitMqSubscribeMsgListener(List<SubMsgConsumer> consumers,
                                         CachingConnectionFactory connectionFactory) {
         Connection newConnection = connectionFactory.createConnection();
-        for (SubMsgListener subMsgListener : subMsgListeners) {
-            bindListener(subMsgListener, newConnection);
+        for (SubMsgConsumer consumer : consumers) {
+            bindListener(consumer, newConnection);
         }
     }
 
@@ -36,15 +37,15 @@ public class RabbitMqSubscribeMsgListener {
      * @param code          消息类型
      */
     @SuppressWarnings("all")
-    private void bindListener(SubMsgListener subMsgListener, Connection newConnection) {
+    private void bindListener(SubMsgConsumer consumer, Connection newConnection) {
         try {
             Channel createChannel = newConnection.createChannel(false);
 
             // 定义队列名称
             String queueName = String.format(MsgConstant.QUEUE,
-                    subMsgListener.getServiceId(),
-                    subMsgListener.getCode(),
-                    subMsgListener.getListener().getClass().getName());
+                    consumer.getServiceId(),
+                    consumer.getCode(),
+                    consumer.getListener().getClass().getName());
 
             // 声明一个队列。
             // 参数一：队列名称
@@ -61,7 +62,7 @@ public class RabbitMqSubscribeMsgListener {
             createChannel.queueBind(queueName,
                     MsgConstant.EXCHANGE,
                     // 设置路由key
-                    String.format(MsgConstant.ROUTING, subMsgListener.getServiceId(), subMsgListener.getCode()));
+                    String.format(MsgConstant.ROUTING, consumer.getServiceId(), consumer.getCode()));
 
             DefaultConsumer defaultConsumer = new DefaultConsumer(createChannel) {
                 @Override
@@ -70,7 +71,7 @@ public class RabbitMqSubscribeMsgListener {
                                            AMQP.BasicProperties properties,
                                            byte[] body) {
                     try {
-                        subMsgListener.getListener().receiverDelivery(WrapUtils.convertByBytes(body));
+                        consumer.accept(body);
                     } catch (Exception ex) {
                         log.error("BaseMsgReceiver.initRabbitMq", ex);
                     }

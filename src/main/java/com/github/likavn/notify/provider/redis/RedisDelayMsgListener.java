@@ -1,9 +1,8 @@
 package com.github.likavn.notify.provider.redis;
 
-import com.github.likavn.notify.base.BaseDelayMsgListener;
+import com.github.likavn.notify.base.BaseDelayMsgHandler;
 import com.github.likavn.notify.constant.MsgConstant;
 import com.github.likavn.notify.utils.SpringUtil;
-import com.github.likavn.notify.utils.WrapUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -18,7 +17,7 @@ import java.util.Set;
  * @since 2023/01/01
  */
 @Slf4j
-public class RedisDelayMsgListener extends BaseDelayMsgListener {
+public class RedisDelayMsgListener extends BaseDelayMsgHandler {
 
     private final ZSetOperations zSetOps;
 
@@ -33,7 +32,7 @@ public class RedisDelayMsgListener extends BaseDelayMsgListener {
      */
     @SuppressWarnings("all")
     private void loop() {
-        String key = String.format(MsgConstant.REDIS_Z_SET_KEY, SpringUtil.getAppName());
+        String key = String.format(MsgConstant.REDIS_Z_SET_KEY, SpringUtil.getServiceId());
         while (!Thread.interrupted()) {
             // 当前时间
             long nowSecond = Instant.now().getEpochSecond();
@@ -53,7 +52,7 @@ public class RedisDelayMsgListener extends BaseDelayMsgListener {
                 }
 
                 try {
-                    handler(WrapUtils.convertByBytes(value));
+                    receiver(value);
                 } catch (Exception ex) {
                     log.error("DelayMessageListener", ex);
                 }

@@ -41,7 +41,7 @@ public class RedisMsgSender implements MsgSender {
         }
 
         redisTemplate.opsForZSet().add(
-                String.format(MsgConstant.REDIS_Z_SET_KEY, SpringUtil.getAppName()),
+                String.format(MsgConstant.REDIS_Z_SET_KEY, SpringUtil.getServiceId()),
                 WrapUtils.toJson(request),
                 Instant.now().getEpochSecond() + delayTime);
     }

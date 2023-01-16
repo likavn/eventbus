@@ -1,7 +1,6 @@
 package com.github.likavn.notify.domain;
 
 import com.github.likavn.notify.api.DelayMsgListener;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,15 +9,12 @@ import java.io.Serializable;
 
 /**
  * 通知消息体
- * 注意：变更当前实体数据结构，请升级rabbitMq交换机、路由key、队列名称版本
- * 消息体（body）部分必须包含无参构造函数
  *
  * @author likavn
  * @since 2023/01/01
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class MsgRequest<T> implements Serializable {
     private static final long serialVersionUID = 1L;
     /**

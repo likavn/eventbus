@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.likavn.notify.api.MsgSender;
-import com.github.likavn.notify.domain.SubMsgListener;
+import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.redis.RedisDelayMsgListener;
 import com.github.likavn.notify.provider.redis.RedisMsgSender;
@@ -87,9 +87,9 @@ public class NotifyRedisConfig {
         container.setConnectionFactory(redisConnectionFactory);
         // 所有的订阅消息，都需要在这里进行注册绑定,new PatternTopic(TOPIC_NAME1)表示发布的主题信息
         // 可以添加多个 messageListener，配置不同的通道
-        for (SubMsgListener subMsgListener : config.getSubMsgListeners()) {
-            container.addMessageListener(new RedisSubscribeMsgListener(subMsgListener),
-                    new PatternTopic(subMsgListener.getTopic()));
+        for (SubMsgConsumer consumer : config.getSubMsgConsumers()) {
+            container.addMessageListener(new RedisSubscribeMsgListener(consumer),
+                    new PatternTopic(consumer.getTopic()));
         }
         /**
          * 设置序列化对象
