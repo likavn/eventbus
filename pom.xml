@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.likavn</groupId>
     <artifactId>notify-spring-boot-starter</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
     <name>notify-spring-boot-starter</name>
     <url>https://github.com/likavn/notify-spring-boot-starter</url>
     <description>
@@ -15,7 +15,7 @@
     <developers>
         <developer>
             <name>likavn</name>
-            <email>1085257460@qq.com</email>
+            <email>likavn@163.com</email>
             <url>https://github.com/likavn</url>
         </developer>
     </developers>
@@ -40,21 +40,14 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <!--SpringBoot版本-->
-        <spring-boot.version>2.1.8.RELEASE</spring-boot.version>
-        <!--notify版本-->
-        <notify.version>0.1</notify.version>
+        <spring-boot.version>2.2.13.RELEASE</spring-boot.version>
+        <jackson.version>2.11.4</jackson.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <!-- 对象池，使用redis时必须引入 -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-pool2</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -81,7 +74,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.2.3</version>
+            <version>${jackson.version}</version>
         </dependency>
     </dependencies>
 
@@ -97,7 +90,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
 
 
     <repositories>
