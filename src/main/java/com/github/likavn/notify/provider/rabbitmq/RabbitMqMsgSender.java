@@ -1,6 +1,6 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
-import com.github.likavn.notify.api.MsgSender;
+import com.github.likavn.notify.base.DefaultMsgSender;
 import com.github.likavn.notify.config.NotifyRabbitMqConfig;
 import com.github.likavn.notify.constant.MsgConstant;
 import com.github.likavn.notify.domain.MsgRequest;
@@ -18,7 +18,7 @@ import java.util.UUID;
  * @since 2023/01/01
  */
 @Slf4j
-public class RabbitMqMsgSender implements MsgSender {
+public class RabbitMqMsgSender extends DefaultMsgSender {
     /**
      * 消息过期时间，避免消息未消费导致消息堆积
      */
@@ -32,9 +32,7 @@ public class RabbitMqMsgSender implements MsgSender {
 
     @Override
     public void send(MsgRequest<?> request) {
-        if (!initRequest(request)) {
-            return;
-        }
+        before(request);
         //构建回调返回的数据 可做其他业务处理
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         rabbitTemplate.convertAndSend(MsgConstant.EXCHANGE,
@@ -49,9 +47,7 @@ public class RabbitMqMsgSender implements MsgSender {
 
     @Override
     public void sendDelayMessage(MsgRequest<?> request, long delayTime) {
-        if (!initRequest(request)) {
-            return;
-        }
+        before(request);
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         log.info("发送消息id={}", correlationData.getId());
         rabbitTemplate.convertAndSend(

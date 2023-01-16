@@ -1,10 +1,6 @@
 package com.github.likavn.notify.api;
 
 import com.github.likavn.notify.domain.MsgRequest;
-import com.github.likavn.notify.utils.SpringUtil;
-
-import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 消息生产者
@@ -15,6 +11,7 @@ import java.util.UUID;
 public interface MsgSender {
     /**
      * 通知发送接口
+     * serviceId默认为本服务ID
      *
      * @param code 业务消息类型
      * @param body 消息体
@@ -49,28 +46,4 @@ public interface MsgSender {
      * @param delayTime  延时时间，单位：秒
      */
     void sendDelayMessage(MsgRequest<?> msgRequest, long delayTime);
-
-    /**
-     * 设置serviceId
-     *
-     * @param request request
-     * @return t
-     */
-    @SuppressWarnings("all")
-    default boolean initRequest(MsgRequest<?> request) {
-        if (null == request.getBody()) {
-            return false;
-        }
-        if (!Objects.nonNull(request.getServiceId())) {
-            request.setServiceId(SpringUtil.getServiceId());
-        }
-        if (!Objects.nonNull(request.getRequestId())) {
-            request.setRequestId(UUID.randomUUID().toString().replaceAll("-", ""));
-        }
-        if (null == request.getHandlerNum()) {
-            request.setHandlerNum(1);
-        }
-        request.setBodyClass(request.getBody().getClass());
-        return true;
-    }
 }
