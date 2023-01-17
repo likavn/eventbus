@@ -1,8 +1,6 @@
 package com.github.likavn.notify.config;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.alibaba.fastjson.support.spring.FastJsonRedisSerializer;
 import com.github.likavn.notify.api.MsgSender;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.prop.NotifyProperties;
@@ -19,7 +17,6 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.nio.charset.StandardCharsets;
@@ -96,13 +93,14 @@ public class NotifyRedisConfig {
          * 特别注意：1. 发布的时候需要设置序列化；订阅方也需要设置序列化
          *         2. 设置序列化对象必须放在[加入消息监听器]这一步后面，否则会导致接收器接收不到消息
          */
-        Jackson2JsonRedisSerializer seria = new Jackson2JsonRedisSerializer(Object.class);
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
-        seria.setObjectMapper(objectMapper);
-        container.setTopicSerializer(seria);
+//        Jackson2JsonRedisSerializer seria = new Jackson2JsonRedisSerializer(Object.class);
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+//        objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+//        seria.setObjectMapper(objectMapper);
 
+        FastJsonRedisSerializer seria = new FastJsonRedisSerializer(Object.class);
+        container.setTopicSerializer(seria);
         return container;
     }
 

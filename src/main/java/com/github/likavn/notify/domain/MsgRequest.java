@@ -1,6 +1,5 @@
 package com.github.likavn.notify.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.github.likavn.notify.api.DelayMsgListener;
 import lombok.Builder;
 import lombok.Data;
@@ -59,10 +58,5 @@ public class MsgRequest<T> implements Serializable {
         this.handler = handler;
         this.body = body;
         this.handlerNum = handlerNum;
-    }
-
-    @JsonIgnore
-    public String getTopic() {
-        return serviceId + "|" + code;
     }
 }

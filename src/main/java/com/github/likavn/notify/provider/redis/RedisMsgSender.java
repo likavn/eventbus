@@ -28,7 +28,7 @@ public class RedisMsgSender extends DefaultMsgSender {
     @Override
     public void send(MsgRequest<?> request) {
         before(request);
-        redisTemplate.convertAndSend(request.getTopic(), WrapUtils.toJson(request));
+        redisTemplate.convertAndSend(request.getServiceId() + "|" + request.getCode(), WrapUtils.toJson(request));
     }
 
     @Override
