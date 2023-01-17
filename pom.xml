@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.likavn</groupId>
     <artifactId>notify-spring-boot-starter</artifactId>
-    <version>0.1.2</version>
+    <version>1.0</version>
     <name>notify-spring-boot-starter</name>
     <url>https://github.com/likavn/notify-spring-boot-starter</url>
     <description>
-        Spring Boot 业务消息总线，分布式异步及延时消息
+        Spring Boot 分布式业务消息总线、延时消息等，屏蔽底层消息引擎类别，统一线上接口，可订阅异步消息及延时消息。目前可选择基于redis、rabbitmq等任一一种做消息引擎。
     </description>
 
     <developers>

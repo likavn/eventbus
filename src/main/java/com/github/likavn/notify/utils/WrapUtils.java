@@ -24,11 +24,19 @@ public class WrapUtils {
     private WrapUtils() {
     }
 
-    private static final ObjectMapper OBJECTMAPPER = new ObjectMapper()
-            .setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY)
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-            .setTimeZone(TimeZone.getTimeZone("GMT+8"));
+    /**
+     * ObjectMapper
+     */
+    private static final ObjectMapper OBJECT_MAPPER;
+
+    static {
+        // ObjectMapper init
+        OBJECT_MAPPER = new ObjectMapper();
+        OBJECT_MAPPER.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        OBJECT_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        OBJECT_MAPPER.setTimeZone(TimeZone.getTimeZone("GMT+8"));
+    }
 
     /**
      * toJson
@@ -39,9 +47,9 @@ public class WrapUtils {
     @SuppressWarnings("all")
     public static String toJson(Object value) {
         try {
-            return OBJECTMAPPER.writeValueAsString(value);
+            return OBJECT_MAPPER.writeValueAsString(value);
         } catch (Exception ex) {
-            log.error("RabbitMqMsgSender.send", ex);
+            log.error("WrapUtils.toJson", ex);
             throw new RuntimeException(ex);
         }
     }
@@ -55,9 +63,9 @@ public class WrapUtils {
     @SuppressWarnings("all")
     public static <T> T readJson(byte[] requestBytes, Class<T> valueType) {
         try {
-            return OBJECTMAPPER.readValue(requestBytes, valueType);
+            return OBJECT_MAPPER.readValue(requestBytes, valueType);
         } catch (Exception ex) {
-            log.error("RabbitMqMsgSender.send", ex);
+            log.error("WrapUtils.readJson", ex);
             throw new RuntimeException(ex);
         }
     }
@@ -85,10 +93,10 @@ public class WrapUtils {
         Object body = request.getBody();
         if (body instanceof Map) {
             try {
-                request.setBody(OBJECTMAPPER.readValue(OBJECTMAPPER.writeValueAsString(body), request.getBodyClass()));
+                request.setBody(OBJECT_MAPPER.readValue(OBJECT_MAPPER.writeValueAsString(body), request.getBodyClass()));
                 return request;
             } catch (Exception e) {
-                log.error("", e);
+                log.error("WrapUtils.convertByBytes", e);
             }
         }
         return request;
