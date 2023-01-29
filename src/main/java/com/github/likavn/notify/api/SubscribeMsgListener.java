@@ -1,6 +1,6 @@
 package com.github.likavn.notify.api;
 
-import com.github.likavn.notify.domain.MsgRequest;
+import com.github.likavn.notify.domain.Message;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.utils.SpringUtil;
 import com.github.likavn.notify.utils.WrapUtils;
@@ -121,23 +121,20 @@ public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
     /**
      * 接收器
      *
-     * @param msgRequest msgRequest
+     * @param message message
      */
-    public void receiver(MsgRequest<T> msgRequest) {
+    public void receiver(Message<T> message) {
         if (logger.isDebugEnabled()) {
-            logger.debug("BaseMsgReceiver.receiver msg：{}", WrapUtils.toJson(msgRequest));
+            logger.debug("SubscribeMsgListener.receiver msg：{}", WrapUtils.toJson(message));
         }
         try {
-            accept(msgRequest.getBody());
+            accept(message);
         } catch (Exception ex) {
-            logger.error("BaseMsgReceiver.receiver 业务异常", ex);
-            int retryHandleNum = null == msgRequest.getHandlerNum() ? 1 : msgRequest.getHandlerNum();
+            logger.error("SubscribeMsgListener.receiver 业务异常", ex);
+            int retryHandleNum = message.getDeliverNum();
             if (retryHandleNum < retry) {
-                msgSender.sendDelayMessage(MsgRequest.builder()
-                                .handler(this.getClass())
-                                .body(msgRequest.getBody())
-                                .handlerNum(retryHandleNum + 1)
-                                .build(),
+                msgSender.sendDelayMessage(this.getClass(), message.getBody(),
+                        retryHandleNum + 1,
                         // 下次重试时间
                         triggerTime);
             }
@@ -145,15 +142,15 @@ public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
     }
 
     @Override
-    public void onMessage(MsgRequest<T> event) {
-        receiver(event);
+    public void onMessage(Message<T> message) {
+        receiver(message);
     }
 
     /**
      * 数据接收
      *
-     * @param t 接收实体
+     * @param message 接收消息实体
      */
-    public abstract void accept(T t);
+    public abstract void accept(Message<T> message);
 
 }

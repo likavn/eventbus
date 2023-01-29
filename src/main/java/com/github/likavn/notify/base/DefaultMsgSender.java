@@ -1,7 +1,8 @@
 package com.github.likavn.notify.base;
 
+import com.github.likavn.notify.api.DelayMsgListener;
 import com.github.likavn.notify.api.MsgSender;
-import com.github.likavn.notify.domain.MsgRequest;
+import com.github.likavn.notify.domain.MetaRequest;
 import com.github.likavn.notify.utils.SpringUtil;
 import org.springframework.util.Assert;
 
@@ -23,7 +24,7 @@ public abstract class DefaultMsgSender implements MsgSender {
      * @return t
      */
     @SuppressWarnings("all")
-    protected void before(MsgRequest<?> request) {
+    protected MetaRequest before(MetaRequest<?> request) {
         Assert.notNull(request.getBody(), "消息体不能为空");
         if (!Objects.nonNull(request.getServiceId())) {
             request.setServiceId(SpringUtil.getServiceId());
@@ -31,9 +32,19 @@ public abstract class DefaultMsgSender implements MsgSender {
         if (!Objects.nonNull(request.getRequestId())) {
             request.setRequestId(UUID.randomUUID().toString().replaceAll("-", ""));
         }
-        if (null == request.getHandlerNum()) {
-            request.setHandlerNum(1);
+        if (null == request.getDeliverNumber()) {
+            request.setDeliverNumber(1);
         }
         request.setBodyClass(request.getBody().getClass());
+        return request;
+    }
+
+    protected MetaRequest<?> before(String serviceId, String code, Object body) {
+        return before(MetaRequest.builder().serviceId(serviceId).code(code).body(body).build());
+    }
+
+    @SuppressWarnings("all")
+    protected MetaRequest<?> before(Class<? extends DelayMsgListener> handler, String code, Object body, Integer deliverNumber) {
+        return before(MetaRequest.builder().handler(handler).code(code).body(body).deliverNumber(deliverNumber).build());
     }
 }

@@ -1,9 +1,10 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
+import com.github.likavn.notify.api.DelayMsgListener;
 import com.github.likavn.notify.base.DefaultMsgSender;
 import com.github.likavn.notify.config.NotifyRabbitMqConfig;
 import com.github.likavn.notify.constant.MsgConstant;
-import com.github.likavn.notify.domain.MsgRequest;
+import com.github.likavn.notify.domain.MetaRequest;
 import com.github.likavn.notify.utils.WrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +33,8 @@ public class RabbitMqMsgSender extends DefaultMsgSender {
     }
 
     @Override
-    public void send(MsgRequest<?> request) {
-        before(request);
+    public void send(String serviceId, String code, Object body) {
+        MetaRequest<?> request = before(serviceId, code, body);
         //构建回调返回的数据 可做其他业务处理
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         rabbitTemplate.convertAndSend(MsgConstant.EXCHANGE,
@@ -47,8 +48,9 @@ public class RabbitMqMsgSender extends DefaultMsgSender {
     }
 
     @Override
-    public void sendDelayMessage(MsgRequest<?> request, long delayTime) {
-        before(request);
+    @SuppressWarnings("all")
+    public void sendDelayMessage(Class<? extends DelayMsgListener> handler, String code, Object body, Integer deliverNumber, long delayTime) {
+        MetaRequest<?> request = before(handler, code, body, deliverNumber);
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         logger.debug("发送消息id={}", correlationData.getId());
         rabbitTemplate.convertAndSend(

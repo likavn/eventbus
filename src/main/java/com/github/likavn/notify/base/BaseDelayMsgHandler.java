@@ -1,7 +1,7 @@
 package com.github.likavn.notify.base;
 
 import com.github.likavn.notify.api.DelayMsgListener;
-import com.github.likavn.notify.domain.MsgRequest;
+import com.github.likavn.notify.domain.MetaRequest;
 import com.github.likavn.notify.utils.SpringUtil;
 import com.github.likavn.notify.utils.WrapUtils;
 import org.slf4j.Logger;
@@ -50,14 +50,14 @@ public abstract class BaseDelayMsgHandler {
      * @param body body
      */
     @SuppressWarnings("all")
-    private void receiver(MsgRequest<?> body) {
+    private void receiver(MetaRequest<?> request) {
         DelayMsgListener listener = handlerMap
-                .computeIfAbsent(body.getHandler(), key -> SpringUtil.getBean(body.getHandler()));
+                .computeIfAbsent(request.getHandler(), key -> SpringUtil.getBean(request.getHandler()));
         if (null != listener) {
-            logger.info("[延时消息]接收延时回调数据={}", WrapUtils.toJson(body));
-            listener.onMessage(body);
+            logger.info("[延时消息]接收延时回调数据={}", WrapUtils.toJson(request));
+            listener.onMessage(request);
         } else {
-            logger.error("[延时消息]不存在消息处理器，event={}", WrapUtils.toJson(body));
+            logger.error("[延时消息]不存在消息处理器，event={}", WrapUtils.toJson(request));
         }
     }
 

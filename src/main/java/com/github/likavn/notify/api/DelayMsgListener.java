@@ -1,6 +1,6 @@
 package com.github.likavn.notify.api;
 
-import com.github.likavn.notify.domain.MsgRequest;
+import com.github.likavn.notify.domain.Message;
 
 /**
  * 延时消息监听器
@@ -13,8 +13,8 @@ public interface DelayMsgListener<T> {
     /**
      * 处理器
      *
-     * @param msg 消息体
+     * @param message 消息体
      */
-    void onMessage(MsgRequest<T> msg);
+    void onMessage(Message<T> message);
 
 }
