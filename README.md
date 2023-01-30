@@ -21,11 +21,15 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 
 异步业务消息订阅及延时消息订阅
 
+
+
 ## 有哪些场景可以使用？
 
 单一业务分发消息进行异步处理时，比如业务完成推送业务数据给第三方；
 
 支付时，后端服务需要定时轮训支付接口查询是否支付成功；
+
+
 
 ## 快速开始
 
@@ -35,13 +39,15 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 <dependency>
     <groupId>com.github.likavn</groupId>
     <artifactId>notify-spring-boot-starter</artifactId>
-    <version>1.1.3</version>
+    <version>1.3.1</version>
 </dependency>
 ```
 
+
+
 ### 设置消息引擎类别
 
-在yml文件中设置如下
+在application.yml文件中配置消息引擎类别，如下：
 
 ```yaml
 notify:
@@ -83,8 +89,8 @@ public class SubscribeMsgDemoListener extends SubscribeMsgListener<String> {
   	 * 接收业务消息体对象数据
   	 */
     @Override
-    public void accept(String msg) {
-        log.info("消息监听：{}", msg);
+    public void accept(Message<String> message) {
+        log.info("消息监听,body:{}", message.getBody());
     }
 }
 ```
@@ -113,8 +119,8 @@ msgSender.sendDelayMessage(DelayMsgDemoListener.class, "922321333", 5);
 @Component
 public class DelayMsgDemoListener implements DelayMsgListener<String> {
     @Override
-    public void onMessage(MsgRequest<String> msg) {
-        log.info("接收延时消息回调body:{}", msg.getBody());
+    public void onMessage(Message<String> message) {
+        log.info("接收延时消息回调body:{}", message.getBody());
     }
 }
 ```
