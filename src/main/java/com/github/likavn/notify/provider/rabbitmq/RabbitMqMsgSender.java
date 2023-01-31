@@ -2,9 +2,9 @@ package com.github.likavn.notify.provider.rabbitmq;
 
 import com.github.likavn.notify.api.DelayMsgListener;
 import com.github.likavn.notify.base.DefaultMsgSender;
-import com.github.likavn.notify.config.NotifyRabbitMqConfig;
-import com.github.likavn.notify.constant.MsgConstant;
 import com.github.likavn.notify.domain.MetaRequest;
+import com.github.likavn.notify.provider.rabbitmq.config.NotifyRabbitMqConfig;
+import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
 import com.github.likavn.notify.utils.WrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +37,8 @@ public class RabbitMqMsgSender extends DefaultMsgSender {
         MetaRequest<?> request = before(serviceId, code, body);
         //构建回调返回的数据 可做其他业务处理
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
-        rabbitTemplate.convertAndSend(MsgConstant.EXCHANGE,
-                String.format(MsgConstant.ROUTING, request.getServiceId(), request.getCode()),
+        rabbitTemplate.convertAndSend(RabbitMqConstant.EXCHANGE,
+                String.format(RabbitMqConstant.ROUTING, request.getServiceId(), request.getCode()),
                 WrapUtils.toJson(request),
                 message -> {
                     message.getMessageProperties().setExpiration(MSG_EXPIRE + "");

@@ -1,17 +1,16 @@
-package com.github.likavn.notify.config;
+package com.github.likavn.notify.provider.rabbitmq.config;
 
 import com.github.likavn.notify.api.MsgSender;
-import com.github.likavn.notify.constant.MsgConstant;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqDelayMsgListener;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqMsgSender;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqSubscribeMsgListener;
+import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
 import com.github.likavn.notify.utils.SpringUtil;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -39,16 +38,15 @@ public class NotifyRabbitMqConfig {
 
     static {
         String appName = SpringUtil.getServiceId();
-        DELAY_EXCHANGE_NAME = String.format(MsgConstant.DELAY_EXCHANGE, appName);
-        DELAY_QUEUE_NAME = String.format(MsgConstant.DELAY_QUEUE, appName);
-        DELAY_ROUTING_NAME = String.format(MsgConstant.DELAY_ROUTING_KEY, appName);
+        DELAY_EXCHANGE_NAME = String.format(RabbitMqConstant.DELAY_EXCHANGE, appName);
+        DELAY_QUEUE_NAME = String.format(RabbitMqConstant.DELAY_QUEUE, appName);
+        DELAY_ROUTING_NAME = String.format(RabbitMqConstant.DELAY_ROUTING_KEY, appName);
     }
 
     /**
      * 消息通知rabbitmq实现
      */
     @Bean
-    @ConditionalOnBean(RabbitTemplate.class)
     public MsgSender rabbitsMqMsgSender(RabbitTemplate rabbitTemplate) {
         return new RabbitMqMsgSender(rabbitTemplate);
     }
@@ -57,7 +55,6 @@ public class NotifyRabbitMqConfig {
      * 初始化延时事件消息监听器
      */
     @Bean
-    @ConditionalOnBean(CachingConnectionFactory.class)
     public RabbitMqDelayMsgListener delayMessageListener(CachingConnectionFactory connectionFactory,
                                                          @Qualifier("liDelayQueue") Queue delayQueue) {
         return new RabbitMqDelayMsgListener(connectionFactory, delayQueue);
@@ -68,7 +65,7 @@ public class NotifyRabbitMqConfig {
      */
     @Bean
     public TopicExchange liTopicExchange() {
-        return new TopicExchange(MsgConstant.EXCHANGE);
+        return new TopicExchange(RabbitMqConstant.EXCHANGE);
     }
 
     /**
@@ -105,7 +102,6 @@ public class NotifyRabbitMqConfig {
     }
 
     @Bean
-    @ConditionalOnBean(CachingConnectionFactory.class)
     public RabbitMqSubscribeMsgListener rabbitMqSubscribeMsgListener(
             CachingConnectionFactory connectionFactory, NotifyProperties config) {
         return new RabbitMqSubscribeMsgListener(config.getSubMsgConsumers(), connectionFactory);

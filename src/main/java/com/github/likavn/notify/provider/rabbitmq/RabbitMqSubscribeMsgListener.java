@@ -1,7 +1,7 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
-import com.github.likavn.notify.constant.MsgConstant;
 import com.github.likavn.notify.domain.SubMsgConsumer;
+import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
@@ -43,7 +43,7 @@ public class RabbitMqSubscribeMsgListener {
             Channel createChannel = newConnection.createChannel(false);
 
             // 定义队列名称
-            String queueName = String.format(MsgConstant.QUEUE,
+            String queueName = String.format(RabbitMqConstant.QUEUE,
                     consumer.getServiceId(),
                     consumer.getCode(),
                     consumer.getListener().getClass().getName());
@@ -61,9 +61,9 @@ public class RabbitMqSubscribeMsgListener {
             createChannel.queueDeclare(queueName, true, false, false, null);
 
             createChannel.queueBind(queueName,
-                    MsgConstant.EXCHANGE,
+                    RabbitMqConstant.EXCHANGE,
                     // 设置路由key
-                    String.format(MsgConstant.ROUTING, consumer.getServiceId(), consumer.getCode()));
+                    String.format(RabbitMqConstant.ROUTING, consumer.getServiceId(), consumer.getCode()));
 
             DefaultConsumer defaultConsumer = new DefaultConsumer(createChannel) {
                 @Override

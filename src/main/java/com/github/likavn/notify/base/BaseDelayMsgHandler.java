@@ -54,7 +54,9 @@ public abstract class BaseDelayMsgHandler {
         DelayMsgListener listener = handlerMap
                 .computeIfAbsent(request.getHandler(), key -> SpringUtil.getBean(request.getHandler()));
         if (null != listener) {
-            logger.info("[延时消息]接收延时回调数据={}", WrapUtils.toJson(request));
+            if (logger.isDebugEnabled()) {
+                logger.debug("[延时消息]接收延时回调数据={}", WrapUtils.toJson(request));
+            }
             listener.onMessage(request);
         } else {
             logger.error("[延时消息]不存在消息处理器，event={}", WrapUtils.toJson(request));

@@ -2,8 +2,8 @@ package com.github.likavn.notify.provider.redis;
 
 import com.github.likavn.notify.api.DelayMsgListener;
 import com.github.likavn.notify.base.DefaultMsgSender;
-import com.github.likavn.notify.constant.MsgConstant;
 import com.github.likavn.notify.domain.MetaRequest;
+import com.github.likavn.notify.provider.redis.constant.RedisConstant;
 import com.github.likavn.notify.utils.SpringUtil;
 import com.github.likavn.notify.utils.WrapUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,7 @@ public class RedisMsgSender extends DefaultMsgSender {
             Class<? extends DelayMsgListener> handler, String code, Object body, Integer deliverNumber, long delayTime) {
         MetaRequest<?> request = before(handler, code, body, deliverNumber);
         redisTemplate.opsForZSet().add(
-                String.format(MsgConstant.REDIS_Z_SET_KEY, SpringUtil.getServiceId()),
+                String.format(RedisConstant.REDIS_Z_SET_KEY, SpringUtil.getServiceId()),
                 WrapUtils.toJson(request),
                 Instant.now().getEpochSecond() + delayTime);
     }

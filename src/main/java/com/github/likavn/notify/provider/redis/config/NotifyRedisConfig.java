@@ -1,4 +1,4 @@
-package com.github.likavn.notify.config;
+package com.github.likavn.notify.provider.redis.config;
 
 import com.alibaba.fastjson.support.spring.FastJsonRedisSerializer;
 import com.github.likavn.notify.api.MsgSender;
@@ -8,8 +8,6 @@ import com.github.likavn.notify.provider.redis.RedisDelayMsgListener;
 import com.github.likavn.notify.provider.redis.RedisMsgSender;
 import com.github.likavn.notify.provider.redis.RedisSubscribeMsgListener;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,12 +26,10 @@ import java.nio.charset.StandardCharsets;
  * @since 2023/01/01
  */
 @Configuration
-@ConditionalOnClass(RedisConnectionFactory.class)
 @ConditionalOnProperty(prefix = "notify", name = "type", havingValue = "redis")
 public class NotifyRedisConfig {
 
     @Bean
-    @ConditionalOnBean(RedisConnectionFactory.class)
     public RedisTemplate<String, String> notifyRedisTemplate(RedisConnectionFactory factory) {
         StringRedisSerializer valueSerializer = new StringRedisSerializer(StandardCharsets.UTF_8);
         RedisTemplate<String, String> template = new RedisTemplate<>();

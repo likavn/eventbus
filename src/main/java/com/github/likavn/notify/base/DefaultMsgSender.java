@@ -15,6 +15,7 @@ import java.util.UUID;
  * @author likavn
  * @since 2023/01/01
  */
+@SuppressWarnings("all")
 public abstract class DefaultMsgSender implements MsgSender {
 
     /**
@@ -23,7 +24,6 @@ public abstract class DefaultMsgSender implements MsgSender {
      * @param request request
      * @return t
      */
-    @SuppressWarnings("all")
     protected MetaRequest before(MetaRequest<?> request) {
         Assert.notNull(request.getBody(), "消息体不能为空");
         if (!Objects.nonNull(request.getServiceId())) {
@@ -43,7 +43,6 @@ public abstract class DefaultMsgSender implements MsgSender {
         return before(MetaRequest.builder().serviceId(serviceId).code(code).body(body).build());
     }
 
-    @SuppressWarnings("all")
     protected MetaRequest<?> before(Class<? extends DelayMsgListener> handler, String code, Object body, Integer deliverNumber) {
         return before(MetaRequest.builder().handler(handler).code(code).body(body).deliverNumber(deliverNumber).build());
     }
