@@ -43,8 +43,6 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 </dependency>
 ```
 
-
-
 ### 设置消息引擎类别
 
 在application.yml文件中配置消息引擎类别，如下：
@@ -52,6 +50,26 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 ```yaml
 notify:
   type: redis  #redis或者rabbitmq
+```
+
+如果是redis，需要在pom.xml单独引入，如下：
+
+```xml
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+如果是rabbitmq，需要在pom.xml单独引入，如下：
+
+```xml
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-amqp</artifactId>
+</dependency>
 ```
 
 ### 发送与订阅异步消息
@@ -66,22 +84,24 @@ private MsgSender msgSender;
 msgSender.send("testMsgSubscribe", "charging");
 ```
 
+
+
 订阅异步业务消息监听器实现类SubscribeMsgDemoListener.java
 
 ```java
 /**
- * 订阅异步消息实现类
- * 继承超类【SubscribeMsgDemoListener】并设置监听的消息实体对象
+ * 订阅异步消息
+ * 继承超类【SubscribeMsgListener】并设置监听的消息实体对象
  */
 @Slf4j
 @Component
 public class SubscribeMsgDemoListener extends SubscribeMsgListener<String> {
 
-  	/**
-  	 * 必须有一个构造函数订阅业务消息类型
-  	 */
+    /**
+     * 必须有一个构造函数订阅业务消息类型
+     */
     public SubscribeMsgDemoListener() {
-      	// 设置订阅的业务消息类型，其他类型的服务的消息类型，可设置对应服务id+业务消息类型code
+        // 设置订阅的业务消息类型，其他类型的服务的消息类型，可设置对应服务id+业务消息类型code
         super(Collections.singletonList("testMsgSubscribe"));
     }
 
