@@ -39,9 +39,11 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 <dependency>
     <groupId>com.github.likavn</groupId>
     <artifactId>notify-spring-boot-starter</artifactId>
-    <version>1.3.1</version>
+    <version>1.3.2</version>
 </dependency>
 ```
+
+
 
 ### 设置消息引擎类别
 
@@ -105,9 +107,9 @@ public class SubscribeMsgDemoListener extends SubscribeMsgListener<String> {
         super(Collections.singletonList("testMsgSubscribe"));
     }
 
-  	/**
-  	 * 接收业务消息体对象数据
-  	 */
+    /**
+     * 接收业务消息体对象数据
+     */
     @Override
     public void accept(Message<String> message) {
         log.info("消息监听,body:{}", message.getBody());
