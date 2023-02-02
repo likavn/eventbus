@@ -2,15 +2,13 @@ package com.github.likavn.notify.provider.rabbitmq;
 
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.Connection;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -21,6 +19,11 @@ import java.util.List;
  **/
 public class RabbitMqSubscribeMsgListener {
     private static final Logger logger = LoggerFactory.getLogger(RabbitMqSubscribeMsgListener.class);
+
+    /**
+     * 是否创建交换机
+     */
+    private boolean isCreateExchange = false;
 
     @SuppressWarnings("all")
     public RabbitMqSubscribeMsgListener(List<SubMsgConsumer> consumers,
@@ -41,6 +44,9 @@ public class RabbitMqSubscribeMsgListener {
     private void bindListener(SubMsgConsumer consumer, Connection newConnection) {
         try {
             Channel createChannel = newConnection.createChannel(false);
+
+            // 初始创建交换机
+            createExchange(createChannel);
 
             // 定义队列名称
             String queueName = String.format(RabbitMqConstant.QUEUE,
@@ -86,6 +92,20 @@ public class RabbitMqSubscribeMsgListener {
         } catch (Exception e) {
             logger.error("BaseMsgReceiver.initRabbitMq", e);
         }
+    }
+
+    /**
+     * 创建交换机
+     *
+     * @param channel 通道
+     * @throws IOException e
+     */
+    private void createExchange(Channel channel) throws IOException {
+        if (isCreateExchange) {
+            return;
+        }
+        channel.exchangeDeclare(RabbitMqConstant.EXCHANGE, BuiltinExchangeType.TOPIC);
+        isCreateExchange = true;
     }
 
 }

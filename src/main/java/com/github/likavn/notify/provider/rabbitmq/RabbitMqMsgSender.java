@@ -3,8 +3,8 @@ package com.github.likavn.notify.provider.rabbitmq;
 import com.github.likavn.notify.api.DelayMsgListener;
 import com.github.likavn.notify.base.DefaultMsgSender;
 import com.github.likavn.notify.domain.MetaRequest;
-import com.github.likavn.notify.provider.rabbitmq.config.NotifyRabbitMqConfig;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
+import com.github.likavn.notify.utils.SpringUtil;
 import com.github.likavn.notify.utils.WrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +54,8 @@ public class RabbitMqMsgSender extends DefaultMsgSender {
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         logger.debug("发送消息id={}", correlationData.getId());
         rabbitTemplate.convertAndSend(
-                NotifyRabbitMqConfig.getDelayExchangeName(),
-                NotifyRabbitMqConfig.getDelayRoutingName(),
+                String.format(RabbitMqConstant.DELAY_EXCHANGE, SpringUtil.getServiceId()),
+                String.format(RabbitMqConstant.DELAY_ROUTING_KEY, SpringUtil.getServiceId()),
                 WrapUtils.toJson(request),
                 message -> {
                     //配置消息的过期时间
