@@ -1,5 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   com.github.likavn.notify.config.NotifyConfig,\
-  com.github.likavn.notify.provider.rabbitmq.config.NotifyRabbitMqConfig,\
-  com.github.likavn.notify.provider.redis.config.NotifyRedisConfig,\
   com.github.likavn.notify.utils.SpringUtil

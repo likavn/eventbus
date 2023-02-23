@@ -16,6 +16,7 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@SuppressWarnings("all")
 public class MetaRequest<T> implements Message<T>, Serializable {
     private static final long serialVersionUID = 1L;
     /**
@@ -45,7 +46,6 @@ public class MetaRequest<T> implements Message<T>, Serializable {
     /**
      * 延时消息处理对象
      */
-    @SuppressWarnings("all")
     private Class<? extends DelayMsgListener> handler;
     /**
      * 消息体
@@ -53,7 +53,6 @@ public class MetaRequest<T> implements Message<T>, Serializable {
     private Class<?> bodyClass;
 
     @Builder
-    @SuppressWarnings("all")
     public MetaRequest(Class<? extends DelayMsgListener> handler, String code, T body, Integer deliverNumber) {
         this.handler = handler;
         this.code = code;
@@ -101,7 +100,6 @@ public class MetaRequest<T> implements Message<T>, Serializable {
         this.body = body;
     }
 
-    @SuppressWarnings("all")
     public void setHandler(Class<? extends DelayMsgListener> handler) {
         this.handler = handler;
     }
@@ -118,7 +116,6 @@ public class MetaRequest<T> implements Message<T>, Serializable {
         return deliverNumber;
     }
 
-    @SuppressWarnings("all")
     public Class<? extends DelayMsgListener> getHandler() {
         return handler;
     }

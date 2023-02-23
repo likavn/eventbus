@@ -9,9 +9,11 @@
     <name>notify-spring-boot-starter</name>
     <url>https://github.com/likavn/notify-spring-boot-starter</url>
     <description>
-        Spring Boot 分布式业务消息总线、延时消息等，
-        屏蔽底层消息引擎类别，统一线上接口，可订阅异步消息及延时消息。
-        目前可选择基于redis、rabbitmq等任一一种做消息引擎。
+        notify-spring-boot-starter消息组件是用来将分布式系统的节点与轻量级消息系统连接起来的框架，
+        支持分布式业务消息总线、延时消息等，屏蔽底层消息引擎种类，提供线上统一的接口，
+        可发送异步消息及延时消息，同时可订阅异步消息或延时消息。目前可选择基于redis、rabbitmq等任一一种做消息引擎，其他消息中间件将陆续支持。
+
+        注意：它不属于`消息中间件`，他是通过和消息中间件整合，来完成服务之间消息通讯，类似于消息代理。
     </description>
 
     <developers>
@@ -51,19 +53,9 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
-        <!--https://docs.spring.io/spring-boot/docs/2.1.6.RELEASE/reference/html/configuration-metadata.html#configuration-metadata-annotation-processor-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -75,6 +67,16 @@
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
             <version>1.2.83</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 
@@ -91,13 +93,17 @@
         </dependencies>
     </dependencyManagement>
 
-
     <repositories>
         <!--阿里云私服-->
         <repository>
             <id>aliyun</id>
             <name>aliyun</name>
             <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
         </repository>
     </repositories>
 

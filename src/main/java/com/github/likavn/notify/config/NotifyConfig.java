@@ -1,10 +1,15 @@
 package com.github.likavn.notify.config;
 
 import com.github.likavn.notify.api.SubscribeMsgListener;
+import com.github.likavn.notify.domain.MetaServiceProperty;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.prop.NotifyProperties;
+import com.github.likavn.notify.provider.rabbitmq.config.NotifyRabbitMqConfig;
+import com.github.likavn.notify.provider.redis.config.NotifyRedisConfig;
 import com.github.likavn.notify.utils.SpringUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,13 +26,15 @@ import java.util.Map;
  */
 @Slf4j
 @Configuration
+@ImportAutoConfiguration({NotifyRedisConfig.class, NotifyRabbitMqConfig.class})
+@EnableConfigurationProperties(NotifyProperties.class)
 public class NotifyConfig {
     @Bean
     @SuppressWarnings("all")
-    public NotifyProperties notifyProperties(ApplicationContext applicationContext) {
+    public MetaServiceProperty notifyProperties(ApplicationContext applicationContext) {
         String appName = SpringUtil.getServiceId();
-        NotifyProperties notifyProperties = new NotifyProperties();
-        notifyProperties.setServiceId(appName);
+        MetaServiceProperty serviceProperty = new MetaServiceProperty();
+        serviceProperty.setServiceId(appName);
 
         // 获取订阅器
         List<SubMsgConsumer> subMsgConsumers = new ArrayList<>();
@@ -37,7 +44,7 @@ public class NotifyConfig {
                 subMsgConsumers.addAll(listener.getSubMsgConsumers());
             }
         }
-        notifyProperties.setSubMsgConsumers(subMsgConsumers);
-        return notifyProperties;
+        serviceProperty.setSubMsgConsumers(subMsgConsumers);
+        return serviceProperty;
     }
 }

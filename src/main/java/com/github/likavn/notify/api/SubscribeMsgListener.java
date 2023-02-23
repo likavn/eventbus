@@ -55,7 +55,7 @@ public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
      * @param codes 消息编码
      */
     protected SubscribeMsgListener(List<String> codes) {
-        this(SpringUtil.getServiceId(), codes.toArray(new String[0]));
+        this(null, codes.toArray(new String[0]));
     }
 
     /**
@@ -65,8 +65,23 @@ public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
      * @param codes     消息编码
      */
     protected SubscribeMsgListener(String serviceId, String... codes) {
+        if (null == serviceId || serviceId.trim().length() == 0) {
+            serviceId = SpringUtil.getServiceId();
+        }
         this.serviceId = serviceId;
         this.codes = codes;
+    }
+
+    /**
+     * 构造器
+     *
+     * @param triggerTime 失败时下次触发的间隔时间,单位：秒
+     * @param serviceId   消息服务的ID
+     * @param codes       消息编码
+     */
+    protected SubscribeMsgListener(long triggerTime, String serviceId, String... codes) {
+        this(serviceId, codes);
+        this.triggerTime = triggerTime;
     }
 
     /**

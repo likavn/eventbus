@@ -1,9 +1,8 @@
 package com.github.likavn.notify.prop;
 
-import com.github.likavn.notify.domain.SubMsgConsumer;
 import lombok.Data;
-
-import java.util.List;
+import lombok.ToString;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * 配置
@@ -12,15 +11,29 @@ import java.util.List;
  * @since 2023/01/01
  */
 @Data
+@ToString
+@ConfigurationProperties(prefix = "notify")
 public class NotifyProperties {
+    /**
+     * 消息引擎类别（redis、rabbitmq）
+     */
+    private String type;
 
     /**
-     * 服务ID
+     * redis配置
      */
-    private String serviceId;
+    private Redis redis = new Redis();
 
     /**
-     * 订阅器
+     * redis配置
      */
-    List<SubMsgConsumer> subMsgConsumers;
+    @Data
+    @ToString
+    public static class Redis {
+        /**
+         * redis分布式锁，锁超时时间,单位：秒
+         */
+        private Long lockTimeout = 15L;
+
+    }
 }

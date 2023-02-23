@@ -45,4 +45,14 @@ public final class SubMsgConsumer {
     public void accept(byte[] body) {
         listener.receiver(WrapUtils.convertByBytes(body));
     }
+
+    /**
+     * 数据接收
+     *
+     * @param message
+     */
+    @SuppressWarnings("all")
+    public void accept(Message message) {
+        listener.receiver(message);
+    }
 }

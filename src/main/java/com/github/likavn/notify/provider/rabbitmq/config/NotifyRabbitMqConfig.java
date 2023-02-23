@@ -1,7 +1,7 @@
 package com.github.likavn.notify.provider.rabbitmq.config;
 
 import com.github.likavn.notify.api.MsgSender;
-import com.github.likavn.notify.prop.NotifyProperties;
+import com.github.likavn.notify.domain.MetaServiceProperty;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqDelayMsgListener;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqMsgSender;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqSubscribeMsgListener;
@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
  * @since 2023/01/01
  */
 @Configuration
+@SuppressWarnings("all")
 @ConditionalOnClass(RabbitTemplate.class)
 @ConditionalOnProperty(prefix = "notify", name = "type", havingValue = "rabbitmq")
 public class NotifyRabbitMqConfig {
@@ -33,8 +34,8 @@ public class NotifyRabbitMqConfig {
 
     @Bean
     public RabbitMqSubscribeMsgListener rabbitMqSubscribeMsgListener(
-            CachingConnectionFactory connectionFactory, NotifyProperties config) {
-        return new RabbitMqSubscribeMsgListener(config.getSubMsgConsumers(), connectionFactory);
+            CachingConnectionFactory connectionFactory, MetaServiceProperty serviceProperty) {
+        return new RabbitMqSubscribeMsgListener(serviceProperty.getSubMsgConsumers(), connectionFactory);
     }
 
     /**

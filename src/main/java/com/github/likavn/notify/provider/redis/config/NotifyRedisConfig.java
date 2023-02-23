@@ -2,8 +2,10 @@ package com.github.likavn.notify.provider.redis.config;
 
 import com.alibaba.fastjson.support.spring.FastJsonRedisSerializer;
 import com.github.likavn.notify.api.MsgSender;
+import com.github.likavn.notify.domain.MetaServiceProperty;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.prop.NotifyProperties;
+import com.github.likavn.notify.provider.redis.RLock;
 import com.github.likavn.notify.provider.redis.RedisDelayMsgListener;
 import com.github.likavn.notify.provider.redis.RedisMsgSender;
 import com.github.likavn.notify.provider.redis.RedisSubscribeMsgListener;
@@ -26,6 +28,7 @@ import java.nio.charset.StandardCharsets;
  * @since 2023/01/01
  */
 @Configuration
+@SuppressWarnings("all")
 @ConditionalOnProperty(prefix = "notify", name = "type", havingValue = "redis")
 public class NotifyRedisConfig {
 
@@ -62,6 +65,15 @@ public class NotifyRedisConfig {
     }
 
     /**
+     * 初始化延时事件消息监听器
+     */
+    @Bean
+    public RLock liRLock(
+            @Qualifier("notifyRedisTemplate") RedisTemplate<String, String> redisTemplate) {
+        return new RLock(redisTemplate);
+    }
+
+    /**
      * Redis消息监听器容器
      * 这个容器加载了RedisConnectionFactory和消息监听器
      * 可以添加多个监听不同话题的redis监听器，只需要把消息监听器和相应的消息订阅处理器绑定，该消息监听器
@@ -74,27 +86,18 @@ public class NotifyRedisConfig {
     @Bean
     @SuppressWarnings("all")
     public RedisMessageListenerContainer container(RedisConnectionFactory redisConnectionFactory,
-                                                   NotifyProperties config) {
+                                                   RLock rLock,
+                                                   NotifyProperties properties,
+                                                   MetaServiceProperty serviceProperty) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         // 监听所有库的key过期事件
         container.setConnectionFactory(redisConnectionFactory);
         // 所有的订阅消息，都需要在这里进行注册绑定,new PatternTopic(TOPIC_NAME1)表示发布的主题信息
         // 可以添加多个 messageListener，配置不同的通道
-        for (SubMsgConsumer consumer : config.getSubMsgConsumers()) {
-            container.addMessageListener(new RedisSubscribeMsgListener(consumer),
+        for (SubMsgConsumer consumer : serviceProperty.getSubMsgConsumers()) {
+            container.addMessageListener(new RedisSubscribeMsgListener(properties, consumer, rLock),
                     new PatternTopic(consumer.getTopic()));
         }
-        /**
-         * 设置序列化对象
-         * 特别注意：1. 发布的时候需要设置序列化；订阅方也需要设置序列化
-         *         2. 设置序列化对象必须放在[加入消息监听器]这一步后面，否则会导致接收器接收不到消息
-         */
-//        Jackson2JsonRedisSerializer seria = new Jackson2JsonRedisSerializer(Object.class);
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-//        objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
-//        seria.setObjectMapper(objectMapper);
-
         FastJsonRedisSerializer seria = new FastJsonRedisSerializer(Object.class);
         container.setTopicSerializer(seria);
         return container;

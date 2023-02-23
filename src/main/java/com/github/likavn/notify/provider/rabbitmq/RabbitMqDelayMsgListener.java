@@ -64,14 +64,14 @@ public class RabbitMqDelayMsgListener extends BaseDelayMsgHandler {
                     try {
                         receiver(body);
                     } catch (Exception ex) {
-                        logger.error("DelayMessageListener", ex);
+                        logger.error("RabbitMqDelayMsgListener", ex);
                     }
                 }
             };
             String queueName = String.format(RabbitMqConstant.DELAY_QUEUE, SpringUtil.getServiceId());
             channel.basicConsume(queueName, true, defaultConsumer);
         } catch (Exception e) {
-            logger.error("DelayMessageListener.initRabbitMq", e);
+            logger.error("RabbitMqDelayMsgListener.init", e);
         }
     }
 
