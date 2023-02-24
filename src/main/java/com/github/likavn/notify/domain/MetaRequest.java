@@ -61,6 +61,11 @@ public class MetaRequest<T> implements Message<T>, Serializable {
     }
 
     @Override
+    public String getRequestId() {
+        return requestId;
+    }
+
+    @Override
     public String getServiceId() {
         return this.serviceId;
     }
@@ -106,10 +111,6 @@ public class MetaRequest<T> implements Message<T>, Serializable {
 
     public void setBodyClass(Class<?> bodyClass) {
         this.bodyClass = bodyClass;
-    }
-
-    public String getRequestId() {
-        return requestId;
     }
 
     public Integer getDeliverNumber() {

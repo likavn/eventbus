@@ -39,7 +39,7 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 <dependency>
     <groupId>com.github.likavn</groupId>
     <artifactId>notify-spring-boot-starter</artifactId>
-    <version>1.3.2</version>
+    <version>1.3.3</version>
 </dependency>
 ```
 

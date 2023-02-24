@@ -8,6 +8,13 @@ package com.github.likavn.notify.domain;
  */
 public interface Message<T> {
     /**
+     * 获取消息ID
+     *
+     * @return 消息ID
+     */
+    String getRequestId();
+
+    /**
      * 消息所属来源服务ID,服务名
      *
      * @return 应用服务ID
