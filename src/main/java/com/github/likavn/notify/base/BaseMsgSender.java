@@ -1,8 +1,7 @@
 package com.github.likavn.notify.base;
 
-import com.github.likavn.notify.api.DelayMsgListener;
 import com.github.likavn.notify.api.MsgSender;
-import com.github.likavn.notify.domain.MetaRequest;
+import com.github.likavn.notify.domain.Request;
 import com.github.likavn.notify.utils.SpringUtil;
 import org.springframework.util.Assert;
 
@@ -16,7 +15,7 @@ import java.util.UUID;
  * @since 2023/01/01
  */
 @SuppressWarnings("all")
-public abstract class DefaultMsgSender implements MsgSender {
+public abstract class BaseMsgSender implements MsgSender {
 
     /**
      * 发送消息前置操作
@@ -24,7 +23,7 @@ public abstract class DefaultMsgSender implements MsgSender {
      * @param request request
      * @return t
      */
-    protected MetaRequest before(MetaRequest<?> request) {
+    protected Request wrap(Request<?> request) {
         Assert.notNull(request.getBody(), "消息体不能为空");
         if (!Objects.nonNull(request.getServiceId())) {
             request.setServiceId(SpringUtil.getServiceId());
@@ -32,18 +31,13 @@ public abstract class DefaultMsgSender implements MsgSender {
         if (!Objects.nonNull(request.getRequestId())) {
             request.setRequestId(UUID.randomUUID().toString().replaceAll("-", ""));
         }
-        if (null == request.getDeliverNumber()) {
-            request.setDeliverNumber(1);
+        if (null == request.getDeliverNum()) {
+            request.setDeliverNum(1);
+        }
+        if (null != request.getHandler()) {
+            Assert.isTrue(!(null == request.getDelayTime() || 0 >= request.getDelayTime()), "delayTime is null or zreo");
         }
         request.setBodyClass(request.getBody().getClass());
         return request;
-    }
-
-    protected MetaRequest<?> before(String serviceId, String code, Object body) {
-        return before(MetaRequest.builder().serviceId(serviceId).code(code).body(body).build());
-    }
-
-    protected MetaRequest<?> before(Class<? extends DelayMsgListener> handler, String code, Object body, Integer deliverNumber) {
-        return before(MetaRequest.builder().handler(handler).code(code).body(body).deliverNumber(deliverNumber).build());
     }
 }

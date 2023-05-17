@@ -1,15 +1,13 @@
 package com.github.likavn.notify.provider.redis;
 
-import com.github.likavn.notify.api.DelayMsgListener;
-import com.github.likavn.notify.base.DefaultMsgSender;
-import com.github.likavn.notify.domain.MetaRequest;
+import com.github.likavn.notify.base.BaseMsgSender;
+import com.github.likavn.notify.domain.Request;
 import com.github.likavn.notify.provider.redis.constant.RedisConstant;
 import com.github.likavn.notify.utils.SpringUtil;
 import com.github.likavn.notify.utils.WrapUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.connection.stream.Record;
 import org.springframework.data.redis.core.RedisTemplate;
-
-import java.time.Instant;
 
 /**
  * 通知生产者
@@ -18,7 +16,7 @@ import java.time.Instant;
  * @since 2023/01/01
  */
 @Slf4j
-public class RedisMsgSender extends DefaultMsgSender {
+public class RedisMsgSender extends BaseMsgSender {
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -27,19 +25,21 @@ public class RedisMsgSender extends DefaultMsgSender {
     }
 
     @Override
-    public void send(String serviceId, String code, Object body) {
-        MetaRequest<?> request = before(serviceId, code, body);
-        redisTemplate.convertAndSend(request.getServiceId() + "|" + request.getCode(), WrapUtils.toJson(request));
+    public void send(Request<?> request) {
+        request.setIsOrgSub(Boolean.TRUE);
+        request = wrap(request);
+        redisTemplate.opsForStream().add(Record.of(WrapUtils
+                        .toJson(request))
+                .withStreamKey(String.format(RedisConstant.NOTIFY_SUBSCRIBE_PREFIX, request.getTopic())));
     }
 
     @Override
     @SuppressWarnings("all")
-    public void sendDelayMessage(
-            Class<? extends DelayMsgListener> handler, String code, Object body, Integer deliverNumber, long delayTime) {
-        MetaRequest<?> request = before(handler, code, body, deliverNumber);
+    public void sendDelayMessage(Request<?> request) {
+        request = wrap(request);
         redisTemplate.opsForZSet().add(
-                String.format(RedisConstant.REDIS_Z_SET_KEY, SpringUtil.getServiceId()),
+                String.format(RedisConstant.NOTIFY_DELAY_PREFIX, SpringUtil.getServiceId()),
                 WrapUtils.toJson(request),
-                Instant.now().getEpochSecond() + delayTime);
+                System.currentTimeMillis() + (1000L * request.getDelayTime()));
     }
 }

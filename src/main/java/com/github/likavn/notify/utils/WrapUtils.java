@@ -1,7 +1,7 @@
 package com.github.likavn.notify.utils;
 
 import com.alibaba.fastjson.JSON;
-import com.github.likavn.notify.domain.MetaRequest;
+import com.github.likavn.notify.domain.Request;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
@@ -25,30 +25,8 @@ public class WrapUtils {
      * @param value object
      * @return string
      */
-    @SuppressWarnings("all")
     public static String toJson(Object value) {
-        try {
-            return JSON.toJSONString(value);
-        } catch (Exception ex) {
-            log.error("WrapUtils.toJson", ex);
-            throw new RuntimeException(ex);
-        }
-    }
-
-    /**
-     * json string to object
-     *
-     * @param requestBytes object
-     * @return string
-     */
-    @SuppressWarnings("all")
-    public static <T> T readJson(byte[] requestBytes, Class<T> valueType) {
-        try {
-            return JSON.parseObject(requestBytes, valueType);
-        } catch (Exception ex) {
-            log.error("WrapUtils.readJson", ex);
-            throw new RuntimeException(ex);
-        }
+        return JSON.toJSONString(value);
     }
 
     /**
@@ -58,8 +36,8 @@ public class WrapUtils {
      * @return bean
      */
     @SuppressWarnings("all")
-    public static MetaRequest convertByBytes(String requestBytes) {
-        return convertByBytes(requestBytes.getBytes(StandardCharsets.UTF_8));
+    public static Request convertByBytes(String requestStr) {
+        return convertByBytes(requestStr.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -69,16 +47,12 @@ public class WrapUtils {
      * @return bean
      */
     @SuppressWarnings("all")
-    public static MetaRequest convertByBytes(byte[] requestBytes) {
-        MetaRequest request = readJson(requestBytes, MetaRequest.class);
+    public static Request convertByBytes(byte[] requestBytes) {
+        Request request = JSON.parseObject(requestBytes, Request.class);
         Object body = request.getBody();
         if (body instanceof Map) {
-            try {
-                request.setBody(JSON.parseObject(JSON.toJSONString(body), request.getBodyClass()));
-                return request;
-            } catch (Exception e) {
-                log.error("WrapUtils.convertByBytes", e);
-            }
+            request.setBody(JSON.parseObject(JSON.toJSONString(body), request.getBodyClass()));
+            return request;
         }
         return request;
     }

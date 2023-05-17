@@ -11,7 +11,7 @@ import java.util.List;
  * @date 2023/2/22
  **/
 @Data
-public class MetaServiceProperty {
+public class ServiceContext {
 
     /**
      * 服务ID

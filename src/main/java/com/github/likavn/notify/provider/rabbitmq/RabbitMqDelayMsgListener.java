@@ -1,6 +1,7 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
 import com.github.likavn.notify.base.BaseDelayMsgHandler;
+import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
 import com.github.likavn.notify.utils.SpringUtil;
 import com.rabbitmq.client.AMQP;
@@ -24,10 +25,6 @@ import java.util.Map;
  */
 public class RabbitMqDelayMsgListener extends BaseDelayMsgHandler {
     private static final Logger logger = LoggerFactory.getLogger(RabbitMqDelayMsgListener.class);
-    /**
-     * 消费者个数
-     */
-    private static final byte CONCURRENCY = 3;
 
     /**
      * 是否初始化rabbitmq
@@ -35,11 +32,11 @@ public class RabbitMqDelayMsgListener extends BaseDelayMsgHandler {
     private boolean isInitRabbitMq = false;
 
     @SuppressWarnings("all")
-    public RabbitMqDelayMsgListener(CachingConnectionFactory connectionFactory) {
+    public RabbitMqDelayMsgListener(CachingConnectionFactory connectionFactory, NotifyProperties notifyProperties) {
         Connection connection = connectionFactory.createConnection();
         byte count = 1;
-        while (count++ <= CONCURRENCY) {
-            init(connection);
+        while (count++ <= notifyProperties.getRabbitMq().getDelayConsumerNum()) {
+            bindListener(connection);
         }
     }
 
@@ -48,28 +45,28 @@ public class RabbitMqDelayMsgListener extends BaseDelayMsgHandler {
      *
      * @param connection connection
      */
-    private void init(Connection connection) {
+    private void bindListener(Connection connection) {
         try {
             Channel channel = connection.createChannel(false);
-
             // 初始化rabbitmq
             initRabbitMq(channel);
 
-            DefaultConsumer defaultConsumer = new DefaultConsumer(channel) {
+            String queueName = String.format(RabbitMqConstant.DELAY_QUEUE, SpringUtil.getServiceId());
+            channel.basicConsume(queueName, false, new DefaultConsumer(channel) {
                 @Override
                 public void handleDelivery(String consumerTag,
                                            Envelope envelope,
                                            AMQP.BasicProperties properties,
-                                           byte[] body) {
+                                           byte[] body) throws IOException {
                     try {
-                        receiver(body);
+                        deliver(body);
+                        channel.basicAck(envelope.getDeliveryTag(), false);
                     } catch (Exception ex) {
                         logger.error("RabbitMqDelayMsgListener", ex);
+                        channel.basicNack(envelope.getDeliveryTag(), false, true);
                     }
                 }
-            };
-            String queueName = String.format(RabbitMqConstant.DELAY_QUEUE, SpringUtil.getServiceId());
-            channel.basicConsume(queueName, true, defaultConsumer);
+            });
         } catch (Exception e) {
             logger.error("RabbitMqDelayMsgListener.init", e);
         }

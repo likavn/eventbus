@@ -1,6 +1,7 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
 import com.github.likavn.notify.domain.SubMsgConsumer;
+import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
 import com.rabbitmq.client.*;
 import org.slf4j.Logger;
@@ -27,10 +28,15 @@ public class RabbitMqSubscribeMsgListener {
 
     @SuppressWarnings("all")
     public RabbitMqSubscribeMsgListener(List<SubMsgConsumer> consumers,
-                                        CachingConnectionFactory connectionFactory) {
+                                        CachingConnectionFactory connectionFactory, NotifyProperties notifyProperties) {
         Connection newConnection = connectionFactory.createConnection();
         for (SubMsgConsumer consumer : consumers) {
-            bindListener(consumer, newConnection);
+            Integer consumerNum = consumer.getConsumerNum();
+            consumerNum = (null == consumerNum ? notifyProperties.getRabbitMq().getSubConsumerNum() : consumerNum);
+            int num = 0;
+            while (num++ < consumerNum) {
+                bindListener(consumer, newConnection);
+            }
         }
     }
 
@@ -43,16 +49,12 @@ public class RabbitMqSubscribeMsgListener {
     @SuppressWarnings("all")
     private void bindListener(SubMsgConsumer consumer, Connection newConnection) {
         try {
-            Channel createChannel = newConnection.createChannel(false);
-
+            Channel channel = newConnection.createChannel(false);
             // 初始创建交换机
-            createExchange(createChannel);
+            createExchange(channel);
 
             // 定义队列名称
-            String queueName = String.format(RabbitMqConstant.QUEUE,
-                    consumer.getServiceId(),
-                    consumer.getCode(),
-                    consumer.getListener().getClass().getName());
+            String queueName = String.format(RabbitMqConstant.QUEUE, consumer.getTopic(), consumer.getListener().getClass().getName());
 
             // 声明一个队列。
             // 参数一：队列名称
@@ -64,33 +66,30 @@ public class RabbitMqSubscribeMsgListener {
             // 1.声明队列时，如果已经存在则放弃声明，如果不存在则会声明一个新队列；
             // 2.队列名可以任意取值，但需要与消息接收者一致。
             // 3.下面的代码可有可无，一定在发送消息前确认队列名称已经存在RabbitMQ中，否则消息会发送失败。
-            createChannel.queueDeclare(queueName, true, false, false, null);
-
-            createChannel.queueBind(queueName,
-                    RabbitMqConstant.EXCHANGE,
-                    // 设置路由key
-                    String.format(RabbitMqConstant.ROUTING, consumer.getServiceId(), consumer.getCode()));
-
-            DefaultConsumer defaultConsumer = new DefaultConsumer(createChannel) {
-                @Override
-                public void handleDelivery(String consumerTag,
-                                           Envelope envelope,
-                                           AMQP.BasicProperties properties,
-                                           byte[] body) {
-                    try {
-                        consumer.accept(body);
-                    } catch (Exception ex) {
-                        logger.error("BaseMsgReceiver.initRabbitMq", ex);
-                    }
-                }
-            };
+            channel.queueDeclare(queueName, true, false, false, null);
+            // 设置路由key
+            channel.queueBind(queueName, RabbitMqConstant.EXCHANGE, String.format(RabbitMqConstant.ROUTING, consumer.getTopic()));
             // 接收消息。会持续坚挺，不能关闭channel和Connection
             // 参数一：队列名称
             // 参数二：消息是否自动确认，true表示自动确认接收完消息以后会自动将消息从队列移除。否则需要手动ack消息
             // 参数三：消息接收者
-            createChannel.basicConsume(queueName, true, defaultConsumer);
+            channel.basicConsume(queueName, false, new DefaultConsumer(channel) {
+                @Override
+                public void handleDelivery(String consumerTag,
+                                           Envelope envelope,
+                                           AMQP.BasicProperties properties,
+                                           byte[] body) throws IOException {
+                    try {
+                        consumer.accept(body);
+                        channel.basicAck(envelope.getDeliveryTag(), false);
+                    } catch (Exception ex) {
+                        logger.error("RabbitMqSubscribeMsgListener.bindListener", ex);
+                        channel.basicNack(envelope.getDeliveryTag(), false, true);
+                    }
+                }
+            });
         } catch (Exception e) {
-            logger.error("BaseMsgReceiver.initRabbitMq", e);
+            logger.error("RabbitMqSubscribeMsgListener.bindListener", e);
         }
     }
 

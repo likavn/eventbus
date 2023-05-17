@@ -34,8 +34,8 @@ public class RLock {
      * @param key key
      * @return t
      */
-    public Boolean getLock(String key) {
-        return redisTemplate.opsForValue().setIfAbsent(key, "", Duration.ofSeconds(LOCK_REDIS_TIMEOUT));
+    public boolean getLock(String key) {
+        return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, "", Duration.ofSeconds(LOCK_REDIS_TIMEOUT)));
     }
 
     /**
@@ -45,8 +45,8 @@ public class RLock {
      * @param timeout 超时时间，单位：秒
      * @return t
      */
-    public Boolean getLock(String key, long timeout) {
-        return redisTemplate.opsForValue().setIfAbsent(key, "", Duration.ofSeconds(timeout));
+    public boolean getLock(String key, long timeout) {
+        return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, "", Duration.ofSeconds(timeout)));
     }
 
     /**
@@ -55,7 +55,7 @@ public class RLock {
      * @param key k
      * @return
      */
-    public Long releaseLock(String key) {
+    public long releaseLock(String key) {
         String luaScript = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
         RedisScript<Long> redisScript = new DefaultRedisScript<>(luaScript, Long.class);
         Long releaseStatus = (Long) this.redisTemplate.execute(redisScript, Collections.singletonList(key), "");

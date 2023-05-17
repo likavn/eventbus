@@ -33,7 +33,7 @@ public interface Message<T> {
      *
      * @return 消息投递次数
      */
-    int getDeliverNum();
+    Integer getDeliverNum();
 
     /**
      * 获取消息体

@@ -1,7 +1,8 @@
 package com.github.likavn.notify.provider.rabbitmq.config;
 
 import com.github.likavn.notify.api.MsgSender;
-import com.github.likavn.notify.domain.MetaServiceProperty;
+import com.github.likavn.notify.domain.ServiceContext;
+import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqDelayMsgListener;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqMsgSender;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqSubscribeMsgListener;
@@ -34,15 +35,19 @@ public class NotifyRabbitMqConfig {
 
     @Bean
     public RabbitMqSubscribeMsgListener rabbitMqSubscribeMsgListener(
-            CachingConnectionFactory connectionFactory, MetaServiceProperty serviceProperty) {
-        return new RabbitMqSubscribeMsgListener(serviceProperty.getSubMsgConsumers(), connectionFactory);
+            CachingConnectionFactory connectionFactory,
+            ServiceContext serviceContext,
+            NotifyProperties notifyProperties) {
+        return new RabbitMqSubscribeMsgListener(serviceContext.getSubMsgConsumers(), connectionFactory, notifyProperties);
     }
 
     /**
      * 初始化延时事件消息监听器
      */
     @Bean
-    public RabbitMqDelayMsgListener delayMessageListener(CachingConnectionFactory connectionFactory) {
-        return new RabbitMqDelayMsgListener(connectionFactory);
+    public RabbitMqDelayMsgListener delayMessageListener(
+            CachingConnectionFactory connectionFactory,
+            NotifyProperties notifyProperties) {
+        return new RabbitMqDelayMsgListener(connectionFactory, notifyProperties);
     }
 }

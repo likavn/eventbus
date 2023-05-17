@@ -1,7 +1,7 @@
 package com.github.likavn.notify.config;
 
 import com.github.likavn.notify.api.SubscribeMsgListener;
-import com.github.likavn.notify.domain.MetaServiceProperty;
+import com.github.likavn.notify.domain.ServiceContext;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.config.NotifyRabbitMqConfig;
@@ -31,16 +31,17 @@ import java.util.Map;
 public class NotifyConfig {
     @Bean
     @SuppressWarnings("all")
-    public MetaServiceProperty notifyProperties(ApplicationContext applicationContext) {
+    public ServiceContext notifyProperties(ApplicationContext applicationContext) {
         String appName = SpringUtil.getServiceId();
-        MetaServiceProperty serviceProperty = new MetaServiceProperty();
+        ServiceContext serviceProperty = new ServiceContext();
         serviceProperty.setServiceId(appName);
 
         // 获取订阅器
         List<SubMsgConsumer> subMsgConsumers = new ArrayList<>();
-        Map<String, SubscribeMsgListener> exitFilterMap = applicationContext.getBeansOfType(SubscribeMsgListener.class);
-        if (!exitFilterMap.isEmpty()) {
-            for (SubscribeMsgListener listener : exitFilterMap.values()) {
+        Map<String, SubscribeMsgListener>
+                subscribeMsgListenerMap = applicationContext.getBeansOfType(SubscribeMsgListener.class);
+        if (!subscribeMsgListenerMap.isEmpty()) {
+            for (SubscribeMsgListener listener : subscribeMsgListenerMap.values()) {
                 subMsgConsumers.addAll(listener.getSubMsgConsumers());
             }
         }

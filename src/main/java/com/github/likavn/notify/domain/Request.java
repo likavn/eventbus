@@ -1,9 +1,7 @@
 package com.github.likavn.notify.domain;
 
 import com.github.likavn.notify.api.DelayMsgListener;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.io.Serializable;
 
@@ -13,51 +11,57 @@ import java.io.Serializable;
  * @author likavn
  * @since 2023/01/01
  */
-@Builder
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @SuppressWarnings("all")
-public class MetaRequest<T> implements Message<T>, Serializable {
+@EqualsAndHashCode(callSuper = true)
+public class Request<T> extends Topic implements Message<T>, Serializable {
     private static final long serialVersionUID = 1L;
+
     /**
      * 事件ID
      */
     private String requestId;
 
     /**
-     * 消息所属来源服务ID,服务名
-     */
-    private String serviceId;
-
-    /**
-     * 消息类型，用于区分不同的消息类型
-     */
-    private String code;
-
-    /**
      * 消息投递次数
      */
-    private Integer deliverNumber;
+    private Integer deliverNum;
 
     /**
      * 消息体，必须包含无参构造函数
      */
     private T body;
+
     /**
      * 延时消息处理对象
      */
     private Class<? extends DelayMsgListener> handler;
+
     /**
      * 消息体
      */
     private Class<?> bodyClass;
 
+    /**
+     * 延时时间，单位：秒
+     */
+    private Long delayTime;
+
+    /**
+     * 原消息是否为订阅消息
+     */
+    private Boolean isOrgSub;
+
     @Builder
-    public MetaRequest(Class<? extends DelayMsgListener> handler, String code, T body, Integer deliverNumber) {
+    public Request(Class<? extends DelayMsgListener> handler, String serviceId, String code, T body, Integer deliverNum, Boolean isOrgSub, Long delayTime) {
+        super(serviceId, code);
         this.handler = handler;
-        this.code = code;
         this.body = body;
-        this.deliverNumber = deliverNumber;
+        this.deliverNum = deliverNum;
+        this.delayTime = delayTime;
+        this.isOrgSub = (null == isOrgSub ? Boolean.FALSE : isOrgSub);
     }
 
     @Override
@@ -66,18 +70,8 @@ public class MetaRequest<T> implements Message<T>, Serializable {
     }
 
     @Override
-    public String getServiceId() {
-        return this.serviceId;
-    }
-
-    @Override
-    public String getCode() {
-        return this.code;
-    }
-
-    @Override
-    public int getDeliverNum() {
-        return null == this.deliverNumber ? 1 : this.deliverNumber;
+    public Integer getDeliverNum() {
+        return null == this.deliverNum ? 1 : this.deliverNum;
     }
 
     @Override
@@ -89,16 +83,8 @@ public class MetaRequest<T> implements Message<T>, Serializable {
         this.requestId = requestId;
     }
 
-    public void setServiceId(String serviceId) {
-        this.serviceId = serviceId;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public void setDeliverNumber(Integer deliverNumber) {
-        this.deliverNumber = deliverNumber;
+    public void setDeliverNum(Integer deliverNum) {
+        this.deliverNum = deliverNum;
     }
 
     public void setBody(T body) {
@@ -111,10 +97,6 @@ public class MetaRequest<T> implements Message<T>, Serializable {
 
     public void setBodyClass(Class<?> bodyClass) {
         this.bodyClass = bodyClass;
-    }
-
-    public Integer getDeliverNumber() {
-        return deliverNumber;
     }
 
     public Class<? extends DelayMsgListener> getHandler() {

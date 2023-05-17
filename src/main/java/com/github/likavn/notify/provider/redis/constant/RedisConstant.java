@@ -16,13 +16,21 @@ public class RedisConstant {
      * <p>
      * 1.服务serviceId;
      */
-    public static final String REDIS_Z_SET_KEY = "notify.delay.key.v2:%s";
+    public static final String NOTIFY_DELAY_PREFIX = "notify:delay:%s";
 
     /**
-     * 消息订阅分布式锁
+     * 延时队列,延时消息处理超时时长key
      * 参数：
      * <p>
-     * 1.消息ID;
+     * 1. value md5;
      */
-    public static final String REDIS_LOCK_KEY = "notify.sub.lock:";
+    public static final String NOTIFY_DELAY_LOCK_PREFIX = "notify:delay.lock:%s";
+
+    /**
+     * 消息队列前缀
+     * 参数：
+     * <p>
+     * 1.服务serviceId;
+     */
+    public static final String NOTIFY_SUBSCRIBE_PREFIX = "notify:subscribe:%s";
 }

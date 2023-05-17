@@ -1,13 +1,11 @@
 package com.github.likavn.notify.api;
 
-import com.github.likavn.notify.domain.Message;
+import com.github.likavn.notify.base.BaseFailRetryMsgHandler;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.utils.SpringUtil;
-import com.github.likavn.notify.utils.WrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,26 +16,13 @@ import java.util.List;
  * @author likavn
  * @since 2023/01/01
  */
-public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
+public abstract class SubscribeMsgListener<T> extends BaseFailRetryMsgHandler<T> {
     private static final Logger logger = LoggerFactory.getLogger(SubscribeMsgListener.class);
-
-    @Resource
-    private MsgSender msgSender;
-
-    /**
-     * 失败时下次触发的间隔时间,单位：毫秒，默认半十分钟
-     */
-    private long triggerTime = 1000 * 60 * 10L;
-
-    /**
-     * 一定时间内的业务事件处理失败时的重试次数，默认为3次
-     */
-    private int retry = 3;
 
     /**
      * 消费者数量
      */
-    private int consumerNum = 2;
+    private final Integer consumerNum;
 
     /**
      * 消息所属来源服务ID,服务名
@@ -47,7 +32,7 @@ public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
     /**
      * 消息类型，用于区分不同的消息类型
      */
-    private final String[] codes;
+    private final List<String> codes;
 
     /**
      * 构造器
@@ -55,7 +40,7 @@ public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
      * @param codes 消息编码
      */
     protected SubscribeMsgListener(List<String> codes) {
-        this(null, codes.toArray(new String[0]));
+        this(null, codes);
     }
 
     /**
@@ -64,54 +49,71 @@ public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
      * @param serviceId 消息服务的ID
      * @param codes     消息编码
      */
-    protected SubscribeMsgListener(String serviceId, String... codes) {
+    protected SubscribeMsgListener(String serviceId, List<String> codes) {
+        this(serviceId, codes, null, null);
+    }
+
+    /**
+     * 构造器
+     *
+     * @param codes    消息编码
+     * @param nextTime 失败时下次触发的间隔时间,单位：秒
+     */
+    protected SubscribeMsgListener(List<String> codes, Long nextTime) {
+        this(null, codes, null, nextTime, null);
+    }
+
+    /**
+     * 构造器
+     *
+     * @param serviceId 消息服务的ID
+     * @param codes     消息编码
+     * @param nextTime  失败时下次触发的间隔时间,单位：秒
+     */
+    protected SubscribeMsgListener(String serviceId, List<String> codes, Long nextTime) {
+        this(serviceId, codes, null, nextTime, null);
+    }
+
+    /**
+     * 构造器
+     *
+     * @param codes    消息编码
+     * @param retry    一定时间内的业务事件处理失败时的重试次数，默认为3次
+     * @param nextTime 失败时下次触发的间隔时间,单位：秒
+     */
+    protected SubscribeMsgListener(List<String> codes, Integer retry, Long nextTime) {
+        this(null, codes, retry, nextTime, null);
+    }
+
+    /**
+     * 构造器
+     *
+     * @param serviceId 消息服务的ID
+     * @param codes     消息编码
+     * @param retry     一定时间内的业务事件处理失败时的重试次数，默认为3次
+     * @param nextTime  失败时下次触发的间隔时间,单位：秒
+     */
+    protected SubscribeMsgListener(String serviceId, List<String> codes, Integer retry, Long nextTime) {
+        this(serviceId, codes, retry, nextTime, null);
+    }
+
+    /**
+     * 构造器
+     *
+     * @param serviceId   消息服务的ID
+     * @param codes       消息编码
+     * @param retry       一定时间内的业务事件处理失败时的重试次数，默认为3次
+     * @param nextTime    失败时下次触发的间隔时间,单位：秒
+     * @param consumerNum 消费者数量
+     */
+    protected SubscribeMsgListener(String serviceId, List<String> codes, Integer retry, Long nextTime, Integer consumerNum) {
+        super(retry, nextTime);
+        this.consumerNum = consumerNum;
         if (null == serviceId || serviceId.trim().length() == 0) {
             serviceId = SpringUtil.getServiceId();
         }
-        this.serviceId = serviceId;
+        this.serviceId = (null == serviceId ? SpringUtil.getServiceId() : serviceId);
         this.codes = codes;
-    }
-
-    /**
-     * 构造器
-     *
-     * @param triggerTime 失败时下次触发的间隔时间,单位：秒
-     * @param serviceId   消息服务的ID
-     * @param codes       消息编码
-     */
-    protected SubscribeMsgListener(long triggerTime, String serviceId, String... codes) {
-        this(serviceId, codes);
-        this.triggerTime = triggerTime;
-    }
-
-    /**
-     * 构造器
-     *
-     * @param triggerTime 失败时下次触发的间隔时间,单位：秒
-     * @param retry       一定时间内的业务事件处理失败时的重试次数，默认为3次
-     * @param serviceId   消息服务的ID
-     * @param codes       消息编码
-     */
-    protected SubscribeMsgListener(long triggerTime, int retry, String serviceId, String... codes) {
-        this(serviceId, codes);
-        this.triggerTime = triggerTime;
-        this.retry = retry;
-    }
-
-    /**
-     * 构造器
-     *
-     * @param triggerTime 失败时下次触发的间隔时间,单位：秒
-     * @param retry       一定时间内的业务事件处理失败时的重试次数，默认为3次
-     * @param consumerNum 消费者数量
-     * @param serviceId   消息服务的ID
-     * @param codes       消息编码
-     */
-    protected SubscribeMsgListener(long triggerTime, int retry, int consumerNum, String serviceId, String... codes) {
-        this(serviceId, codes);
-        this.triggerTime = triggerTime;
-        this.retry = retry;
-        this.consumerNum = consumerNum;
     }
 
     /**
@@ -132,40 +134,4 @@ public abstract class SubscribeMsgListener<T> implements DelayMsgListener<T> {
         }
         return listeners;
     }
-
-    /**
-     * 接收器
-     *
-     * @param message message
-     */
-    public void receiver(Message<T> message) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("SubscribeMsgListener.receiver msg：{}", WrapUtils.toJson(message));
-        }
-        try {
-            accept(message);
-        } catch (Exception ex) {
-            logger.error("SubscribeMsgListener.receiver 业务异常", ex);
-            int retryHandleNum = message.getDeliverNum();
-            if (retryHandleNum < retry) {
-                msgSender.sendDelayMessage(this.getClass(), message.getBody(),
-                        retryHandleNum + 1,
-                        // 下次重试时间
-                        triggerTime);
-            }
-        }
-    }
-
-    @Override
-    public void onMessage(Message<T> message) {
-        receiver(message);
-    }
-
-    /**
-     * 数据接收
-     *
-     * @param message 接收消息实体
-     */
-    public abstract void accept(Message<T> message);
-
 }

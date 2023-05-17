@@ -1,8 +1,7 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
-import com.github.likavn.notify.api.DelayMsgListener;
-import com.github.likavn.notify.base.DefaultMsgSender;
-import com.github.likavn.notify.domain.MetaRequest;
+import com.github.likavn.notify.base.BaseMsgSender;
+import com.github.likavn.notify.domain.Request;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
 import com.github.likavn.notify.utils.SpringUtil;
 import com.github.likavn.notify.utils.WrapUtils;
@@ -19,12 +18,8 @@ import java.util.UUID;
  * @author likavn
  * @since 2023/01/01
  */
-public class RabbitMqMsgSender extends DefaultMsgSender {
+public class RabbitMqMsgSender extends BaseMsgSender {
     private static final Logger logger = LoggerFactory.getLogger(RabbitMqMsgSender.class);
-    /**
-     * 消息过期时间，避免消息未消费导致消息堆积
-     */
-    private static final long MSG_EXPIRE = 30;
 
     private final RabbitTemplate rabbitTemplate;
 
@@ -33,15 +28,15 @@ public class RabbitMqMsgSender extends DefaultMsgSender {
     }
 
     @Override
-    public void send(String serviceId, String code, Object body) {
-        MetaRequest<?> request = before(serviceId, code, body);
+    public void send(Request<?> request) {
+        request.setIsOrgSub(Boolean.TRUE);
+        request = wrap(request);
         //构建回调返回的数据 可做其他业务处理
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         rabbitTemplate.convertAndSend(RabbitMqConstant.EXCHANGE,
-                String.format(RabbitMqConstant.ROUTING, request.getServiceId(), request.getCode()),
+                String.format(RabbitMqConstant.ROUTING, request.getTopic()),
                 WrapUtils.toJson(request),
                 message -> {
-                    message.getMessageProperties().setExpiration(MSG_EXPIRE + "");
                     message.getMessageProperties().setContentEncoding("utf-8");
                     return message;
                 }, correlationData);
@@ -49,17 +44,18 @@ public class RabbitMqMsgSender extends DefaultMsgSender {
 
     @Override
     @SuppressWarnings("all")
-    public void sendDelayMessage(Class<? extends DelayMsgListener> handler, String code, Object body, Integer deliverNumber, long delayTime) {
-        MetaRequest<?> request = before(handler, code, body, deliverNumber);
+    public void sendDelayMessage(Request<?> request) {
+        request = wrap(request);
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         logger.debug("发送消息id={}", correlationData.getId());
+        long x_delay = 1000L * request.getDelayTime();
         rabbitTemplate.convertAndSend(
                 String.format(RabbitMqConstant.DELAY_EXCHANGE, SpringUtil.getServiceId()),
                 String.format(RabbitMqConstant.DELAY_ROUTING_KEY, SpringUtil.getServiceId()),
                 WrapUtils.toJson(request),
                 message -> {
                     //配置消息的过期时间
-                    message.getMessageProperties().setHeader("x-delay", delayTime <= 0 ? 2000 : delayTime * 1000);
+                    message.getMessageProperties().setHeader("x-delay", x_delay);
                     return message;
                 }, correlationData
         );

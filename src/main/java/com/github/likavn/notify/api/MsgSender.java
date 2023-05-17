@@ -1,5 +1,7 @@
 package com.github.likavn.notify.api;
 
+import com.github.likavn.notify.domain.Request;
+
 /**
  * 消息生产者
  *
@@ -15,7 +17,7 @@ public interface MsgSender {
      * @param body 消息体
      */
     default void send(String code, Object body) {
-        send(null, code, body);
+        send(Request.builder().code(code).body(body).build());
     }
 
     /**
@@ -25,7 +27,16 @@ public interface MsgSender {
      * @param code      业务消息类型
      * @param body      消息体
      */
-    void send(String serviceId, String code, Object body);
+    default void send(String serviceId, String code, Object body) {
+        send(Request.builder().serviceId(serviceId).code(code).body(body).build());
+    }
+
+    /**
+     * 通知发送接口
+     *
+     * @param request request
+     */
+    void send(Request<?> request);
 
     /**
      * 发送延时消息接口
@@ -36,31 +47,26 @@ public interface MsgSender {
      */
     @SuppressWarnings("all")
     default void sendDelayMessage(Class<? extends DelayMsgListener> handler, Object body, long delayTime) {
-        sendDelayMessage(handler, null, body, null, delayTime);
+        sendDelayMessage(handler, null, body, delayTime);
     }
 
     /**
      * 发送延时消息接口
      *
-     * @param handler       延时处理器
-     * @param body          延时消息实体
-     * @param deliverNumber 处理次数
-     * @param delayTime     延时时间，单位：秒
+     * @param handler   延时处理器
+     * @param code      延时消息类型
+     * @param body      延时消息实体
+     * @param delayTime 延时时间，单位：秒
      */
     @SuppressWarnings("all")
-    default void sendDelayMessage(Class<? extends DelayMsgListener> handler, Object body, Integer deliverNumber, long delayTime) {
-        sendDelayMessage(handler, null, body, deliverNumber, delayTime);
+    default void sendDelayMessage(Class<? extends DelayMsgListener> handler, String code, Object body, long delayTime) {
+        sendDelayMessage(Request.builder().handler(handler).code(code).body(body).delayTime(delayTime).build());
     }
 
     /**
      * 发送延时消息接口
      *
-     * @param handler       延时处理器
-     * @param code          延时消息类型
-     * @param body          延时消息实体
-     * @param deliverNumber 处理次数
-     * @param delayTime     延时时间，单位：秒
+     * @param request request
      */
-    @SuppressWarnings("all")
-    void sendDelayMessage(Class<? extends DelayMsgListener> handler, String code, Object body, Integer deliverNumber, long delayTime);
+    void sendDelayMessage(Request<?> request);
 }
