@@ -13,7 +13,7 @@ import lombok.EqualsAndHashCode;
  **/
 @Data
 @EqualsAndHashCode(callSuper = true)
-public final class SubMsgConsumer extends Topic {
+public class SubMsgConsumer extends Topic {
     /**
      * 监听器
      */
@@ -44,17 +44,7 @@ public final class SubMsgConsumer extends Topic {
      */
     @SuppressWarnings("all")
     public void accept(String body) {
-        throw new RuntimeException("接收失败测试...");
-        //listener.deliver(body);
-    }
-
-    /**
-     * 数据接收
-     *
-     * @param message
-     */
-    @SuppressWarnings("all")
-    public void accept(Message message) {
-        listener.deliver(message);
+        //   throw new RuntimeException("接收失败测试...");
+        listener.deliver(body);
     }
 }

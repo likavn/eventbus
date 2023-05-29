@@ -15,7 +15,7 @@ import java.util.UUID;
  * @since 2023/01/01
  */
 @SuppressWarnings("all")
-public abstract class BaseMsgSender implements MsgSender {
+public abstract class AbstractMsgSender implements MsgSender {
 
     /**
      * 发送消息前置操作
@@ -34,10 +34,9 @@ public abstract class BaseMsgSender implements MsgSender {
         if (null == request.getDeliverNum()) {
             request.setDeliverNum(1);
         }
-        if (null != request.getHandler()) {
+        if (null != request.getDelayMsgHandler()) {
             Assert.isTrue(!(null == request.getDelayTime() || 0 >= request.getDelayTime()), "delayTime is null or zreo");
         }
-        request.setBodyClass(request.getBody().getClass());
         return request;
     }
 }

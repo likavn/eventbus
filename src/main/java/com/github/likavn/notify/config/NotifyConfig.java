@@ -31,7 +31,8 @@ import java.util.Map;
 public class NotifyConfig {
     @Bean
     @SuppressWarnings("all")
-    public ServiceContext notifyProperties(ApplicationContext applicationContext) {
+    public ServiceContext notifyProperties(ApplicationContext applicationContext, NotifyProperties notifyProperties) {
+        log.info("Notify Initializing... {}", notifyProperties.getType());
         String appName = SpringUtil.getServiceId();
         ServiceContext serviceProperty = new ServiceContext();
         serviceProperty.setServiceId(appName);

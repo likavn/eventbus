@@ -17,26 +17,25 @@ import javax.annotation.Resource;
  * @since 2023/01/01
  */
 @SuppressWarnings("all")
-public abstract class BaseDelayMsgHandler extends BaseFailRetryMsgHandler {
-    private static final Logger logger = LoggerFactory.getLogger(BaseDelayMsgHandler.class);
+public abstract class AbstractMsgDelayHandler extends AbstractMsgFailRetryHandler implements MsgListenerInit {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractMsgDelayHandler.class);
 
     @Resource
     private NotifyProperties properties;
 
-    public BaseDelayMsgHandler() {
+    public AbstractMsgDelayHandler() {
         super(null, null);
     }
-
 
     @Override
     public void accept(Message message) {
         Request<?> request = (Request<?>) message;
-        DelayMsgListener listener = SpringUtil.getBean(request.getHandler());
+        DelayMsgListener listener = SpringUtil.getBean(request.getDelayMsgHandler());
         if (null != listener) {
             if (logger.isDebugEnabled()) {
                 logger.debug("[延时消息]接收延时回调数据requestId={}", message.getRequestId());
             }
-            listener.onMessage(request);
+            listener.onMessage(message);
         } else {
             logger.error("[延时消息]不存在消息处理器requestId={}", message.getRequestId());
         }

@@ -60,7 +60,7 @@ public interface MsgSender {
      */
     @SuppressWarnings("all")
     default void sendDelayMessage(Class<? extends DelayMsgListener> handler, String code, Object body, long delayTime) {
-        sendDelayMessage(Request.builder().handler(handler).code(code).body(body).delayTime(delayTime).build());
+        sendDelayMessage(Request.builder().delayMsgHandler(handler).code(code).body(body).delayTime(delayTime).build());
     }
 
     /**

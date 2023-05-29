@@ -6,7 +6,9 @@ import java.lang.annotation.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * 消息投递失败异常处理注解
@@ -31,6 +33,8 @@ public @interface FailCallback {
     public static class Error {
         private static final Map<Class, Method> failCallbackMethodMap = new ConcurrentHashMap<>();
 
+        private static final Set<Class> nullSet = new CopyOnWriteArraySet<>();
+
         /**
          * 投递失败回调
          *
@@ -38,12 +42,15 @@ public @interface FailCallback {
          * @param message   msg
          * @param exception e
          */
-        public static void onFail(Object _this, Message message, Exception childEx)
+        public static void onFail(Object _this, Message message, Throwable childEx)
                 throws InvocationTargetException, IllegalAccessException {
             if (null == _this) {
                 return;
             }
             Method callback = getFailCallback(_this);
+            if (null == callback) {
+                return;
+            }
             Class<?>[] parameterTypes = callback.getParameterTypes();
             Object[] args = new Object[parameterTypes.length];
             int index = 0;
@@ -67,16 +74,29 @@ public @interface FailCallback {
          */
         private static Method getFailCallback(Object _this) {
             Class<?> keyClass = _this.getClass();
-            if (!failCallbackMethodMap.containsKey(keyClass)) {
-                for (Method md : keyClass.getMethods()) {
-                    FailCallback annotation = md.getAnnotation(FailCallback.class);
-                    if (null != annotation) {
-                        failCallbackMethodMap.put(keyClass, md);
-                        break;
-                    }
+
+            // 处理器不存在失败回调函数
+            if (nullSet.contains(_this)) {
+                return null;
+            }
+            Method method = failCallbackMethodMap.get(keyClass);
+            if (null != method) {
+                return method;
+            }
+
+            for (Method md : keyClass.getMethods()) {
+                FailCallback annotation = md.getAnnotation(FailCallback.class);
+                if (null != annotation) {
+                    method = md;
+                    break;
                 }
             }
-            return failCallbackMethodMap.get(keyClass);
+            if (null == method) {
+                nullSet.add(keyClass);
+            } else {
+                failCallbackMethodMap.put(keyClass, method);
+            }
+            return method;
         }
 
         /**

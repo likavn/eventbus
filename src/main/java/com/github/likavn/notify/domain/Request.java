@@ -37,12 +37,7 @@ public class Request<T> extends Topic implements Message<T>, Serializable {
     /**
      * 延时消息处理对象
      */
-    private Class<? extends DelayMsgListener> handler;
-
-    /**
-     * 消息体
-     */
-    private Class<?> bodyClass;
+    private Class<? extends DelayMsgListener> delayMsgHandler;
 
     /**
      * 延时时间，单位：秒
@@ -55,9 +50,11 @@ public class Request<T> extends Topic implements Message<T>, Serializable {
     private Boolean isOrgSub;
 
     @Builder
-    public Request(Class<? extends DelayMsgListener> handler, String serviceId, String code, T body, Integer deliverNum, Boolean isOrgSub, Long delayTime) {
+    public Request(Class<? extends DelayMsgListener> delayMsgHandler,
+                   String requestId, String serviceId, String code, T body, Integer deliverNum, Boolean isOrgSub, Long delayTime) {
         super(serviceId, code);
-        this.handler = handler;
+        this.delayMsgHandler = delayMsgHandler;
+        this.requestId = requestId;
         this.body = body;
         this.deliverNum = deliverNum;
         this.delayTime = delayTime;
@@ -91,19 +88,7 @@ public class Request<T> extends Topic implements Message<T>, Serializable {
         this.body = body;
     }
 
-    public void setHandler(Class<? extends DelayMsgListener> handler) {
-        this.handler = handler;
-    }
-
-    public void setBodyClass(Class<?> bodyClass) {
-        this.bodyClass = bodyClass;
-    }
-
-    public Class<? extends DelayMsgListener> getHandler() {
-        return handler;
-    }
-
-    public Class<?> getBodyClass() {
-        return bodyClass;
+    public Class<? extends DelayMsgListener> getDelayMsgHandler() {
+        return delayMsgHandler;
     }
 }

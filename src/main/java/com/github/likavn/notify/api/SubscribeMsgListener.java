@@ -1,6 +1,6 @@
 package com.github.likavn.notify.api;
 
-import com.github.likavn.notify.base.BaseFailRetryMsgHandler;
+import com.github.likavn.notify.base.AbstractMsgFailRetryHandler;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.utils.SpringUtil;
 import org.slf4j.Logger;
@@ -16,7 +16,7 @@ import java.util.List;
  * @author likavn
  * @since 2023/01/01
  */
-public abstract class SubscribeMsgListener<T> extends BaseFailRetryMsgHandler<T> {
+public abstract class SubscribeMsgListener<T> extends AbstractMsgFailRetryHandler<T> {
     private static final Logger logger = LoggerFactory.getLogger(SubscribeMsgListener.class);
 
     /**

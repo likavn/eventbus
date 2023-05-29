@@ -43,7 +43,7 @@ public class NotifyRedisConfig {
     }
 
     /**
-     * 消息通知rabbitmq实现
+     * 消息通知redis实现
      */
     @Bean
     public MsgSender redisMsgSender(@Qualifier("notifyRedisTemplate") RedisTemplate<String, String> redisTemplate) {
@@ -69,12 +69,14 @@ public class NotifyRedisConfig {
         return new RedisDelayMsgListener(redisTemplate, rLock, notifyProperties);
     }
 
-    @Bean(destroyMethod = "destroy")
+    @Bean
     public RedisSubscribeMsgListener redisSubscribeMsgListener(
             RedisConnectionFactory redisConnectionFactory,
             @Qualifier("notifyRedisTemplate") RedisTemplate<String, String> redisTemplate,
             ServiceContext serviceContext,
+            RLock rLock,
             NotifyProperties notifyProperties) {
-        return new RedisSubscribeMsgListener(redisConnectionFactory, notifyProperties, redisTemplate, serviceContext.getSubMsgConsumers());
+        return new RedisSubscribeMsgListener(redisConnectionFactory,
+                notifyProperties, redisTemplate, serviceContext.getSubMsgConsumers(), rLock);
     }
 }

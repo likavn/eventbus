@@ -1,6 +1,6 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
-import com.github.likavn.notify.base.BaseDelayMsgHandler;
+import com.github.likavn.notify.base.AbstractMsgDelayHandler;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
 import com.github.likavn.notify.utils.SpringUtil;
@@ -23,7 +23,7 @@ import java.util.Map;
  * @author likavn
  * @since 2023/01/01
  */
-public class RabbitMqDelayMsgListener extends BaseDelayMsgHandler {
+public class RabbitMqDelayMsgListener extends AbstractMsgDelayHandler {
     private static final Logger logger = LoggerFactory.getLogger(RabbitMqDelayMsgListener.class);
 
     /**
@@ -31,8 +31,18 @@ public class RabbitMqDelayMsgListener extends BaseDelayMsgHandler {
      */
     private boolean isInitRabbitMq = false;
 
+    private final NotifyProperties notifyProperties;
+
+    private final CachingConnectionFactory connectionFactory;
+
     @SuppressWarnings("all")
     public RabbitMqDelayMsgListener(CachingConnectionFactory connectionFactory, NotifyProperties notifyProperties) {
+        this.connectionFactory = connectionFactory;
+        this.notifyProperties = notifyProperties;
+    }
+
+    @Override
+    public void init() {
         Connection connection = connectionFactory.createConnection();
         byte count = 1;
         while (count++ <= notifyProperties.getRabbitMq().getDelayConsumerNum()) {

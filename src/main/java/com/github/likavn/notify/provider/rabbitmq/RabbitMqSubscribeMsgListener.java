@@ -1,5 +1,6 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
+import com.github.likavn.notify.base.MsgListenerInit;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
@@ -18,7 +19,7 @@ import java.util.List;
  * @author likavn
  * @since 2023/01/01
  **/
-public class RabbitMqSubscribeMsgListener {
+public class RabbitMqSubscribeMsgListener implements MsgListenerInit {
     private static final Logger logger = LoggerFactory.getLogger(RabbitMqSubscribeMsgListener.class);
 
     /**
@@ -26,9 +27,22 @@ public class RabbitMqSubscribeMsgListener {
      */
     private boolean isCreateExchange = false;
 
+    private final List<SubMsgConsumer> consumers;
+
+    private final CachingConnectionFactory connectionFactory;
+
+    private final NotifyProperties notifyProperties;
+
     @SuppressWarnings("all")
     public RabbitMqSubscribeMsgListener(List<SubMsgConsumer> consumers,
                                         CachingConnectionFactory connectionFactory, NotifyProperties notifyProperties) {
+        this.consumers = consumers;
+        this.connectionFactory = connectionFactory;
+        this.notifyProperties = notifyProperties;
+    }
+
+    @Override
+    public void init() {
         Connection newConnection = connectionFactory.createConnection();
         for (SubMsgConsumer consumer : consumers) {
             Integer consumerNum = consumer.getConsumerNum();
@@ -106,5 +120,4 @@ public class RabbitMqSubscribeMsgListener {
         channel.exchangeDeclare(RabbitMqConstant.EXCHANGE, BuiltinExchangeType.TOPIC);
         isCreateExchange = true;
     }
-
 }

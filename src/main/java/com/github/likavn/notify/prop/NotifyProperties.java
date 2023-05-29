@@ -63,9 +63,21 @@ public class NotifyProperties {
     @ToString
     public static class Redis {
         /**
-         * 延时消息，锁超时时间,单位：秒
+         * 延时消息，处理单条数据超时时间,单位：秒
          */
-        private Long delayTimeout = 15L;
+        private Long delayDeliverTimeout = 15L;
+        /**
+         * 订阅消息，获取单个分组下未ack的{subBatchSize}条消息的处理超时时间，未,单位：秒
+         */
+        private Long subGroupTimeout = 30L;
+        /**
+         * 订阅消息线程池大小
+         */
+        private Integer subExecutorPoolSize = 10;
+        /**
+         * 订阅消息投递超时时间,单位：秒
+         */
+        private Long subDeliverTimeout = 10L;
         /**
          * 订阅消息一次性最多拉取多少条消息
          */

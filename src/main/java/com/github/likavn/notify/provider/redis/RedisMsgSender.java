@@ -1,6 +1,6 @@
 package com.github.likavn.notify.provider.redis;
 
-import com.github.likavn.notify.base.BaseMsgSender;
+import com.github.likavn.notify.base.AbstractMsgSender;
 import com.github.likavn.notify.domain.Request;
 import com.github.likavn.notify.provider.redis.constant.RedisConstant;
 import com.github.likavn.notify.utils.SpringUtil;
@@ -10,13 +10,13 @@ import org.springframework.data.redis.connection.stream.Record;
 import org.springframework.data.redis.core.RedisTemplate;
 
 /**
- * 通知生产者
+ * 消息生产者
  *
  * @author likavn
  * @since 2023/01/01
  */
 @Slf4j
-public class RedisMsgSender extends BaseMsgSender {
+public class RedisMsgSender extends AbstractMsgSender {
 
     private final RedisTemplate<String, String> redisTemplate;
 

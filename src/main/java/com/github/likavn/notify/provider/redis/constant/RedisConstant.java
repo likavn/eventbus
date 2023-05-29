@@ -27,6 +27,14 @@ public class RedisConstant {
     public static final String NOTIFY_DELAY_LOCK_PREFIX = "notify:delay.lock:%s";
 
     /**
+     * 分布式锁,订阅消息锁
+     * 参数：
+     * <p>
+     * 1. value md5;
+     */
+    public static final String NOTIFY_SUBSCRIBE_LOCK_PREFIX = "notify:subscribe.lock:%s";
+
+    /**
      * 消息队列前缀
      * 参数：
      * <p>

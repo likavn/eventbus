@@ -3,6 +3,7 @@ package com.github.likavn.notify.base;
 import com.github.likavn.notify.annotation.FailCallback;
 import com.github.likavn.notify.api.DelayMsgListener;
 import com.github.likavn.notify.api.MsgSender;
+import com.github.likavn.notify.api.SubscribeMsgListener;
 import com.github.likavn.notify.domain.Message;
 import com.github.likavn.notify.domain.Request;
 import com.github.likavn.notify.prop.NotifyProperties;
@@ -13,6 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Resource;
 
+import static com.github.likavn.notify.utils.WrapUtils.currentModelClass;
+import static com.github.likavn.notify.utils.WrapUtils.parseObject;
+
 /**
  * 消息投递失败处理类
  * 1、重复投递；
@@ -22,8 +26,8 @@ import javax.annotation.Resource;
  * @since 2023/01/01
  */
 @SuppressWarnings("all")
-public abstract class BaseFailRetryMsgHandler<T> implements DelayMsgListener<T> {
-    private static final Logger logger = LoggerFactory.getLogger(BaseFailRetryMsgHandler.class);
+public abstract class AbstractMsgFailRetryHandler<T> implements DelayMsgListener<T> {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractMsgFailRetryHandler.class);
 
     @Resource
     private MsgSender msgSender;
@@ -41,7 +45,7 @@ public abstract class BaseFailRetryMsgHandler<T> implements DelayMsgListener<T> 
      */
     private final Long nextTime;
 
-    public BaseFailRetryMsgHandler(Integer retry, Long nextTime) {
+    public AbstractMsgFailRetryHandler(Integer retry, Long nextTime) {
         this.retry = retry;
         this.nextTime = nextTime;
     }
@@ -69,45 +73,68 @@ public abstract class BaseFailRetryMsgHandler<T> implements DelayMsgListener<T> 
      *
      * @param message message
      */
-    public void deliver(Message<T> message) {
+    public void deliver(Request request) {
         if (logger.isDebugEnabled()) {
-            logger.debug("deliver msg：{}", WrapUtils.toJson(message));
+            logger.debug("deliver msg：{}", WrapUtils.toJson(request));
         }
+        Object originBody = request.getBody();
+
+        // serialize Body
+        serializeBody(request);
         try {
-            accept(message);
-        } catch (Exception ex) {
+            accept(request);
+        } catch (Throwable ex) {
             logger.error("deliver 业务异常", ex);
-            int retryHandleNum = message.getDeliverNum();
-            Request request = (Request) message;
+            int retryHandleNum = request.getDeliverNum();
             if (retryHandleNum < (null == retry ? properties.getFail().getRetryNum() : this.retry)) {
                 logger.error("deliver 放入延时队列进行重试... ");
 
                 // 设置延时消息回调处理类
-                Class<? extends DelayMsgListener> handler = request.getHandler();
+                Class<? extends DelayMsgListener> delayMsgHandler = request.getDelayMsgHandler();
                 long triggerTime = (null == nextTime ? properties.getFail().getDelayNextTime() : nextTime);
                 // 原消息为订阅消息
                 if (Boolean.TRUE.equals(request.getIsOrgSub())) {
-                    handler = this.getClass();
+                    delayMsgHandler = this.getClass();
                     triggerTime = (null == nextTime ? properties.getFail().getSubNextTime() : nextTime);
                 }
-
-                request.setHandler(handler);
-                request.setDeliverNum(retryHandleNum + 1);
-                request.setDelayTime(triggerTime);
-                msgSender.sendDelayMessage(request);
+                msgSender.sendDelayMessage(Request.builder().delayMsgHandler(delayMsgHandler)
+                        .requestId(request.getRequestId())
+                        .deliverNum(retryHandleNum + 1)
+                        .delayTime(triggerTime)
+                        .code(request.getCode())
+                        .body(originBody)
+                        .isOrgSub(request.getIsOrgSub())
+                        .build());
             } else {
                 try {
-                    Object _this = SpringUtil.getBean(request.getHandler());
+                    Object _this = SpringUtil.getBean(request.getDelayMsgHandler());
                     // 订阅消息获取其实现对象
                     if (Boolean.TRUE.equals(request.getIsOrgSub())) {
                         _this = this;
                     }
-                    FailCallback.Error.onFail(_this, message, ex);
+                    FailCallback.Error.onFail(_this, request, ex);
                 } catch (Exception var2) {
                     logger.error("Error.onFail 业务异常", var2);
                 }
             }
         }
+    }
+
+    /**
+     * 序列化数据实体
+     *
+     * @param request
+     */
+    private void serializeBody(Request request) {
+        Class modelClass = null;
+        Class<? extends DelayMsgListener> delayMsgHandler = request.getDelayMsgHandler();
+        if (null != delayMsgHandler) {
+            DelayMsgListener delayMsgListener = SpringUtil.getBean(delayMsgHandler);
+            modelClass = currentModelClass(delayMsgListener.getClass(), DelayMsgListener.class);
+        } else {
+            modelClass = currentModelClass(this.getClass(), SubscribeMsgListener.class);
+        }
+        request.setBody(parseObject(request.getBody(), modelClass));
     }
 
     /**
@@ -117,7 +144,7 @@ public abstract class BaseFailRetryMsgHandler<T> implements DelayMsgListener<T> 
      */
     @Override
     public void onMessage(Message<T> message) {
-        deliver(message);
+        deliver((Request) message);
     }
 
     /**

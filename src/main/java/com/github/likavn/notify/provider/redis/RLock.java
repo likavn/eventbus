@@ -22,7 +22,7 @@ public class RLock {
     /**
      * 分布式锁过期时间 s  可以根据业务自己调节
      */
-    private static final Long LOCK_REDIS_TIMEOUT = 15L;
+    private static final Long LOCK_REDIS_TIMEOUT = 30L;
 
     public RLock(RedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
