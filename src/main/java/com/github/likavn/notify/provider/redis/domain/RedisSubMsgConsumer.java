@@ -2,6 +2,7 @@ package com.github.likavn.notify.provider.redis.domain;
 
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.provider.redis.constant.RedisConstant;
+import lombok.EqualsAndHashCode;
 
 /**
  * redis消息订阅监听器消费者实体数据
@@ -9,6 +10,7 @@ import com.github.likavn.notify.provider.redis.constant.RedisConstant;
  * @author likavn
  * @date 2023/1/7
  **/
+@EqualsAndHashCode(callSuper = true)
 public final class RedisSubMsgConsumer extends SubMsgConsumer {
 
     /**
@@ -22,8 +24,7 @@ public final class RedisSubMsgConsumer extends SubMsgConsumer {
     private final String group;
 
     public RedisSubMsgConsumer(SubMsgConsumer subMsgConsumer) {
-        super(subMsgConsumer.getListener(),
-                subMsgConsumer.getConsumerNum(), subMsgConsumer.getServiceId(), subMsgConsumer.getCode());
+        super(subMsgConsumer.getListener(), subMsgConsumer.getConsumerNum(), subMsgConsumer.getServiceId(), subMsgConsumer.getCode());
         this.key = String.format(RedisConstant.NOTIFY_SUBSCRIBE_PREFIX, subMsgConsumer.getTopic());
         this.group = subMsgConsumer.getListener().getClass().getName();
     }

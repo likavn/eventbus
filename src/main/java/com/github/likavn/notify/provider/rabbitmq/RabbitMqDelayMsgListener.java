@@ -3,6 +3,7 @@ package com.github.likavn.notify.provider.rabbitmq;
 import com.github.likavn.notify.base.AbstractMsgDelayHandler;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
+import com.github.likavn.notify.utils.Func;
 import com.github.likavn.notify.utils.SpringUtil;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -18,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 延时消息处理类
+ * 延时消息监听处理器
  *
  * @author likavn
  * @since 2023/01/01
@@ -42,10 +43,10 @@ public class RabbitMqDelayMsgListener extends AbstractMsgDelayHandler {
     }
 
     @Override
-    public void init() {
+    public void register() {
         Connection connection = connectionFactory.createConnection();
         byte count = 1;
-        while (count++ <= notifyProperties.getRabbitMq().getDelayConsumerNum()) {
+        while (count++ <= notifyProperties.getDelayConsumerNum()) {
             bindListener(connection);
         }
     }
@@ -69,6 +70,7 @@ public class RabbitMqDelayMsgListener extends AbstractMsgDelayHandler {
                                            AMQP.BasicProperties properties,
                                            byte[] body) throws IOException {
                     try {
+                        Func.reThreadName("notify-delayMsg-pool");
                         deliver(body);
                         channel.basicAck(envelope.getDeliveryTag(), false);
                     } catch (Exception ex) {
@@ -118,5 +120,10 @@ public class RabbitMqDelayMsgListener extends AbstractMsgDelayHandler {
                 // 设置路由key
                 String.format(RabbitMqConstant.DELAY_ROUTING_KEY, SpringUtil.getServiceId()));
         isInitRabbitMq = true;
+    }
+
+    @Override
+    public void destroy() {
+        // destroy
     }
 }

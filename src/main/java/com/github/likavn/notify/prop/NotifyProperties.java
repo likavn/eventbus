@@ -20,6 +20,16 @@ public class NotifyProperties {
     private String type;
 
     /**
+     * 延时消息，消费者数量
+     */
+    private Integer delayConsumerNum = 1;
+
+    /**
+     * 订阅消息，消费者数量
+     */
+    private Integer subConsumerNum = 1;
+
+    /**
      * 消息投递失败时配置信息
      */
     private Fail fail = new Fail();
@@ -67,9 +77,9 @@ public class NotifyProperties {
          */
         private Long delayDeliverTimeout = 15L;
         /**
-         * 订阅消息，获取单个分组下未ack的{subBatchSize}条消息的处理超时时间，未,单位：秒
+         * 订阅消息，获取单个分组下未ack的{subBatchSize}条消息的处理超时时间,单位：秒
          */
-        private Long subGroupTimeout = 30L;
+        private Long subUnAckGroupLockTimeout = 30L;
         /**
          * 订阅消息线程池大小
          */
@@ -90,13 +100,5 @@ public class NotifyProperties {
     @Data
     @ToString
     public static class RabbitMq {
-        /**
-         * 延时消息，消费者数量
-         */
-        private Integer delayConsumerNum = 2;
-        /**
-         * 订阅消息，消费者数量
-         */
-        private Integer subConsumerNum = 2;
     }
 }

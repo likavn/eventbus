@@ -9,7 +9,7 @@ import org.springframework.boot.ApplicationRunner;
  * @author likavn
  * @date 2023/5/19
  **/
-public interface MsgListenerInit extends ApplicationRunner {
+public interface MsgListenerContainer extends ApplicationRunner {
     /**
      * 程序启动后初始化
      *
@@ -17,11 +17,16 @@ public interface MsgListenerInit extends ApplicationRunner {
      */
     @Override
     default void run(ApplicationArguments args) {
-        init();
+        register();
     }
 
     /**
-     * 初始化函数，所有监听器创建都需要实现该函数
+     * 初始化
      */
-    void init();
+    void register();
+
+    /**
+     * 销毁
+     */
+    void destroy();
 }

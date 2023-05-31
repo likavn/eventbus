@@ -1,9 +1,10 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
-import com.github.likavn.notify.base.MsgListenerInit;
+import com.github.likavn.notify.base.MsgListenerContainer;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
+import com.github.likavn.notify.utils.Func;
 import com.rabbitmq.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.Connection;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -19,7 +21,7 @@ import java.util.List;
  * @author likavn
  * @since 2023/01/01
  **/
-public class RabbitMqSubscribeMsgListener implements MsgListenerInit {
+public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
     private static final Logger logger = LoggerFactory.getLogger(RabbitMqSubscribeMsgListener.class);
 
     /**
@@ -42,11 +44,11 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerInit {
     }
 
     @Override
-    public void init() {
+    public void register() {
         Connection newConnection = connectionFactory.createConnection();
         for (SubMsgConsumer consumer : consumers) {
             Integer consumerNum = consumer.getConsumerNum();
-            consumerNum = (null == consumerNum ? notifyProperties.getRabbitMq().getSubConsumerNum() : consumerNum);
+            consumerNum = (null == consumerNum ? notifyProperties.getSubConsumerNum() : consumerNum);
             int num = 0;
             while (num++ < consumerNum) {
                 bindListener(consumer, newConnection);
@@ -94,6 +96,7 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerInit {
                                            AMQP.BasicProperties properties,
                                            byte[] body) throws IOException {
                     try {
+                        Func.reThreadName("notify-subscribeMsg-pool");
                         consumer.accept(body);
                         channel.basicAck(envelope.getDeliveryTag(), false);
                     } catch (Exception ex) {
@@ -117,7 +120,13 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerInit {
         if (isCreateExchange) {
             return;
         }
-        channel.exchangeDeclare(RabbitMqConstant.EXCHANGE, BuiltinExchangeType.TOPIC);
+        channel.exchangeDeclare(RabbitMqConstant.EXCHANGE,
+                BuiltinExchangeType.TOPIC, true, false, Collections.emptyMap());
         isCreateExchange = true;
+    }
+
+    @Override
+    public void destroy() {
+        // destroy
     }
 }

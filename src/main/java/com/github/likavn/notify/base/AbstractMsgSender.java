@@ -16,6 +16,22 @@ import java.util.UUID;
  */
 @SuppressWarnings("all")
 public abstract class AbstractMsgSender implements MsgSender {
+    @Override
+    public void send(Request<?> request) {
+        request.setIsOrgSub(Boolean.TRUE);
+        wrap(request);
+        toSend(request);
+    }
+
+    public abstract void toSend(Request<?> request);
+
+    @Override
+    public void sendDelayMessage(Request<?> request) {
+        wrap(request);
+        toSendDelayMessage(request);
+    }
+
+    public abstract void toSendDelayMessage(Request<?> request);
 
     /**
      * 发送消息前置操作
@@ -23,7 +39,7 @@ public abstract class AbstractMsgSender implements MsgSender {
      * @param request request
      * @return t
      */
-    protected Request wrap(Request<?> request) {
+    protected void wrap(Request<?> request) {
         Assert.notNull(request.getBody(), "消息体不能为空");
         if (!Objects.nonNull(request.getServiceId())) {
             request.setServiceId(SpringUtil.getServiceId());
@@ -37,6 +53,5 @@ public abstract class AbstractMsgSender implements MsgSender {
         if (null != request.getDelayMsgHandler()) {
             Assert.isTrue(!(null == request.getDelayTime() || 0 >= request.getDelayTime()), "delayTime is null or zreo");
         }
-        return request;
     }
 }

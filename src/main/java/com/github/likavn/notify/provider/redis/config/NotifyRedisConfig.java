@@ -3,10 +3,7 @@ package com.github.likavn.notify.provider.redis.config;
 import com.github.likavn.notify.api.MsgSender;
 import com.github.likavn.notify.domain.ServiceContext;
 import com.github.likavn.notify.prop.NotifyProperties;
-import com.github.likavn.notify.provider.redis.RLock;
-import com.github.likavn.notify.provider.redis.RedisDelayMsgListener;
-import com.github.likavn.notify.provider.redis.RedisMsgSender;
-import com.github.likavn.notify.provider.redis.RedisSubscribeMsgListener;
+import com.github.likavn.notify.provider.redis.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -63,20 +60,20 @@ public class NotifyRedisConfig {
      */
     @Bean
     public RedisDelayMsgListener delayMessageListener(
-            @Qualifier("notifyRedisTemplate") RedisTemplate<String, String> redisTemplate,
-            RLock rLock,
-            NotifyProperties notifyProperties) {
+            @Qualifier("notifyRedisTemplate") RedisTemplate<String, String> redisTemplate, RLock rLock, NotifyProperties notifyProperties) {
         return new RedisDelayMsgListener(redisTemplate, rLock, notifyProperties);
     }
 
     @Bean
     public RedisSubscribeMsgListener redisSubscribeMsgListener(
-            RedisConnectionFactory redisConnectionFactory,
-            @Qualifier("notifyRedisTemplate") RedisTemplate<String, String> redisTemplate,
-            ServiceContext serviceContext,
-            RLock rLock,
-            NotifyProperties notifyProperties) {
+            RedisConnectionFactory redisConnectionFactory, @Qualifier("notifyRedisTemplate") RedisTemplate<String, String> redisTemplate,
+            ServiceContext serviceContext, RLock rLock, NotifyProperties notifyProperties) {
         return new RedisSubscribeMsgListener(redisConnectionFactory,
                 notifyProperties, redisTemplate, serviceContext.getSubMsgConsumers(), rLock);
+    }
+
+    @Bean
+    public RedisNodeTestConnect redisNodeTestConnect(@Qualifier("notifyRedisTemplate") RedisTemplate<String, String> redisTemplate) {
+        return new RedisNodeTestConnect(redisTemplate);
     }
 }

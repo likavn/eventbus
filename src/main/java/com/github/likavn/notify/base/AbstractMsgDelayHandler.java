@@ -17,7 +17,7 @@ import javax.annotation.Resource;
  * @since 2023/01/01
  */
 @SuppressWarnings("all")
-public abstract class AbstractMsgDelayHandler extends AbstractMsgFailRetryHandler implements MsgListenerInit {
+public abstract class AbstractMsgDelayHandler extends AbstractMsgFailRetryHandler implements MsgListenerContainer {
     private static final Logger logger = LoggerFactory.getLogger(AbstractMsgDelayHandler.class);
 
     @Resource

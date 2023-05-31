@@ -3,8 +3,6 @@ package com.github.likavn.notify.api;
 import com.github.likavn.notify.base.AbstractMsgFailRetryHandler;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.utils.SpringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,8 +15,6 @@ import java.util.List;
  * @since 2023/01/01
  */
 public abstract class SubscribeMsgListener<T> extends AbstractMsgFailRetryHandler<T> {
-    private static final Logger logger = LoggerFactory.getLogger(SubscribeMsgListener.class);
-
     /**
      * 消费者数量
      */

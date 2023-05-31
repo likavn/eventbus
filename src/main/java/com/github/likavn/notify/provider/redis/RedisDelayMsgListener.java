@@ -3,6 +3,7 @@ package com.github.likavn.notify.provider.redis;
 import com.github.likavn.notify.base.AbstractMsgDelayHandler;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.redis.constant.RedisConstant;
+import com.github.likavn.notify.utils.Func;
 import com.github.likavn.notify.utils.SpringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -12,7 +13,6 @@ import org.springframework.util.DigestUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -35,23 +35,32 @@ public class RedisDelayMsgListener extends AbstractMsgDelayHandler {
 
     private final NotifyProperties.Redis redisConfig;
 
+    private final NotifyProperties notifyProperties;
+
     private final String delayKey;
+
+    private ScheduledThreadPoolExecutor scheduler;
 
     public RedisDelayMsgListener(RedisTemplate<String, String> redisTemplate,
                                  RLock rLock,
                                  NotifyProperties notifyProperties) {
         this.zSetOps = redisTemplate.opsForZSet();
         this.rLock = rLock;
+        this.notifyProperties = notifyProperties;
         this.redisConfig = notifyProperties.getRedis();
         this.delayKey = String.format(RedisConstant.NOTIFY_DELAY_PREFIX, SpringUtil.getServiceId());
     }
 
     @Override
-    public void init() {
-        ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(
-                1,
-                new CustomizableThreadFactory("notify-delayMsg-pool-"));
-        scheduler.scheduleWithFixedDelay(this::loop, POLL_MILLIS, POLL_MILLIS, TimeUnit.MILLISECONDS);
+    public void register() {
+        int delayConsumerNum = notifyProperties.getDelayConsumerNum();
+        if (null == scheduler) {
+            scheduler = new ScheduledThreadPoolExecutor(
+                    delayConsumerNum, new CustomizableThreadFactory("notify-delayMsg-pool-"));
+        }
+        while (delayConsumerNum-- > 0) {
+            scheduler.scheduleWithFixedDelay(this::loop, 0, POLL_MILLIS, TimeUnit.MILLISECONDS);
+        }
     }
 
     /**
@@ -93,4 +102,10 @@ public class RedisDelayMsgListener extends AbstractMsgDelayHandler {
             }
         });
     }
+
+    @Override
+    public void destroy() {
+        Func.resetPool(scheduler);
+    }
+
 }

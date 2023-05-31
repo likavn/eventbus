@@ -1,9 +1,12 @@
 package com.github.likavn.notify.config;
 
 import com.github.likavn.notify.api.SubscribeMsgListener;
+import com.github.likavn.notify.base.MsgListenerContainer;
+import com.github.likavn.notify.base.NodeTestConnect;
 import com.github.likavn.notify.domain.ServiceContext;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.prop.NotifyProperties;
+import com.github.likavn.notify.provider.ConnectionWatchdog;
 import com.github.likavn.notify.provider.rabbitmq.config.NotifyRabbitMqConfig;
 import com.github.likavn.notify.provider.redis.config.NotifyRedisConfig;
 import com.github.likavn.notify.utils.SpringUtil;
@@ -14,9 +17,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 配置
@@ -48,5 +49,17 @@ public class NotifyConfig {
         }
         serviceProperty.setSubMsgConsumers(subMsgConsumers);
         return serviceProperty;
+    }
+
+    @Bean
+    @SuppressWarnings("all")
+    public ConnectionWatchdog connectionWatchdog(ApplicationContext applicationContext,
+                                                 NodeTestConnect nodeTestConnect) {
+        Collection<MsgListenerContainer> containers = Collections.emptyList();
+        Map<String, MsgListenerContainer> containerMap = applicationContext.getBeansOfType(MsgListenerContainer.class);
+        if (!containerMap.isEmpty()) {
+            containers = containerMap.values();
+        }
+        return new ConnectionWatchdog(nodeTestConnect, containers);
     }
 }

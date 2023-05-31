@@ -1,10 +1,11 @@
 package com.github.likavn.notify.provider.redis;
 
-import com.github.likavn.notify.base.MsgListenerInit;
+import com.github.likavn.notify.base.MsgListenerContainer;
 import com.github.likavn.notify.domain.SubMsgConsumer;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.redis.constant.RedisConstant;
 import com.github.likavn.notify.provider.redis.domain.RedisSubMsgConsumer;
+import com.github.likavn.notify.utils.Func;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.var;
@@ -23,7 +24,10 @@ import java.net.InetAddress;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -33,7 +37,7 @@ import java.util.stream.Collectors;
  * @since 2023/01/01
  **/
 @Slf4j
-public class RedisSubscribeMsgListener implements MsgListenerInit, DisposableBean {
+public class RedisSubscribeMsgListener implements MsgListenerContainer, DisposableBean {
     private final NotifyProperties.Redis redisConfig;
 
     private final List<RedisSubMsgConsumer> subMsgConsumers;
@@ -44,13 +48,20 @@ public class RedisSubscribeMsgListener implements MsgListenerInit, DisposableBea
 
     private final RLock rLock;
 
+    private final NotifyProperties notifyProperties;
+
     private StreamMessageListenerContainer<String, ObjectRecord<String, String>> listenerContainer;
+
+    private ScheduledThreadPoolExecutor scheduler;
+
+    private ThreadPoolExecutor listenerOptionExecutor;
 
     public RedisSubscribeMsgListener(RedisConnectionFactory redisConnectionFactory,
                                      NotifyProperties notifyProperties,
                                      RedisTemplate<String, String> redisTemplate,
                                      List<SubMsgConsumer> subMsgConsumers, RLock rLock) {
         this.redisConnectionFactory = redisConnectionFactory;
+        this.notifyProperties = notifyProperties;
         this.redisConfig = notifyProperties.getRedis();
         this.subMsgConsumers = subMsgConsumers.stream().map(RedisSubMsgConsumer::new).collect(Collectors.toList());
         this.redisTemplate = redisTemplate;
@@ -58,7 +69,7 @@ public class RedisSubscribeMsgListener implements MsgListenerInit, DisposableBea
     }
 
     @Override
-    public void init() {
+    public void register() {
         // 绑定监听器
         bindListener();
 
@@ -70,15 +81,16 @@ public class RedisSubscribeMsgListener implements MsgListenerInit, DisposableBea
      * 重新投递未被ack的消息
      */
     private void unAckMsgRetryDeliver() {
-        ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(
-                1,
-                new CustomizableThreadFactory("notify-subscribeMsg#unAckRetry-pool-"));
+        if (null == scheduler) {
+            scheduler = new ScheduledThreadPoolExecutor(
+                    1, new CustomizableThreadFactory("notify-subscribeMsg#unAckRetry-pool-"));
+        }
         // 遍历获取未确认消息
         scheduler.scheduleWithFixedDelay(() -> {
             for (RedisSubMsgConsumer consumer : subMsgConsumers) {
                 String lockKey = String.format(RedisConstant
                         .NOTIFY_SUBSCRIBE_LOCK_PREFIX, consumer.getKey() + consumer.getGroup());
-                boolean lock = rLock.getLock(lockKey, redisConfig.getSubGroupTimeout());
+                boolean lock = rLock.getLock(lockKey, redisConfig.getSubUnAckGroupLockTimeout());
                 if (!lock) {
                     continue;
                 }
@@ -94,7 +106,7 @@ public class RedisSubscribeMsgListener implements MsgListenerInit, DisposableBea
                     }
                 }
             }
-        }, 5, 3, TimeUnit.SECONDS);
+        }, 0, 3, TimeUnit.SECONDS);
     }
 
     /**
@@ -158,7 +170,11 @@ public class RedisSubscribeMsgListener implements MsgListenerInit, DisposableBea
 
     @SneakyThrows
     private void bindListener() {
-        Executor executor = new ThreadPoolExecutor(
+        if (null != listenerContainer) {
+            listenerContainer.start();
+            return;
+        }
+        listenerOptionExecutor = new ThreadPoolExecutor(
                 redisConfig.getSubExecutorPoolSize(),
                 redisConfig.getSubExecutorPoolSize(),
                 1,
@@ -170,13 +186,11 @@ public class RedisSubscribeMsgListener implements MsgListenerInit, DisposableBea
                 = StreamMessageListenerContainer
                 .StreamMessageListenerContainerOptions
                 .builder()
-                .executor(executor)
+                .executor(listenerOptionExecutor)
                 // 一次性最多拉取多少条消息
                 .batchSize(redisConfig.getSubBatchSize())
                 // 消息消费异常的handler
-                .errorHandler(t -> {
-                    log.error("[MQ handler exception] ", t);
-                })
+                .errorHandler(t -> log.error("[MQ handler exception] ", t))
                 // 超时时间，设置为0，表示不超时（超时后会抛出异常）
                 .pollTimeout(Duration.ZERO)
                 // 序列化器
@@ -190,13 +204,17 @@ public class RedisSubscribeMsgListener implements MsgListenerInit, DisposableBea
             // 初始化组
             createStreamGroup(redisTemplate, consumer);
 
-            // 使用监听容器对象开始监听消费（使用的是手动确认方式）
-            listenerContainer.receive(Consumer.from(consumer.getGroup(), InetAddress.getLocalHost().getHostName()),
-                    StreamOffset.create(consumer.getKey(), ReadOffset.lastConsumed()),
-                    message -> {
-                        consumer.accept(message.getValue());
-                        redisTemplate.opsForStream().acknowledge(consumer.getKey(), consumer.getGroup(), message.getId());
-                    });
+            Integer consumerNum = consumer.getConsumerNum();
+            consumerNum = (null == consumerNum ? notifyProperties.getSubConsumerNum() : consumerNum);
+            while (consumerNum-- > 0) {
+                // 使用监听容器对象开始监听消费（使用的是手动确认方式）
+                listenerContainer.receive(Consumer.from(consumer.getGroup(), InetAddress.getLocalHost().getHostName() + "-" + consumerNum),
+                        StreamOffset.create(consumer.getKey(), ReadOffset.lastConsumed()),
+                        message -> {
+                            consumer.accept(message.getValue());
+                            redisTemplate.opsForStream().acknowledge(consumer.getKey(), consumer.getGroup(), message.getId());
+                        });
+            }
         }
         // 启动监听
         listenerContainer.start();
@@ -207,7 +225,9 @@ public class RedisSubscribeMsgListener implements MsgListenerInit, DisposableBea
      */
     @Override
     public void destroy() {
-        this.listenerContainer.stop();
+        listenerContainer.stop();
+        Func.resetPool(scheduler);
+        Func.resetPool(listenerOptionExecutor);
     }
 
     /**

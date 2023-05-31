@@ -44,7 +44,6 @@ public class SubMsgConsumer extends Topic {
      */
     @SuppressWarnings("all")
     public void accept(String body) {
-        //   throw new RuntimeException("接收失败测试...");
         listener.deliver(body);
     }
 }

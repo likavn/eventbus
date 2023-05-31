@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * 包装转换工具
@@ -19,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2023/01/01
  */
 @Slf4j
-public class WrapUtils {
+public class Func {
 
     /**
      * 代理 class 的名称
@@ -33,7 +35,7 @@ public class WrapUtils {
 
     private static final Map<Class<?>, Class<?>> CURRENT_MODEL = new ConcurrentHashMap<>();
 
-    private WrapUtils() {
+    private Func() {
     }
 
     /**
@@ -113,5 +115,25 @@ public class WrapUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * 线程重新命名
+     *
+     * @param name 新名称
+     */
+    public static void reThreadName(String name) {
+        Thread thread = Thread.currentThread();
+        String oldName = thread.getName();
+        oldName = oldName.substring(oldName.lastIndexOf("-"));
+        Thread.currentThread().setName(name + oldName);
+    }
+
+    @SuppressWarnings("all")
+    public static void resetPool(ThreadPoolExecutor poolExecutor) {
+        for (Future f : poolExecutor.getQueue().toArray(new Future[0])) {
+            f.cancel(true);
+        }
+        poolExecutor.purge();
     }
 }

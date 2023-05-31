@@ -7,15 +7,15 @@ import com.github.likavn.notify.api.SubscribeMsgListener;
 import com.github.likavn.notify.domain.Message;
 import com.github.likavn.notify.domain.Request;
 import com.github.likavn.notify.prop.NotifyProperties;
+import com.github.likavn.notify.utils.Func;
 import com.github.likavn.notify.utils.SpringUtil;
-import com.github.likavn.notify.utils.WrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Resource;
 
-import static com.github.likavn.notify.utils.WrapUtils.currentModelClass;
-import static com.github.likavn.notify.utils.WrapUtils.parseObject;
+import static com.github.likavn.notify.utils.Func.currentModelClass;
+import static com.github.likavn.notify.utils.Func.parseObject;
 
 /**
  * 消息投递失败处理类
@@ -56,7 +56,7 @@ public abstract class AbstractMsgFailRetryHandler<T> implements DelayMsgListener
      * @param body body
      */
     public void deliver(String body) {
-        deliver(WrapUtils.convertByBytes(body));
+        deliver(Func.convertByBytes(body));
     }
 
     /**
@@ -65,7 +65,7 @@ public abstract class AbstractMsgFailRetryHandler<T> implements DelayMsgListener
      * @param body body
      */
     public void deliver(byte[] body) {
-        deliver(WrapUtils.convertByBytes(body));
+        deliver(Func.convertByBytes(body));
     }
 
     /**
@@ -75,7 +75,7 @@ public abstract class AbstractMsgFailRetryHandler<T> implements DelayMsgListener
      */
     public void deliver(Request request) {
         if (logger.isDebugEnabled()) {
-            logger.debug("deliver msg：{}", WrapUtils.toJson(request));
+            logger.debug("deliver msg：{}", Func.toJson(request));
         }
         Object originBody = request.getBody();
 
@@ -86,7 +86,7 @@ public abstract class AbstractMsgFailRetryHandler<T> implements DelayMsgListener
         } catch (Throwable ex) {
             logger.error("deliver 业务异常", ex);
             int retryHandleNum = request.getDeliverNum();
-            if (retryHandleNum < (null == retry ? properties.getFail().getRetryNum() : this.retry)) {
+            if (retryHandleNum <= (null == retry ? properties.getFail().getRetryNum() : this.retry)) {
                 logger.error("deliver 放入延时队列进行重试... ");
 
                 // 设置延时消息回调处理类

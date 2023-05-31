@@ -5,6 +5,7 @@ import com.github.likavn.notify.domain.ServiceContext;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqDelayMsgListener;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqMsgSender;
+import com.github.likavn.notify.provider.rabbitmq.RabbitMqNodeTestConnect;
 import com.github.likavn.notify.provider.rabbitmq.RabbitMqSubscribeMsgListener;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -14,7 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 通知配置
+ * rabbitMq实现配置
  *
  * @author likavn
  * @since 2023/01/01
@@ -25,9 +26,6 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(prefix = "notify", name = "type", havingValue = "rabbitmq")
 public class NotifyRabbitMqConfig {
 
-    /**
-     * 消息通知rabbitmq实现
-     */
     @Bean
     public MsgSender rabbitsMqMsgSender(RabbitTemplate rabbitTemplate) {
         return new RabbitMqMsgSender(rabbitTemplate);
@@ -35,19 +33,17 @@ public class NotifyRabbitMqConfig {
 
     @Bean
     public RabbitMqSubscribeMsgListener rabbitMqSubscribeMsgListener(
-            CachingConnectionFactory connectionFactory,
-            ServiceContext serviceContext,
-            NotifyProperties notifyProperties) {
+            CachingConnectionFactory connectionFactory, ServiceContext serviceContext, NotifyProperties notifyProperties) {
         return new RabbitMqSubscribeMsgListener(serviceContext.getSubMsgConsumers(), connectionFactory, notifyProperties);
     }
 
-    /**
-     * 初始化延时事件消息监听器
-     */
     @Bean
-    public RabbitMqDelayMsgListener delayMessageListener(
-            CachingConnectionFactory connectionFactory,
-            NotifyProperties notifyProperties) {
+    public RabbitMqDelayMsgListener delayMessageListener(CachingConnectionFactory connectionFactory, NotifyProperties notifyProperties) {
         return new RabbitMqDelayMsgListener(connectionFactory, notifyProperties);
+    }
+
+    @Bean
+    public RabbitMqNodeTestConnect rabbitMqNodeTestConnect(CachingConnectionFactory connectionFactory) {
+        return new RabbitMqNodeTestConnect(connectionFactory);
     }
 }

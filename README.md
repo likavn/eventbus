@@ -1,6 +1,6 @@
 ## 什么是 notify-spring-boot-starter？
 
-notify-spring-boot-starter消息组件，支持分布式业务消息总线、延时消息等，屏蔽底层消息引擎种类，提供线上统一的接口，可发送异步消息及延时消息，同时可订阅异步消息或延时消息。目前可选择基于redis、rabbitmq等任一一种做消息引擎，其他消息中间件将陆续支持。
+notify-spring-boot-starter消息组件，支持分布式业务消息总线、延时消息等，屏蔽底层不同消息引擎种类，提供统一调用接口，可发送异步消息及延时消息，同时可订阅异步消息或延时消息，降低系统耦合度。目前可选择基于redis、rabbitmq等任一一种做消息引擎，其他消息中间件将陆续支持。
 
 
 
@@ -21,15 +21,13 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 
 异步业务消息订阅及延时消息订阅
 
-
-
 ## 有哪些场景可以使用？
 
 单一业务分发消息进行异步处理时，比如业务完成推送业务数据给第三方；
 
 支付时，后端服务需要定时轮训支付接口查询是否支付成功；
 
-
+系统业务解耦；
 
 ## 快速开始
 
@@ -39,32 +37,35 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 <dependency>
     <groupId>com.github.likavn</groupId>
     <artifactId>notify-spring-boot-starter</artifactId>
-    <version>1.3.3</version>
+    <version>1.6.1</version>
 </dependency>
 ```
-
-
 
 ### 设置消息引擎类别
 
 在application.yml文件中配置消息引擎类别，如下：
+
+#### redis
+
+使用Redis5.0 新功能Stream，Redis Stream 提供了消息的持久化和主备复制功能，可以让任何客户端访问任何时刻的数据，并且能记住每一个客户端的访问位置，还能保证消息不丢失。
 
 ```yaml
 notify:
   type: redis  #redis或者rabbitmq
 ```
 
-如果是redis，需要在pom.xml单独引入，如下：
+需要在pom.xml单独引入，如下：
 
 ```xml
-
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-data-redis</artifactId>
 </dependency>
 ```
 
-如果是rabbitmq，需要在pom.xml单独引入，如下：
+#### rabbitmq
+
+rabbitmq，需要在pom.xml单独引入，如下：
 
 ```xml
 
@@ -143,6 +144,41 @@ public class DelayMsgDemoListener implements DelayMsgListener<String> {
     @Override
     public void onMessage(Message<String> message) {
         log.info("接收延时消息回调body:{}", message.getBody());
+    }
+}
+```
+
+### 异常捕获
+
+当订阅消息或延时消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（默认系统重复投递3次，每次间隔3秒），即便这样消息还是有可能会存在投递不成功的问题，当消息进行最后一次投递时还是失败，可以使用注解`@FailCallback`
+标识在订阅或延时消息处理类上，即可捕获投递错误异常及数据。如下：
+
+```java
+
+@Slf4j
+@Component
+public class SubscribeMsgDemoListener extends SubscribeMsgListener<String> {
+
+    /**
+     * 必须有一个构造函数订阅业务消息类型
+     */
+    public SubscribeMsgDemoListener() {
+        // 设置订阅的业务消息类型，其他类型的服务的消息类型，可设置对应服务id+业务消息类型code
+        super(Collections.singletonList("testMsgSubscribe"), 5, 10L);
+    }
+
+    /**
+     * 接收业务消息体对象数据
+     */
+    @Override
+    public void accept(Message<String> message) {
+        log.info("消息监听,body:{}", message.getBody());
+        // throw new RuntimeException("接收失败测试...");
+    }
+
+    @FailCallback
+    public void error(Message<String> message, Exception exception) {
+        log.info("失败回调");
     }
 }
 ```
