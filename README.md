@@ -52,18 +52,19 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 
 在application.yml文件中配置消息引擎类别，如下：
 
-#### redis
-
-使用Redis5.0 新功能Stream，Redis Stream 提供了消息的持久化和主备复制功能，可以让任何客户端访问任何时刻的数据，并且能记住每一个客户端的访问位置，还能保证消息不丢失。
-
 ```yaml
 notify:
   type: redis  #redis或者rabbitmq
 ```
 
+#### redis
+
+使用Redis5.0 新功能Stream，Redis Stream 提供了消息的持久化和主备复制功能，可以让任何客户端访问任何时刻的数据，并且能记住每一个客户端的访问位置，还能保证消息不丢失。
+
 需要在pom.xml单独引入，如下：
 
 ```xml
+
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-data-redis</artifactId>
@@ -162,7 +163,7 @@ public class DelayMsgDemoListener implements DelayMsgListener<String> {
 ### 异常捕获
 
 当订阅消息或延时消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（系统默认重复投递3次，每次间隔3秒），即便这样，消息还是有可能会存在投递不成功的问题，当消息进行最后一次投递还是失败时，可以使用注解`@FailCallback`
-标识在订阅或延时消息处理类的异常处理方法上，即可捕获投递错误异常及数据。如下：
+标识在订阅或延时消息处理类的异常处理方法上，到达最大重复投递次数且还是投递失败时调用此方法，即可捕获投递错误异常及数据。如下：
 
 ```java
 
@@ -188,7 +189,7 @@ public class SubscribeMsgDemoListener extends SubscribeMsgListener<String> {
     }
 
     /**
-     * 到达最大重复投递次数时调用此方法
+     * 到达最大重复投递次数且还是投递失败时调用此方法，参数列表不分顺序
      */
     @FailCallback
     public void error(Message<String> message, Exception exception) {
@@ -196,6 +197,10 @@ public class SubscribeMsgDemoListener extends SubscribeMsgListener<String> {
     }
 }
 ```
+
+## 注意事项
+
+**订阅、广播消息在消息引擎中是以订阅器实现类全类名进行分组（在rabbitMq中的存在是队列），当我们不在需要某个订阅器时请及时在消息引擎中删除此分组或队列，避免不必要的存储空间浪费。**
 
 更多信息请查阅相关接口类...
 
