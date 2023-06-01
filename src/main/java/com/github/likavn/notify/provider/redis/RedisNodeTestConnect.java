@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 
 /**
+ * redis连接状态测试
+ *
  * @author likavn
  * @date 2023/5/30
  **/

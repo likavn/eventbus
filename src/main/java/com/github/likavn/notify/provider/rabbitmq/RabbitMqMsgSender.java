@@ -1,12 +1,10 @@
 package com.github.likavn.notify.provider.rabbitmq;
 
-import com.github.likavn.notify.base.AbstractMsgSender;
+import com.github.likavn.notify.base.AbstractMsgWrapSenderHandler;
 import com.github.likavn.notify.domain.Request;
 import com.github.likavn.notify.provider.rabbitmq.constant.RabbitMqConstant;
 import com.github.likavn.notify.utils.Func;
 import com.github.likavn.notify.utils.SpringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
@@ -18,8 +16,7 @@ import java.util.UUID;
  * @author likavn
  * @since 2023/01/01
  */
-public class RabbitMqMsgSender extends AbstractMsgSender {
-    private static final Logger logger = LoggerFactory.getLogger(RabbitMqMsgSender.class);
+public class RabbitMqMsgSender extends AbstractMsgWrapSenderHandler {
 
     private final RabbitTemplate rabbitTemplate;
 

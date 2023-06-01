@@ -54,12 +54,12 @@ public class NotifyConfig {
     @Bean
     @SuppressWarnings("all")
     public ConnectionWatchdog connectionWatchdog(ApplicationContext applicationContext,
-                                                 NodeTestConnect nodeTestConnect) {
+                                                 NodeTestConnect nodeTestConnect, NotifyProperties notifyProperties) {
         Collection<MsgListenerContainer> containers = Collections.emptyList();
         Map<String, MsgListenerContainer> containerMap = applicationContext.getBeansOfType(MsgListenerContainer.class);
         if (!containerMap.isEmpty()) {
             containers = containerMap.values();
         }
-        return new ConnectionWatchdog(nodeTestConnect, containers);
+        return new ConnectionWatchdog(nodeTestConnect, notifyProperties.getTestConnect(), containers);
     }
 }

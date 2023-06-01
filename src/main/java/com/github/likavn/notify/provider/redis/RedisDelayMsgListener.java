@@ -1,6 +1,6 @@
 package com.github.likavn.notify.provider.redis;
 
-import com.github.likavn.notify.base.AbstractMsgDelayHandler;
+import com.github.likavn.notify.base.AbstractDelayMsgAcceptHandler;
 import com.github.likavn.notify.prop.NotifyProperties;
 import com.github.likavn.notify.provider.redis.constant.RedisConstant;
 import com.github.likavn.notify.utils.Func;
@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  * @since 2023/01/01
  */
 @Slf4j
-public class RedisDelayMsgListener extends AbstractMsgDelayHandler {
+public class RedisDelayMsgListener extends AbstractDelayMsgAcceptHandler {
     /**
      * 轮询时间间隔，单位：毫秒
      */
@@ -79,7 +79,7 @@ public class RedisDelayMsgListener extends AbstractMsgDelayHandler {
             boolean lock = false;
             try {
                 // 消息延时
-                zSetOps.incrementScore(delayKey, value, POLL_MILLIS * 2.0);
+                zSetOps.incrementScore(delayKey, value, POLL_MILLIS * 6.0);
                 // 获取锁
                 lock = rLock.getLock(lockKey, redisConfig.getDelayDeliverTimeout());
                 if (!lock) {

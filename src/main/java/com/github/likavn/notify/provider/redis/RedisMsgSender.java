@@ -1,6 +1,6 @@
 package com.github.likavn.notify.provider.redis;
 
-import com.github.likavn.notify.base.AbstractMsgSender;
+import com.github.likavn.notify.base.AbstractMsgWrapSenderHandler;
 import com.github.likavn.notify.domain.Request;
 import com.github.likavn.notify.provider.redis.constant.RedisConstant;
 import com.github.likavn.notify.utils.Func;
@@ -16,7 +16,7 @@ import org.springframework.data.redis.core.RedisTemplate;
  * @since 2023/01/01
  */
 @Slf4j
-public class RedisMsgSender extends AbstractMsgSender {
+public class RedisMsgSender extends AbstractMsgWrapSenderHandler {
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -33,6 +33,6 @@ public class RedisMsgSender extends AbstractMsgSender {
     @Override
     public void toSendDelayMessage(Request<?> request) {
         redisTemplate.opsForZSet().add(String.format(RedisConstant.NOTIFY_DELAY_PREFIX, SpringUtil.getServiceId()),
-                Func.toJson(request), System.currentTimeMillis() + (1000L * request.getDelayTime()));
+                Func.toJson(request), (System.currentTimeMillis() + (1000L * request.getDelayTime())));
     }
 }

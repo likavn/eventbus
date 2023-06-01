@@ -5,17 +5,16 @@ import com.github.likavn.notify.domain.Request;
 import com.github.likavn.notify.utils.SpringUtil;
 import org.springframework.util.Assert;
 
-import java.util.Objects;
 import java.util.UUID;
 
 /**
- * 延时消息处理类
+ * 发送消息体包装处理类
  *
  * @author likavn
  * @since 2023/01/01
  */
 @SuppressWarnings("all")
-public abstract class AbstractMsgSender implements MsgSender {
+public abstract class AbstractMsgWrapSenderHandler implements MsgSender {
     @Override
     public void send(Request<?> request) {
         request.setIsOrgSub(Boolean.TRUE);
@@ -41,10 +40,10 @@ public abstract class AbstractMsgSender implements MsgSender {
      */
     protected void wrap(Request<?> request) {
         Assert.notNull(request.getBody(), "消息体不能为空");
-        if (!Objects.nonNull(request.getServiceId())) {
+        if (null == request.getServiceId()) {
             request.setServiceId(SpringUtil.getServiceId());
         }
-        if (!Objects.nonNull(request.getRequestId())) {
+        if (null == request.getRequestId()) {
             request.setRequestId(UUID.randomUUID().toString().replaceAll("-", ""));
         }
         if (null == request.getDeliverNum()) {

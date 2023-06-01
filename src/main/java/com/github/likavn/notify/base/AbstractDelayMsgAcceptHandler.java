@@ -11,19 +11,20 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Resource;
 
 /**
- * 延时消息处理类
+ * 延时消息投递处理类
  *
  * @author likavn
  * @since 2023/01/01
  */
 @SuppressWarnings("all")
-public abstract class AbstractMsgDelayHandler extends AbstractMsgFailRetryHandler implements MsgListenerContainer {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractMsgDelayHandler.class);
+public abstract class AbstractDelayMsgAcceptHandler
+        extends AbstractMsgFailRetryHandler implements MsgListenerContainer {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractDelayMsgAcceptHandler.class);
 
     @Resource
     private NotifyProperties properties;
 
-    public AbstractMsgDelayHandler() {
+    public AbstractDelayMsgAcceptHandler() {
         super(null, null);
     }
 

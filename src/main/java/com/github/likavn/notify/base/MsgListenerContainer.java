@@ -4,7 +4,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
 /**
- * 监听器初始化接口
+ * 各中间件实现的监听容器初始化接口
  *
  * @author likavn
  * @date 2023/5/19
@@ -21,12 +21,12 @@ public interface MsgListenerContainer extends ApplicationRunner {
     }
 
     /**
-     * 初始化
+     * 容器第一次初始化、网络重新连接时调用
      */
     void register();
 
     /**
-     * 销毁
+     * 销毁,网络断开、容器销毁时调用
      */
     void destroy();
 }

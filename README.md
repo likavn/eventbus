@@ -1,6 +1,6 @@
 ## 什么是 notify-spring-boot-starter？
 
-notify-spring-boot-starter消息组件，支持分布式业务消息总线、延时消息等，屏蔽底层不同消息引擎种类，提供统一调用接口，可发送异步消息及延时消息，同时可订阅异步消息或延时消息，降低系统耦合度。目前可选择基于redis、rabbitmq等任一一种做消息引擎，其他消息中间件将陆续支持。
+notify-spring-boot-starter消息组件，支持分布式业务消息总线、延时消息等，屏蔽底层不同种类的消息引擎，提供统一调用接口，可发送异步消息及延时消息，同时可订阅异步消息或延时消息，降低系统耦合度。目前可选择基于redis、rabbitmq等任一一种做消息引擎，其他消息中间件将陆续支持。
 
 
 
@@ -13,13 +13,11 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 
 ## 有哪些特点？
 
-屏蔽底层不同的中间件类型，统一接口调用。
-
-
+我们不是另外开发一个Mq，而是屏蔽底层不同类型的中间件，统一接口调用。
 
 ## 有哪些功能？
 
-异步业务消息订阅及延时消息订阅
+异步业务消息订阅、广播及延时消息订阅，支持消息投递失败重试等。
 
 ## 有哪些场景可以使用？
 
@@ -27,13 +25,22 @@ notify-spring-boot-starter消息组件，支持分布式业务消息总线、延
 
 支付时，后端服务需要定时轮训支付接口查询是否支付成功；
 
-系统业务解耦；
+系统业务消息传播解耦；
+
+## 版本要求
+
+1.springBoot 2.3.0.RELEASE+
+
+2.redis 5.0+
+
+3.rabbitMq 3.8.3+
 
 ## 快速开始
 
 ### 引入依赖
 
 ```xml
+
 <dependency>
     <groupId>com.github.likavn</groupId>
     <artifactId>notify-spring-boot-starter</artifactId>
@@ -74,6 +81,8 @@ rabbitmq，需要在pom.xml单独引入，如下：
     <artifactId>spring-boot-starter-amqp</artifactId>
 </dependency>
 ```
+
+
 
 ### 发送与订阅异步消息
 
@@ -148,10 +157,12 @@ public class DelayMsgDemoListener implements DelayMsgListener<String> {
 }
 ```
 
+
+
 ### 异常捕获
 
-当订阅消息或延时消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（默认系统重复投递3次，每次间隔3秒），即便这样消息还是有可能会存在投递不成功的问题，当消息进行最后一次投递时还是失败，可以使用注解`@FailCallback`
-标识在订阅或延时消息处理类上，即可捕获投递错误异常及数据。如下：
+当订阅消息或延时消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（系统默认重复投递3次，每次间隔3秒），即便这样，消息还是有可能会存在投递不成功的问题，当消息进行最后一次投递还是失败时，可以使用注解`@FailCallback`
+标识在订阅或延时消息处理类的异常处理方法上，即可捕获投递错误异常及数据。如下：
 
 ```java
 
@@ -176,6 +187,9 @@ public class SubscribeMsgDemoListener extends SubscribeMsgListener<String> {
         // throw new RuntimeException("接收失败测试...");
     }
 
+    /**
+     * 到达最大重复投递次数时调用此方法
+     */
     @FailCallback
     public void error(Message<String> message, Exception exception) {
         log.info("失败回调");

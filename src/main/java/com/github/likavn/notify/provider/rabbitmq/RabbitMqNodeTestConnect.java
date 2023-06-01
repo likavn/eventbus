@@ -12,6 +12,8 @@ import org.springframework.amqp.rabbit.connection.Connection;
 import java.io.IOException;
 
 /**
+ * rabbitMq连接状态测试
+ *
  * @author likavn
  * @date 2023/5/30
  **/

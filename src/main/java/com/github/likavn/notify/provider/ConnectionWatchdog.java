@@ -2,6 +2,7 @@ package com.github.likavn.notify.provider;
 
 import com.github.likavn.notify.base.MsgListenerContainer;
 import com.github.likavn.notify.base.NodeTestConnect;
+import com.github.likavn.notify.prop.NotifyProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import org.springframework.util.CollectionUtils;
@@ -20,12 +21,6 @@ import java.util.concurrent.atomic.AtomicLong;
  **/
 @Slf4j
 public class ConnectionWatchdog {
-    /**
-     * 轮询时间间隔，单位：秒
-     */
-    private static final long POLL_SECOND = 15L;
-
-    private static final long LOSE_CONNECT_MAX_MILLI_SECOND = 1000L * 60;
 
     private boolean active = true;
 
@@ -33,10 +28,14 @@ public class ConnectionWatchdog {
 
     private final NodeTestConnect testConnect;
 
+    private final NotifyProperties.TestConnect properties;
+
     private final Collection<MsgListenerContainer> containers;
 
-    public ConnectionWatchdog(NodeTestConnect testConnect, Collection<MsgListenerContainer> containers) {
+    public ConnectionWatchdog(NodeTestConnect testConnect,
+                              NotifyProperties.TestConnect testConnectProperties, Collection<MsgListenerContainer> containers) {
         this.testConnect = testConnect;
+        this.properties = testConnectProperties;
         this.containers = containers;
         if (CollectionUtils.isEmpty(containers)) {
             return;
@@ -48,6 +47,7 @@ public class ConnectionWatchdog {
      * 注册连接检测定时任务，校验连接并重新注册或销毁容器
      */
     private void registerScheduler() {
+        long loseConnectMaxMilliSecond = 1000L * properties.getLoseConnectMaxMilliSecond();
         ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(
                 1,
                 new CustomizableThreadFactory("notify-connectionWatchdog-pool-"));
@@ -74,13 +74,13 @@ public class ConnectionWatchdog {
 
             // 丢失超过固定阀值，则销毁容器
             if (firstLostConnectMillisecond.get() != -1
-                    && System.currentTimeMillis() - firstLostConnectMillisecond.get() >= LOSE_CONNECT_MAX_MILLI_SECOND) {
+                    && System.currentTimeMillis() - firstLostConnectMillisecond.get() >= loseConnectMaxMilliSecond) {
                 if (active) {
                     destroy();
                 }
                 active = false;
             }
-        }, POLL_SECOND, POLL_SECOND, TimeUnit.SECONDS);
+        }, properties.getPollSecond(), properties.getPollSecond(), TimeUnit.SECONDS);
     }
 
     private void register() {

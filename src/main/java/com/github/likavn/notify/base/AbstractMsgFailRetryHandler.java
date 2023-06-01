@@ -71,53 +71,60 @@ public abstract class AbstractMsgFailRetryHandler<T> implements DelayMsgListener
     /**
      * 接收器
      *
-     * @param message message
+     * @param request message
      */
     public void deliver(Request request) {
         if (logger.isDebugEnabled()) {
             logger.debug("deliver msg：{}", Func.toJson(request));
         }
         Object originBody = request.getBody();
-
-        // serialize Body
-        serializeBody(request);
         try {
+            // serialize Body
+            serializeBody(request);
+
             accept(request);
         } catch (Throwable ex) {
-            logger.error("deliver 业务异常", ex);
-            int retryHandleNum = request.getDeliverNum();
-            if (retryHandleNum <= (null == retry ? properties.getFail().getRetryNum() : this.retry)) {
-                logger.error("deliver 放入延时队列进行重试... ");
-
-                // 设置延时消息回调处理类
-                Class<? extends DelayMsgListener> delayMsgHandler = request.getDelayMsgHandler();
-                long triggerTime = (null == nextTime ? properties.getFail().getDelayNextTime() : nextTime);
-                // 原消息为订阅消息
-                if (Boolean.TRUE.equals(request.getIsOrgSub())) {
-                    delayMsgHandler = this.getClass();
-                    triggerTime = (null == nextTime ? properties.getFail().getSubNextTime() : nextTime);
-                }
-                msgSender.sendDelayMessage(Request.builder().delayMsgHandler(delayMsgHandler)
-                        .requestId(request.getRequestId())
-                        .deliverNum(retryHandleNum + 1)
-                        .delayTime(triggerTime)
-                        .code(request.getCode())
-                        .body(originBody)
-                        .isOrgSub(request.getIsOrgSub())
-                        .build());
+            logger.error("deliver error", ex);
+            if (request.getDeliverNum() <= (null == retry ? properties.getFail().getRetryNum() : this.retry)) {
+                failReTry(request, originBody);
             } else {
                 try {
-                    Object _this = SpringUtil.getBean(request.getDelayMsgHandler());
                     // 订阅消息获取其实现对象
-                    if (Boolean.TRUE.equals(request.getIsOrgSub())) {
+                    Object _this = SpringUtil.getBean(request.getDelayMsgHandler());
+                    if (null == _this && Boolean.TRUE.equals(request.getIsOrgSub())) {
                         _this = this;
                     }
                     FailCallback.Error.onFail(_this, request, ex);
                 } catch (Exception var2) {
-                    logger.error("Error.onFail 业务异常", var2);
+                    logger.error("Error.onFail error", var2);
                 }
             }
         }
+    }
+
+    /**
+     * 失败发送延时消息进行重试
+     */
+    private void failReTry(Request request, Object originBody) {
+        logger.error("deliver 放入延时队列进行重试... ");
+        // 设置延时消息回调处理类
+        Class<? extends DelayMsgListener> delayMsgHandler = request.getDelayMsgHandler();
+        // 原消息为订阅消息
+        if (null == delayMsgHandler && Boolean.TRUE.equals(request.getIsOrgSub())) {
+            delayMsgHandler = this.getClass();
+        }
+        // 获取下次重试时间间隔
+        long triggerTime = null != nextTime ? nextTime : (
+                Boolean.TRUE.equals(request.getIsOrgSub()) ? properties.getFail().getSubNextTime() : properties.getFail().getDelayNextTime()
+        );
+        msgSender.sendDelayMessage(Request.builder().delayMsgHandler(delayMsgHandler)
+                .requestId(request.getRequestId())
+                .deliverNum(request.getDeliverNum() + 1)
+                .delayTime(triggerTime)
+                .code(request.getCode())
+                .body(originBody)
+                .isOrgSub(request.getIsOrgSub())
+                .build());
     }
 
     /**
@@ -126,10 +133,13 @@ public abstract class AbstractMsgFailRetryHandler<T> implements DelayMsgListener
      * @param request
      */
     private void serializeBody(Request request) {
-        Class modelClass = null;
+        Class modelClass;
         Class<? extends DelayMsgListener> delayMsgHandler = request.getDelayMsgHandler();
         if (null != delayMsgHandler) {
-            DelayMsgListener delayMsgListener = SpringUtil.getBean(delayMsgHandler);
+            DelayMsgListener<?> delayMsgListener = SpringUtil.getBean(delayMsgHandler);
+            if (null == delayMsgListener) {
+                return;
+            }
             modelClass = currentModelClass(delayMsgListener.getClass(), DelayMsgListener.class);
         } else {
             modelClass = currentModelClass(this.getClass(), SubscribeMsgListener.class);
@@ -144,7 +154,7 @@ public abstract class AbstractMsgFailRetryHandler<T> implements DelayMsgListener
      */
     @Override
     public void onMessage(Message<T> message) {
-        deliver((Request) message);
+        accept(message);
     }
 
     /**

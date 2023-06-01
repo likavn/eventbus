@@ -12,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * 消息投递失败异常处理注解
- * 消息重试投递失败时回调
+ * 使用在消息重试投递最终失败时进行回调
  * <p>必须和消费者在同一个类中</p>
  * <p>可选参数：</p>
  * 1：消息体{@link com.github.likavn.notify.domain.Message}
