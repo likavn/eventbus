@@ -121,12 +121,13 @@ public class Func {
      * 线程重新命名
      *
      * @param name 新名称
+     * @return old thread name
      */
-    public static void reThreadName(String name) {
+    public static String reThreadName(String name) {
         Thread thread = Thread.currentThread();
         String oldName = thread.getName();
-        oldName = oldName.substring(oldName.lastIndexOf("-"));
-        Thread.currentThread().setName(name + oldName);
+        thread.setName(name + oldName.substring(oldName.lastIndexOf("-")));
+        return oldName;
     }
 
     @SuppressWarnings("all")

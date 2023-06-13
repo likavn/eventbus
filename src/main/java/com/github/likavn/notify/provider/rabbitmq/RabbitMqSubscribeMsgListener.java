@@ -95,13 +95,15 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
                                            Envelope envelope,
                                            AMQP.BasicProperties properties,
                                            byte[] body) throws IOException {
+                    String oldName = Func.reThreadName("notify-subscribeMsg-pool");
                     try {
-                        Func.reThreadName("notify-subscribeMsg-pool");
                         consumer.accept(body);
                         channel.basicAck(envelope.getDeliveryTag(), false);
                     } catch (Exception ex) {
                         logger.error("RabbitMqSubscribeMsgListener.bindListener", ex);
                         channel.basicNack(envelope.getDeliveryTag(), false, true);
+                    } finally {
+                        Thread.currentThread().setName(oldName);
                     }
                 }
             });

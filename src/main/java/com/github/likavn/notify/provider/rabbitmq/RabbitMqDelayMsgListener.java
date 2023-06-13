@@ -69,13 +69,15 @@ public class RabbitMqDelayMsgListener extends AbstractDelayMsgAcceptHandler {
                                            Envelope envelope,
                                            AMQP.BasicProperties properties,
                                            byte[] body) throws IOException {
+                    String oldName = Func.reThreadName("notify-delayMsg-pool");
                     try {
-                        Func.reThreadName("notify-delayMsg-pool");
                         deliver(body);
                         channel.basicAck(envelope.getDeliveryTag(), false);
                     } catch (Exception ex) {
                         logger.error("RabbitMqDelayMsgListener", ex);
                         channel.basicNack(envelope.getDeliveryTag(), false, true);
+                    } finally {
+                        Thread.currentThread().setName(oldName);
                     }
                 }
             });
