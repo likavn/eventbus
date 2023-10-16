@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.likavn</groupId>
     <artifactId>notify-spring-boot-starter</artifactId>
-    <version>1.6.1</version>
+    <version>1.6.2</version>
     <name>notify-spring-boot-starter</name>
     <url>https://github.com/likavn/notify-spring-boot-starter</url>
     <description>

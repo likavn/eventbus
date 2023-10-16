@@ -3,6 +3,7 @@ package com.github.likavn.notify.utils;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.env.Environment;
 import org.springframework.lang.Nullable;
 
 import java.util.Map;
@@ -16,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author likavn
  * @since 2023/01/01
  **/
-public class SpringUtil implements ApplicationContextAware {
+public class SpringUtil{
 
     private static final Map<Class<?>, Object> CACHE_BEANS = new ConcurrentHashMap<>();
     /**
@@ -28,11 +29,12 @@ public class SpringUtil implements ApplicationContextAware {
      * ctx
      */
     private static ApplicationContext context;
+    private static Environment environment;
 
-    @Override
     @SuppressWarnings("all")
-    public void setApplicationContext(@Nullable ApplicationContext context) throws BeansException {
+    public static void  setApplicationContext(@Nullable ApplicationContext context, Environment environment) throws BeansException {
         SpringUtil.context = context;
+        SpringUtil.environment = environment;
     }
 
     @SuppressWarnings("all")
@@ -47,10 +49,9 @@ public class SpringUtil implements ApplicationContextAware {
         if (Objects.nonNull(serviceId)) {
             return serviceId;
         }
-        Properties props = System.getProperties();
-        serviceId = props.getProperty("spring.application.name");
+        serviceId = environment.getProperty("spring.application.name");
         if (null == serviceId || serviceId.isEmpty()) {
-            serviceId = props.getProperty("sun.java.command");
+            serviceId = System.getProperties().getProperty("sun.java.command");
         }
         return serviceId;
     }

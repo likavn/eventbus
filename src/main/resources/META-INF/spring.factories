@@ -1,3 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.github.likavn.notify.config.NotifyConfig,\
-  com.github.likavn.notify.utils.SpringUtil
+  com.github.likavn.notify.config.NotifyConfig

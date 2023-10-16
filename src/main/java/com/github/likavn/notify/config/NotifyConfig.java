@@ -16,6 +16,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 import java.util.*;
 
@@ -32,12 +33,11 @@ import java.util.*;
 public class NotifyConfig {
     @Bean
     @SuppressWarnings("all")
-    public ServiceContext notifyProperties(ApplicationContext applicationContext, NotifyProperties notifyProperties) {
+    public ServiceContext notifyProperties(ApplicationContext applicationContext, Environment environment, NotifyProperties notifyProperties) {
         log.info("Notify Initializing... {}", notifyProperties.getType());
-        String appName = SpringUtil.getServiceId();
+        SpringUtil.setApplicationContext(applicationContext,environment);
         ServiceContext serviceProperty = new ServiceContext();
-        serviceProperty.setServiceId(appName);
-
+        serviceProperty.setServiceId(SpringUtil.getServiceId());
         // 获取订阅器
         List<SubMsgConsumer> subMsgConsumers = new ArrayList<>();
         Map<String, SubscribeMsgListener>

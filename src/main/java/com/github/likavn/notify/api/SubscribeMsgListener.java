@@ -23,7 +23,7 @@ public abstract class SubscribeMsgListener<T> extends AbstractMsgFailRetryHandle
     /**
      * 消息所属来源服务ID,服务名
      */
-    private final String serviceId;
+    private String serviceId;
 
     /**
      * 消息类型，用于区分不同的消息类型
@@ -105,10 +105,7 @@ public abstract class SubscribeMsgListener<T> extends AbstractMsgFailRetryHandle
     protected SubscribeMsgListener(String serviceId, List<String> codes, Integer retry, Long nextTime, Integer consumerNum) {
         super(retry, nextTime);
         this.consumerNum = consumerNum;
-        if (null == serviceId || serviceId.trim().length() == 0) {
-            serviceId = SpringUtil.getServiceId();
-        }
-        this.serviceId = (null == serviceId ? SpringUtil.getServiceId() : serviceId);
+        this.serviceId = serviceId;
         this.codes = codes;
     }
 
@@ -117,7 +114,7 @@ public abstract class SubscribeMsgListener<T> extends AbstractMsgFailRetryHandle
      */
     public List<SubMsgConsumer> getSubMsgConsumers() {
         if (null == serviceId) {
-            return Collections.emptyList();
+            serviceId = SpringUtil.getServiceId();
         }
         List<SubMsgConsumer> listeners = new ArrayList<>();
         for (String code : codes) {
