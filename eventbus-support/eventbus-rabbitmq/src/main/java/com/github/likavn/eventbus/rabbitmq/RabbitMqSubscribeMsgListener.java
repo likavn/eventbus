@@ -1,0 +1,147 @@
+package com.github.likavn.eventbus.rabbitmq;
+
+import com.github.likavn.eventbus.core.DeliverBus;
+import com.github.likavn.eventbus.core.base.MsgListenerContainer;
+import com.github.likavn.eventbus.core.constant.MsgConstant;
+import com.github.likavn.eventbus.core.metadata.BusConfig;
+import com.github.likavn.eventbus.core.metadata.support.Subscriber;
+import com.github.likavn.eventbus.core.utils.Func;
+import com.github.likavn.eventbus.rabbitmq.constant.RabbitConstant;
+import com.github.likavn.eventbus.rabbitmq.support.Connect;
+import com.github.likavn.eventbus.rabbitmq.support.ConnectPool;
+import com.rabbitmq.client.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+
+/**
+ * rabbitMq消息订阅器
+ *
+ * @author likavn
+ * @since 2023/01/01
+ **/
+public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
+    private static final Logger logger = LoggerFactory.getLogger(RabbitMqSubscribeMsgListener.class);
+
+    /**
+     * 是否创建交换机
+     */
+    private boolean isCreateExchange = false;
+    private final ConnectionFactory connectionFactory;
+    private final List<Subscriber> subscribers;
+    private final DeliverBus deliverBus;
+    private final BusConfig config;
+    private ConnectPool connectPool = null;
+
+    @SuppressWarnings("all")
+    public RabbitMqSubscribeMsgListener(ConnectionFactory connectionFactory,
+                                        DeliverBus deliverBus, BusConfig config, List<Subscriber> subscribers) {
+        this.connectionFactory = connectionFactory;
+        // 使用流处理方式筛选订阅者列表，过滤掉延迟消息的订阅者，并将结果收集为一个新的列表
+        this.subscribers = subscribers.stream()
+                .filter(s -> !s.isDelayMsg())
+                .collect(Collectors.toList());
+        this.deliverBus = deliverBus;
+        this.config = config;
+    }
+
+    @Override
+    public void register() throws IOException, TimeoutException {
+        if (Func.isEmpty(subscribers)) {
+            return;
+        }
+        this.connectPool = new ConnectPool(connectionFactory);
+        Connect connect = connectPool.createConnect();
+        Integer consumerNum = config.getConsumerNum();
+        for (Subscriber subscriber : subscribers) {
+            int num = 0;
+            while (num++ < consumerNum) {
+                bindListener(subscriber, connect.createChannel());
+            }
+        }
+    }
+
+    /**
+     * mq监听绑定
+     *
+     * @param newConnection newConnection
+     * @param code          消息类型
+     */
+    @SuppressWarnings("all")
+    private void bindListener(Subscriber subscriber, Channel channel) {
+        try {
+            // 初始创建交换机
+            createExchange(channel);
+
+            // 定义队列名称
+            String queueName = String.format(RabbitConstant.QUEUE,
+                    subscriber.getTopic(),
+                    subscriber.getTrigger().getInvokeBean().getClass().getName());
+
+            // 声明一个队列。
+            // 参数一：队列名称
+            // 参数二：是否持久化
+            // 参数三：是否排外  如果排外则这个队列只允许有一个消费者
+            // 参数四：是否自动删除队列，如果为true表示没有消息也没有消费者连接自动删除队列
+            // 参数五：队列的附加属性
+            // 注意：
+            // 1.声明队列时，如果已经存在则放弃声明，如果不存在则会声明一个新队列；
+            // 2.队列名可以任意取值，但需要与消息接收者一致。
+            // 3.下面的代码可有可无，一定在发送消息前确认队列名称已经存在RabbitMQ中，否则消息会发送失败。
+            channel.queueDeclare(queueName, true, false, false, null);
+            // 设置路由key
+            channel.queueBind(queueName, RabbitConstant.EXCHANGE, String.format(RabbitConstant.ROUTING, subscriber.getTopic()));
+            // 接收消息。会持续坚挺，不能关闭channel和Connection
+            // 参数一：队列名称
+            // 参数二：消息是否自动确认，true表示自动确认接收完消息以后会自动将消息从队列移除。否则需要手动ack消息
+            // 参数三：消息接收者
+            channel.basicConsume(queueName, false, new DefaultConsumer(channel) {
+                @Override
+                public void handleDelivery(String consumerTag,
+                                           Envelope envelope,
+                                           AMQP.BasicProperties properties,
+                                           byte[] body) throws IOException {
+                    String oldName = Func.reThreadName(MsgConstant.SUBSCRIBE_MSG_THREAD_NAME);
+                    try {
+                        deliverBus.deliver(body);
+                        channel.basicAck(envelope.getDeliveryTag(), false);
+                    } catch (Exception ex) {
+                        logger.error("RabbitMqSubscribeMsgListener.bindListener", ex);
+                        channel.basicNack(envelope.getDeliveryTag(), false, true);
+                    } finally {
+                        Thread.currentThread().setName(oldName);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            logger.error("RabbitMqSubscribeMsgListener.bindListener", e);
+        }
+    }
+
+    /**
+     * 创建交换机
+     *
+     * @param channel 通道
+     * @throws IOException e
+     */
+    private void createExchange(Channel channel) throws IOException {
+        if (isCreateExchange) {
+            return;
+        }
+        channel.exchangeDeclare(RabbitConstant.EXCHANGE,
+                BuiltinExchangeType.TOPIC, true, false, Collections.emptyMap());
+        isCreateExchange = true;
+    }
+
+    @Override
+    public void destroy() throws IOException {
+        if (null != connectPool) {
+            connectPool.close();
+        }
+    }
+}

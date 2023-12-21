@@ -4,9 +4,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.likavn</groupId>
-    <artifactId>notify-spring-boot-starter</artifactId>
-    <version>1.6.1</version>
-    <name>notify-spring-boot-starter</name>
+    <artifactId>eventbus</artifactId>
+    <packaging>pom</packaging>
+    <version>${revision}</version>
+    <modules>
+        <module>eventbus-core</module>
+        <module>eventbus-support</module>
+        <module>eventbus-spring-boot-starter</module>
+        <module>eventbus-demo</module>
+    </modules>
+    <name>eventbus</name>
     <url>https://github.com/likavn/notify-spring-boot-starter</url>
     <description>
         notify-spring-boot-starter消息组件是用来将分布式系统的节点与轻量级消息系统连接起来的框架，
@@ -39,28 +46,19 @@
     </scm>
 
     <properties>
+        <revision>2.0</revision>
         <!--maven配置信息-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <!--SpringBoot版本-->
-        <spring-boot.version>2.5.15</spring-boot.version>
         <jackson.version>2.11.4</jackson.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>1.18.26</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -68,30 +66,7 @@
             <artifactId>fastjson</artifactId>
             <version>1.2.83</version>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-            <optional>true</optional>
-        </dependency>
     </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <!-- spring boot 版本控制 -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <repositories>
         <!--阿里云私服-->
