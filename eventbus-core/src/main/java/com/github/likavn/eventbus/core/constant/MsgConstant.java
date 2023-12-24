@@ -15,7 +15,7 @@ public class MsgConstant {
     }
 
     /**
-     * 接口订阅接收方法名
+     * 接口订阅器接收方法名
      *
      * @see MsgSubscribeListener#onMessage(Message)
      * @see MsgDelayListener#onMessage(Message)

@@ -13,7 +13,7 @@ import java.lang.annotation.*;
  * @since 2023/05/15
  */
 @Documented
-@Target({ElementType.PARAMETER})
+@Target({ElementType.TYPE, ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Fail {
     /**

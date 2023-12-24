@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.core;
 
-import com.github.likavn.eventbus.core.base.MsgListenerContainer;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.utils.Func;
@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
  **/
 @Slf4j
 public class ConnectionWatchdog {
-
+    private static final String THREAD_NAME_PREFIX = "notify-connectionWatchdog-pool-";
     private boolean active = true;
 
     private final AtomicLong firstLostConnectMillisecond = new AtomicLong(-1);
@@ -30,10 +30,10 @@ public class ConnectionWatchdog {
 
     private final BusConfig.TestConnect properties;
 
-    private final Collection<MsgListenerContainer> containers;
+    private final Collection<Lifecycle> containers;
 
     public ConnectionWatchdog(NodeTestConnect testConnect,
-                              BusConfig.TestConnect testConnectProperties, Collection<MsgListenerContainer> containers) {
+                              BusConfig.TestConnect testConnectProperties, Collection<Lifecycle> containers) {
         this.testConnect = testConnect;
         this.properties = testConnectProperties;
         this.containers = containers;
@@ -48,9 +48,8 @@ public class ConnectionWatchdog {
      */
     private void registerScheduler() {
         long loseConnectMaxMilliSecond = 1000L * properties.getLoseConnectMaxMilliSecond();
-        ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(
-                1,
-                new NamedThreadFactory("notify-connectionWatchdog-pool-"));
+        ScheduledExecutorService scheduler
+                = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory(THREAD_NAME_PREFIX));
         scheduler.scheduleWithFixedDelay(() -> {
             boolean isConnect = false;
             try {
@@ -59,36 +58,54 @@ public class ConnectionWatchdog {
                 log.error("ConnectionWatchdog.testConnect", ex);
             }
             log.debug("isConnect... {}", isConnect);
-            if (!active && isConnect) {
-                register();
-                active = true;
-            }
-
-            if (isConnect) {
-                firstLostConnectMillisecond.set(-1);
-            }
-            // 丢失连接+1
-            else if (firstLostConnectMillisecond.get() == -1) {
-                firstLostConnectMillisecond.set(System.currentTimeMillis());
-            }
-
-            // 丢失超过固定阀值，则销毁容器
-            if (firstLostConnectMillisecond.get() != -1
-                    && System.currentTimeMillis() - firstLostConnectMillisecond.get() >= loseConnectMaxMilliSecond) {
-                if (active) {
-                    destroy();
+            try {
+                if (!active && isConnect) {
+                    register();
+                    active = true;
                 }
-                active = false;
+
+                if (isConnect) {
+                    firstLostConnectMillisecond.set(-1);
+                }
+                // 丢失连接+1
+                else if (firstLostConnectMillisecond.get() == -1) {
+                    firstLostConnectMillisecond.set(System.currentTimeMillis());
+                }
+
+                // 丢失超过固定阀值，则销毁容器
+                if (firstLostConnectMillisecond.get() != -1
+                        && System.currentTimeMillis() - firstLostConnectMillisecond.get() >= loseConnectMaxMilliSecond) {
+                    if (active) {
+                        destroy();
+                    }
+                    active = false;
+                }
+            } catch (Exception ex) {
+                log.error("ConnectionWatchdog.registerScheduler", ex);
             }
-        }, properties.getPollSecond(), properties.getPollSecond(), TimeUnit.SECONDS);
+        }, 0, properties.getPollSecond(), TimeUnit.SECONDS);
     }
 
-    private void register() {
-        containers.forEach(MsgListenerContainer::register);
+    /**
+     * 注册所有容器
+     */
+    private void register() throws Exception {
+        // 遍历容器列表
+        for (Lifecycle container : containers) {
+            // 注册容器
+            container.register();
+        }
     }
 
-    private void destroy() {
-        containers.forEach(MsgListenerContainer::destroy);
+    /**
+     * 销毁所有容器
+     */
+    private void destroy() throws Exception {
+        // 遍历容器列表
+        for (Lifecycle container : containers) {
+            // 销毁容器
+            container.destroy();
+        }
     }
 
 }

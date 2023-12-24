@@ -21,7 +21,7 @@ public @interface Subscribe {
     /**
      * 消息类型，用于区分不同的消息类型。
      */
-    String[] code();
+    String[] codes();
 
     /**
      * 消息投递失败异常处理注解

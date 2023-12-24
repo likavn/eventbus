@@ -3,12 +3,13 @@ package com.github.likavn.eventbus.config;
 import com.github.likavn.eventbus.SubscriberBootRegistry;
 import com.github.likavn.eventbus.core.ConnectionWatchdog;
 import com.github.likavn.eventbus.core.DeliverBus;
+import com.github.likavn.eventbus.core.SubscriberRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.interceptor.DeliverExceptionInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.DeliverSuccessInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
-import com.github.likavn.eventbus.core.base.MsgListenerContainer;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
@@ -54,16 +55,22 @@ public class EventBusConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(SubscriberRegistry.class)
+    public SubscriberRegistry subscriberRegistry(BusConfig config) {
+        return new SubscriberRegistry(config);
+    }
+
+    @Bean
     @ConditionalOnMissingBean(DeliverBus.class)
-    public DeliverBus deliverBus(InterceptorConfig interceptorConfig, BusConfig config, MsgSender msgSender) {
-        return new DeliverBus(interceptorConfig, config, msgSender);
+    public DeliverBus deliverBus(InterceptorConfig interceptorConfig, BusConfig config, MsgSender msgSender, SubscriberRegistry registry) {
+        return new DeliverBus(interceptorConfig, config, msgSender, registry);
     }
 
     @Bean
     @ConditionalOnBean(NodeTestConnect.class)
     public ConnectionWatchdog connectionWatchdog(ApplicationContext applicationContext, NodeTestConnect nodeTestConnect, BusConfig busConfig) {
-        Collection<MsgListenerContainer> containers = Collections.emptyList();
-        Map<String, MsgListenerContainer> containerMap = applicationContext.getBeansOfType(MsgListenerContainer.class);
+        Collection<Lifecycle> containers = Collections.emptyList();
+        Map<String, Lifecycle> containerMap = applicationContext.getBeansOfType(Lifecycle.class);
         if (!containerMap.isEmpty()) {
             containers = containerMap.values();
         }

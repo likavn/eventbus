@@ -1,10 +1,10 @@
 package com.github.likavn.eventbus.core.api;
 
-
 import com.github.likavn.eventbus.core.metadata.data.Message;
 
 /**
  * 延时消息监听器
+ * 注：只能订阅当前应用服务的延时消息
  *
  * @author likavn
  * @since 2023/01/01

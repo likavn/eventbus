@@ -8,19 +8,20 @@ import com.github.likavn.eventbus.core.api.MsgSubscribeListener;
 import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
 import com.github.likavn.eventbus.core.constant.MsgConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
+import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
-import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 
 /**
  * 订阅器注册中心
@@ -29,51 +30,68 @@ import java.util.concurrent.ConcurrentHashMap;
  * @date 2023/6/29
  **/
 @Slf4j
-@UtilityClass
 public class SubscriberRegistry {
     /**
-     * 订阅消息处理器
-     * key=serviceId+code,使用方法获取 {@link Func#getTopic(String, String)}
+     * 订阅及时消息处理器
+     * key=订阅器全类名+方法名
      * 注解:
      *
      * @see Subscribe
-     * @see SubscribeDelay
      * 接口：
      * @see MsgSubscribeListener
      */
-    private final Map<String, Subscriber> subscriberMap = new ConcurrentHashMap<>();
+    private final Map<String, List<Subscriber>> subscriberMap = new ConcurrentHashMap<>();
+    /**
+     * 订阅延时消息处理器
+     * key=serviceId+code,使用方法获取 {@link Func#getTopic(String, String)}
+     * 注解:
+     *
+     * @see SubscribeDelay
+     */
+    private final Map<String, Subscriber> subscriberDelayMap = new ConcurrentHashMap<>();
 
     /**
      * 延时消息处理器
      */
     @SuppressWarnings("all")
-    private final Map<Class<? extends MsgDelayListener>, Subscriber> delayMsgListenerMap = new ConcurrentHashMap<>();
+    private final Map<Class<? extends MsgDelayListener>, Subscriber> msgDelayListenerMap = new ConcurrentHashMap<>();
 
     /**
-     * 注册器
+     * 注册默认延时消息处理器
      */
-    public void register(BusConfig config, Collection<Object> objs) {
-        Assert.notEmpty(objs, "初始化实例失败！");
-        objs.forEach(obj -> register(config, obj));
+    private final DefaultMsgDelayListener defaultDelayMsgListener = new DefaultMsgDelayListener(this);
 
-        // 注册默认延时消息处理器
-        DefaultMsgDelayListener defaultDelayMsgListener = new DefaultMsgDelayListener();
-        register(config, defaultDelayMsgListener);
+    private final BusConfig config;
+
+    public SubscriberRegistry(BusConfig config) {
+        this.config = config;
     }
 
     /**
      * 注册器
      */
-    public void register(BusConfig config, Object obj) {
+    public void register(Collection<Object> objs) {
+        Assert.notEmpty(objs, "初始化实例失败！");
+        objs.forEach(this::register);
+
+        // 注册默认延时消息处理器
+        register(defaultDelayMsgListener);
+    }
+
+    /**
+     * 注册器
+     */
+    @SuppressWarnings("all")
+    public void register(Object obj) {
         // class
         Class<?> cla = obj.getClass();
         Fail fail;
         // 接口实现的消息订阅器
         if (obj instanceof MsgSubscribeListener || obj instanceof MsgDelayListener) {
             Trigger trigger = getTrigger(obj, MsgConstant.ON_MESSAGE);
-            fail = cla.getAnnotation(Fail.class);
+            fail = trigger.getMethod().getAnnotation(Fail.class);
             if (null == fail) {
-                fail = trigger.getMethod().getAnnotation(Fail.class);
+                fail = cla.getAnnotation(Fail.class);
             }
             FailTrigger failTrigger = null == fail ? null : new FailTrigger(fail, getTrigger(obj, fail.callback()));
             // 接口实现的及时消息订阅器
@@ -81,7 +99,7 @@ public class SubscriberRegistry {
                 MsgSubscribeListener<?> listener = (MsgSubscribeListener<?>) obj;
                 String serviceId = Func.isEmpty(listener.getServiceId()) ? config.getServiceId() : listener.getServiceId();
                 listener.getCodes().forEach(code -> {
-                    Subscriber subscriber = new Subscriber(serviceId, code, false, trigger, failTrigger);
+                    Subscriber subscriber = new Subscriber(serviceId, code, MsgType.TIMELY, trigger, failTrigger);
                     putSubscriberMap(subscriber);
                 });
             }
@@ -90,33 +108,38 @@ public class SubscriberRegistry {
                 MsgDelayListener<?> listener = (MsgDelayListener<?>) obj;
                 Subscriber subscriber = new Subscriber();
                 subscriber.setServiceId(config.getServiceId());
-                subscriber.setDelayMsg(true);
+                subscriber.setType(MsgType.DELAY);
                 subscriber.setTrigger(trigger);
                 subscriber.setFailTrigger(failTrigger);
-                delayMsgListenerMap.put(listener.getClass(), subscriber);
+                msgDelayListenerMap.put(listener.getClass(), subscriber);
             }
             return;
         }
-        // 方法
+
+        // 注解实现的消息订阅器
         for (Method method : cla.getMethods()) {
             // 存在及时消息订阅
             Subscribe subscribe = method.getAnnotation(Subscribe.class);
             SubscribeDelay subscribeDelay = method.getAnnotation(SubscribeDelay.class);
-            if (null != subscribe || null != subscribeDelay) {
-                Trigger trigger = new Trigger(obj, method, method.getParameterTypes());
+            if (null == subscribe && null == subscribeDelay) {
+                continue;
+            }
+            Trigger trigger = new Trigger(obj, method, method.getParameterTypes());
 
-                // 是否是延时消息
-                boolean delayMsg = null != subscribeDelay;
+            // 订阅器类型
+            MsgType msgType = null != subscribe ? MsgType.TIMELY : MsgType.DELAY;
 
-                String serviceId = delayMsg ? config.getServiceId() : subscribe.serviceId();
-                serviceId = Func.isEmpty(serviceId) ? config.getServiceId() : serviceId;
-                // 获取投递异常处理
-                fail = delayMsg ? subscribeDelay.fail() : subscribe.fail();
-                FailTrigger failTrigger = Func.isEmpty(fail.callback()) ? null : new FailTrigger(fail, getTrigger(obj, fail.callback()));
-                String[] codes = delayMsg ? subscribeDelay.code() : subscribe.code();
-                for (String code : codes) {
-                    Subscriber subscriber = new Subscriber(serviceId, code, delayMsg, trigger, failTrigger);
+            String serviceId = msgType.isTimely() ? subscribe.serviceId() : null;
+            serviceId = Func.isEmpty(serviceId) ? config.getServiceId() : serviceId;
+            // 获取投递异常处理
+            fail = msgType.isTimely() ? subscribe.fail() : subscribeDelay.fail();
+            FailTrigger failTrigger = Func.isEmpty(fail.callback()) ? null : new FailTrigger(fail, getTrigger(obj, fail.callback()));
+            for (String code : subscribe.codes()) {
+                Subscriber subscriber = new Subscriber(serviceId, code, msgType, trigger, failTrigger);
+                if (msgType.isTimely()) {
                     putSubscriberMap(subscriber);
+                } else {
+                    putSubscriberDelayMap(subscriber);
                 }
             }
         }
@@ -128,9 +151,20 @@ public class SubscriberRegistry {
      * @param subscriber subscriber
      */
     private void putSubscriberMap(Subscriber subscriber) {
-        String topic = Func.getTopic(subscriber.getServiceId(), subscriber.getCode());
-        Assert.isTrue(!subscriberMap.containsKey(topic), "serviceId or code Repeat " + topic);
-        subscriberMap.put(topic, subscriber);
+        String deliverId = subscriber.getTrigger().getDeliverId();
+
+        List<Subscriber> subscribers = subscriberMap.get(deliverId);
+        if (Func.isEmpty(subscribers)) {
+            subscribers = new ArrayList<>(1);
+        }
+        subscribers.add(subscriber);
+        subscriberMap.put(deliverId, subscribers);
+    }
+
+    private void putSubscriberDelayMap(Subscriber subscriber) {
+        Assert.isTrue(!subscriberDelayMap.containsKey(subscriber.getCode()),
+                "subscribeDelay code=" + subscriber.getCode() + "存在相同的延时消息处理器");
+        subscriberDelayMap.put(subscriber.getCode(), subscriber);
     }
 
     /**
@@ -153,11 +187,19 @@ public class SubscriberRegistry {
         return new Trigger(obj, method, method.getParameterTypes());
     }
 
-    public Subscriber getSubscriber(String code) {
-        return subscriberMap.get(code);
+    public Subscriber getSubscriber(String deliverId) {
+        List<Subscriber> subscribers = subscriberMap.get(deliverId);
+        if (Func.isEmpty(subscribers)) {
+            return null;
+        }
+        return subscribers.get(0);
     }
 
-    public Subscriber getDelayMsgListener(Class<? extends MsgDelayListener> cla) {
-        return delayMsgListenerMap.get(cla);
+    public Subscriber getSubscriberDelay(String code) {
+        return subscriberDelayMap.get(code);
+    }
+
+    public Subscriber getMsgDelayListener(Class<? extends MsgDelayListener> cla) {
+        return msgDelayListenerMap.get(cla);
     }
 }

@@ -4,6 +4,7 @@ import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
+import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
 
@@ -15,11 +16,10 @@ import java.util.UUID;
  * @author likavn
  * @since 2023/01/01
  */
-@SuppressWarnings("all")
 public abstract class AbstractSenderAdapter implements MsgSender {
-    private SendBeforeInterceptor beforeInterceptor;
-    private SendAfterInterceptor afterInterceptor;
-    private BusConfig config;
+    private final SendBeforeInterceptor beforeInterceptor;
+    private final SendAfterInterceptor afterInterceptor;
+    private final BusConfig config;
 
     public AbstractSenderAdapter(SendBeforeInterceptor beforeInterceptor,
                                  SendAfterInterceptor afterInterceptor,
@@ -31,29 +31,39 @@ public abstract class AbstractSenderAdapter implements MsgSender {
 
     @Override
     public void send(Request<?> request) {
-        request.setIsOrgSub(Boolean.TRUE);
         wrap(request);
         beforeInterceptor(request);
         toSend(request);
         afterInterceptor(request);
     }
 
+    /**
+     * 发送消息
+     *
+     * @param request req
+     */
     public abstract void toSend(Request<?> request);
 
     @Override
     public void sendDelayMessage(Request<?> request) {
+        request.setType(MsgType.DELAY);
         wrap(request);
         beforeInterceptor(request);
         toSendDelayMessage(request);
         afterInterceptor(request);
     }
 
+    /**
+     * 发送延时消息
+     *
+     * @param request req
+     */
     public abstract void toSendDelayMessage(Request<?> request);
 
     /**
      * 发送前拦截器
      *
-     * @param request
+     * @param request req
      */
     private void beforeInterceptor(Request<?> request) {
         if (null != beforeInterceptor) {
@@ -64,7 +74,7 @@ public abstract class AbstractSenderAdapter implements MsgSender {
     /**
      * 发送后拦截器
      *
-     * @param request
+     * @param request req
      */
     private void afterInterceptor(Request<?> request) {
         if (null != afterInterceptor) {
@@ -75,8 +85,7 @@ public abstract class AbstractSenderAdapter implements MsgSender {
     /**
      * 发送消息前置操作
      *
-     * @param request request
-     * @return t
+     * @param request req
      */
     protected void wrap(Request<?> request) {
         Assert.notNull(request.getBody(), "消息体不能为空");
@@ -89,7 +98,7 @@ public abstract class AbstractSenderAdapter implements MsgSender {
         if (null == request.getDeliverNum()) {
             request.setDeliverNum(1);
         }
-        if (null != request.getDelayMsgHandler()) {
+        if (null != request.getDelayListener()) {
             Assert.isTrue(!(null == request.getDelayTime() || 0 >= request.getDelayTime()), "delayTime is null or zreo");
         }
     }

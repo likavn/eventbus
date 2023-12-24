@@ -16,7 +16,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * 包装转换工具
+ * 工具类
  *
  * @author likavn
  * @since 2023/01/01
@@ -48,14 +48,14 @@ public class Func {
     }
 
     /**
-     * 二进制数据转换为实体数据类型
+     * json数据转换为实体数据类型
      *
-     * @param requestBytes bytes
+     * @param js js
      * @return bean
      */
     @SuppressWarnings("all")
-    public static Request convertByBytes(String requestStr) {
-        return convertByBytes(requestStr.getBytes(StandardCharsets.UTF_8));
+    public static Request convertByJson(String js) {
+        return convertByBytes(js.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -125,7 +125,7 @@ public class Func {
     }
 
     public static boolean isEmpty(Collection<?> list) {
-        return null == list || list.size() <= 0;
+        return null == list || list.isEmpty();
     }
 
     public static boolean isEmpty(CharSequence str) {

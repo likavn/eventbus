@@ -1,5 +1,6 @@
 package com.github.likavn.eventbus.core.metadata.support;
 
+import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,9 +23,9 @@ public class Subscriber {
      */
     private String code;
     /**
-     * 是否是延时消息
+     * 消息类型
      */
-    private boolean delayMsg;
+    private MsgType type = MsgType.TIMELY;
     /**
      * 投递触发
      */
@@ -34,10 +35,10 @@ public class Subscriber {
      */
     private FailTrigger failTrigger;
 
-    public Subscriber(String serviceId, String code, boolean delayMsg) {
+    public Subscriber(String serviceId, String code, MsgType type) {
         this.serviceId = serviceId;
         this.code = code;
-        this.delayMsg = delayMsg;
+        this.type = type;
     }
 
     public String getTopic() {

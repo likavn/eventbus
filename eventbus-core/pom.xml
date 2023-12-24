@@ -10,4 +10,5 @@
     </parent>
     <artifactId>eventbus-core</artifactId>
     <description>eventbus核心包</description>
+    <packaging>jar</packaging>
 </project>

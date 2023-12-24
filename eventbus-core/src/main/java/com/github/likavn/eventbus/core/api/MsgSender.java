@@ -43,26 +43,38 @@ public interface MsgSender {
     /**
      * 发送延时消息接口
      *
-     * @param handler   延时处理器
+     * @param listener  延时处理器
      * @param body      延时消息实体
      * @param delayTime 延时时间，单位：秒
      */
     @SuppressWarnings("all")
-    default void sendDelayMessage(Class<? extends MsgDelayListener> handler, Object body, long delayTime) {
-        sendDelayMessage(handler, null, body, delayTime);
+    default void sendDelayMessage(Class<? extends MsgDelayListener> listener, Object body, long delayTime) {
+        sendDelayMessage(listener, null, body, delayTime);
     }
 
     /**
      * 发送延时消息接口
      *
-     * @param handler   延时处理器
+     * @param listener  延时处理器
      * @param code      延时消息类型
      * @param body      延时消息实体
      * @param delayTime 延时时间，单位：秒
      */
     @SuppressWarnings("all")
-    default void sendDelayMessage(Class<? extends MsgDelayListener> handler, String code, Object body, long delayTime) {
-        sendDelayMessage(Request.builder().delayMsgHandler(handler).code(code).body(body).delayTime(delayTime).build());
+    default void sendDelayMessage(Class<? extends MsgDelayListener> listener, String code, Object body, long delayTime) {
+        sendDelayMessage(Request.builder().delayListener(listener).code(code).body(body).delayTime(delayTime).build());
+    }
+
+    /**
+     * 发送延时消息接口
+     *
+     * @param code      延时消息类型
+     * @param body      延时消息实体
+     * @param delayTime 延时时间，单位：秒
+     */
+    @SuppressWarnings("all")
+    default void sendDelayMessage(String code, Object body, long delayTime) {
+        sendDelayMessage("", code, body, delayTime);
     }
 
     /**
@@ -75,19 +87,7 @@ public interface MsgSender {
      */
     @SuppressWarnings("all")
     default void sendDelayMessage(String serviceId, String code, Object body, long delayTime) {
-        sendDelayMessage(Request.builder().delayMsgHandler(DefaultMsgDelayListener.class).serviceId(serviceId).code(code).body(body).delayTime(delayTime).build());
-    }
-
-    /**
-     * 发送延时消息接口
-     *
-     * @param code      延时消息类型
-     * @param body      延时消息实体
-     * @param delayTime 延时时间，单位：秒
-     */
-    @SuppressWarnings("all")
-    default void sendDelayMessage(String code, Object body, long delayTime) {
-        sendDelayMessage(Request.builder().delayMsgHandler(DefaultMsgDelayListener.class).code(code).body(body).delayTime(delayTime).build());
+        sendDelayMessage(Request.builder().delayListener(DefaultMsgDelayListener.class).serviceId(serviceId).code(code).body(body).delayTime(delayTime).build());
     }
 
     /**

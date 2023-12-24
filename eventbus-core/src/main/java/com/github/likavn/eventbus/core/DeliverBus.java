@@ -19,15 +19,18 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DeliverBus {
     private final InterceptorConfig interceptorConfig;
-
     private final BusConfig config;
-
     private final MsgSender msgSender;
+    private final SubscriberRegistry registry;
 
-    public DeliverBus(InterceptorConfig interceptorConfig, BusConfig config, MsgSender msgSender) {
+    public DeliverBus(InterceptorConfig interceptorConfig,
+                      BusConfig config,
+                      MsgSender msgSender,
+                      SubscriberRegistry registry) {
         this.interceptorConfig = interceptorConfig;
         this.config = config;
         this.msgSender = msgSender;
+        this.registry = registry;
     }
 
     /**
@@ -35,23 +38,32 @@ public class DeliverBus {
      *
      * @param body body
      */
-    public void deliver(byte[] body) {
-        deliver(Func.convertByBytes(body));
+    public void deliver(Subscriber subscriber, byte[] body) {
+        deliver(subscriber, Func.convertByBytes(body));
     }
 
     /**
-     * 消息分发投递
+     * 接收延时消息
      *
-     * @param request req
+     * @param body body
      */
-    public void deliver(Request<?> request) {
+    @SuppressWarnings("all")
+    public void deliverDelay(byte[] body) {
+        Request request = Func.convertByBytes(body);
+        Subscriber subscriber = registry.getMsgDelayListener(request.getDelayListener());
+        if (null == subscriber) {
+            log.error("delay msg handler not found class={}", request.getDelayListener().getName());
+            return;
+        }
+        deliver(subscriber, request);
+    }
+
+    /**
+     * 投递消息
+     */
+    public void deliver(Subscriber subscriber, Request<?> request) {
         if (log.isDebugEnabled()) {
             log.debug("deliver msg：{}", Func.toJson(request));
-        }
-        Subscriber subscriber = trigger(request);
-        if (null == subscriber) {
-            log.warn("deliver code={} msg Missing subscriber!", request.getCode());
-            return;
         }
         try {
             subscriber.getTrigger().invoke(request);
@@ -60,50 +72,58 @@ public class DeliverBus {
                 interceptorConfig.getDeliverSuccessInterceptor().execute(request);
             }
         } catch (Exception ex) {
-            log.error("deliver error", ex);
-            FailTrigger failTrigger = subscriber.getFailTrigger();
-            Fail fail = null;
-            if (null != failTrigger) {
-                fail = failTrigger.getFail();
-            }
-
-            // 获取有效的投递次数
-            int deliverNum = null != fail ? fail.retry() : config.getFail().getRetryNum();
-            if (request.getDeliverNum() <= deliverNum) {
-                failReTry(request, fail);
-                return;
-            }
-            try {
-                // 执行订阅器异常处理
-                if (null != failTrigger) {
-                    failTrigger.invoke(request, ex);
-                }
-
-                // 投递失败时全局拦截器
-                if (null != interceptorConfig && null != interceptorConfig.getDeliverExceptionInterceptor()) {
-                    interceptorConfig.getDeliverExceptionInterceptor().execute(request, ex);
-                }
-            } catch (Exception var2) {
-                log.error("DeliverBus.onFail error", var2);
-            }
+            failHandle(subscriber, request, ex);
         }
     }
 
     /**
-     * 消息触发
+     * 失败处理
      *
-     * @param request req
+     * @param subscriber subscriber
+     * @param request    request
+     * @param ex         ex
      */
-    public Subscriber trigger(Request<?> request) {
-        Class<?> delayMsgHandler = request.getDelayMsgHandler();
-        // 延时队列
-        if (null != delayMsgHandler) {
-            return SubscriberRegistry.getDelayMsgListener(request.getDelayMsgHandler());
+    private void failHandle(Subscriber subscriber, Request<?> request, Exception ex) {
+        // 发生异常时记录错误日志
+        log.error("deliver error", ex);
+        // 获取订阅器的FailTrigger
+        FailTrigger failTrigger = subscriber.getFailTrigger();
+        Fail fail = null;
+        if (null != failTrigger) {
+            // 如果FailTrigger不为空，则获取Fail对象
+            fail = failTrigger.getFail();
         }
-        return SubscriberRegistry.getSubscriber(request.getTopic());
+
+        // 获取有效的投递次数
+        int deliverNum = null != fail ? fail.retry() : config.getFail().getRetryNum();
+        if (request.getDeliverNum() <= deliverNum) {
+            // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
+            failReTry(request, fail);
+            return;
+        }
+        try {
+            // 如果FailTrigger不为空，则执行订阅器的异常处理
+            if (null != failTrigger) {
+                failTrigger.invoke(request, ex);
+            }
+
+            // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
+            if (null != interceptorConfig && null != interceptorConfig.getDeliverExceptionInterceptor()) {
+                interceptorConfig.getDeliverExceptionInterceptor().execute(request, ex);
+            }
+        } catch (Exception var2) {
+            // 捕获异常并记录错误日志
+            log.error("DeliverBus.failHandle error", var2);
+        }
     }
 
-    public void failReTry(Request<?> request, Fail fail) {
+    /**
+     * 失败重试
+     *
+     * @param request req
+     * @param fail    fail
+     */
+    private void failReTry(Request<?> request, Fail fail) {
         // 获取下次投递失败时间
         long delayTime = null != fail ? fail.nextTime() : config.getFail().getNextTime();
         request.setDelayTime(delayTime);

@@ -11,17 +11,26 @@ public class RabbitConstant {
     }
 
     /**
-     * rabbitMq交换机
+     * 前缀
      */
-    public static final String EXCHANGE = "eventbus.exchange";
+    private static final String SUFFIX = "eventbus.";
+
+    /**
+     * rabbitMq及时消息交换机
+     * 参数：
+     * <p>
+     * 1.服务serviceId;
+     */
+    public static final String EXCHANGE = SUFFIX + "exchange.%s";
 
     /**
      * rabbitMq队列key；
      * 参数：
      * <p>
      * 1.Topic;
+     * 2.处理器全类名;
      */
-    public static final String QUEUE = "eventbus.queue.%s.%s";
+    public static final String QUEUE = SUFFIX + "queue.%s.%s";
 
     /**
      * rabbitMq路由key；
@@ -29,7 +38,7 @@ public class RabbitConstant {
      * <p>
      * 1.Topic;
      */
-    public static final String ROUTING = "eventbus.routing.key.%s";
+    public static final String ROUTING = SUFFIX + "routing.key.%s";
 
     /**
      * 延时队列交换机
@@ -37,7 +46,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId;
      */
-    public static final String DELAY_EXCHANGE = "eventbus.delay.exchange.%s";
+    public static final String EXCHANGE_DELAY = SUFFIX + "exchange.delay.%s";
 
     /**
      * 延时队列名
@@ -45,7 +54,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId;
      */
-    public static final String DELAY_QUEUE = "eventbus.delay.queue.%s";
+    public static final String QUEUE_DELAY = SUFFIX + "queue.delay.%s";
 
     /**
      * 延时队列路由key
@@ -53,5 +62,5 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId;
      */
-    public static final String DELAY_ROUTING_KEY = "eventbus.delay.routing.key.%s";
+    public static final String ROUTING_KEY_DELAY = SUFFIX + "routing.key.delay.%s";
 }

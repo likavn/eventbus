@@ -1,33 +1,29 @@
 package com.github.likavn.eventbus.rabbitmq;
 
 import com.github.likavn.eventbus.core.DeliverBus;
-import com.github.likavn.eventbus.core.base.MsgListenerContainer;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.MsgConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.rabbitmq.constant.RabbitConstant;
-import com.github.likavn.eventbus.rabbitmq.support.Connect;
-import com.github.likavn.eventbus.rabbitmq.support.ConnectPool;
 import com.rabbitmq.client.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 /**
- * rabbitMq消息订阅器
+ * rabbitMq及时消息订阅器
  *
  * @author likavn
  * @since 2023/01/01
  **/
-public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
-    private static final Logger logger = LoggerFactory.getLogger(RabbitMqSubscribeMsgListener.class);
-
+@Slf4j
+public class RabbitMsgSubscribeListener implements Lifecycle {
     /**
      * 是否创建交换机
      */
@@ -36,16 +32,14 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
     private final List<Subscriber> subscribers;
     private final DeliverBus deliverBus;
     private final BusConfig config;
-    private ConnectPool connectPool = null;
+    private List<Connection> connections = null;
+    private List<Channel> channels = null;
 
     @SuppressWarnings("all")
-    public RabbitMqSubscribeMsgListener(ConnectionFactory connectionFactory,
-                                        DeliverBus deliverBus, BusConfig config, List<Subscriber> subscribers) {
+    public RabbitMsgSubscribeListener(ConnectionFactory connectionFactory,
+                                      DeliverBus deliverBus, BusConfig config, List<Subscriber> subscribers) {
         this.connectionFactory = connectionFactory;
-        // 使用流处理方式筛选订阅者列表，过滤掉延迟消息的订阅者，并将结果收集为一个新的列表
-        this.subscribers = subscribers.stream()
-                .filter(s -> !s.isDelayMsg())
-                .collect(Collectors.toList());
+        this.subscribers = subscribers;
         this.deliverBus = deliverBus;
         this.config = config;
     }
@@ -55,13 +49,17 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
         if (Func.isEmpty(subscribers)) {
             return;
         }
-        this.connectPool = new ConnectPool(connectionFactory);
-        Connect connect = connectPool.createConnect();
+        connections = new ArrayList<>(1);
+        channels = new ArrayList<>(2);
+        Connection connection = connectionFactory.newConnection();
+        connections.add(connection);
         Integer consumerNum = config.getConsumerNum();
         for (Subscriber subscriber : subscribers) {
             int num = 0;
             while (num++ < consumerNum) {
-                bindListener(subscriber, connect.createChannel());
+                Channel channel = connection.createChannel();
+                channels.add(channel);
+                bindListener(subscriber, channel);
             }
         }
     }
@@ -80,8 +78,7 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
 
             // 定义队列名称
             String queueName = String.format(RabbitConstant.QUEUE,
-                    subscriber.getTopic(),
-                    subscriber.getTrigger().getInvokeBean().getClass().getName());
+                    subscriber.getTopic(), subscriber.getTrigger().getInvokeBean().getClass().getName());
 
             // 声明一个队列。
             // 参数一：队列名称
@@ -108,10 +105,10 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
                                            byte[] body) throws IOException {
                     String oldName = Func.reThreadName(MsgConstant.SUBSCRIBE_MSG_THREAD_NAME);
                     try {
-                        deliverBus.deliver(body);
+                        deliverBus.deliver(subscriber, body);
                         channel.basicAck(envelope.getDeliveryTag(), false);
                     } catch (Exception ex) {
-                        logger.error("RabbitMqSubscribeMsgListener.bindListener", ex);
+                        log.error("RabbitMsgSubscribeListener.bindListener", ex);
                         channel.basicNack(envelope.getDeliveryTag(), false, true);
                     } finally {
                         Thread.currentThread().setName(oldName);
@@ -119,7 +116,7 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
                 }
             });
         } catch (Exception e) {
-            logger.error("RabbitMqSubscribeMsgListener.bindListener", e);
+            log.error("RabbitMsgSubscribeListener.bindListener", e);
         }
     }
 
@@ -133,15 +130,24 @@ public class RabbitMqSubscribeMsgListener implements MsgListenerContainer {
         if (isCreateExchange) {
             return;
         }
-        channel.exchangeDeclare(RabbitConstant.EXCHANGE,
+        // 初始创建交换机
+        String exchangeName = String.format(RabbitConstant.EXCHANGE, config.getServiceId());
+        channel.exchangeDeclare(exchangeName,
                 BuiltinExchangeType.TOPIC, true, false, Collections.emptyMap());
         isCreateExchange = true;
     }
 
     @Override
-    public void destroy() throws IOException {
-        if (null != connectPool) {
-            connectPool.close();
+    public void destroy() throws IOException, TimeoutException {
+        if (!Func.isEmpty(channels)) {
+            for (Channel channel : channels) {
+                channel.close();
+            }
+        }
+        if (!Func.isEmpty(connections)) {
+            for (Connection connection : connections) {
+                connection.close();
+            }
         }
     }
 }

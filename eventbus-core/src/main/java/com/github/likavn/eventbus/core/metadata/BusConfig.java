@@ -18,7 +18,7 @@ public class BusConfig {
     private String serviceId;
 
     /**
-     * 消息引擎类别（redis、rabbitmq）
+     * 消息引擎类别（redis、rabbitmq、rocketmq）
      */
     private String type;
 

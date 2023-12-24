@@ -8,13 +8,6 @@ package com.github.likavn.eventbus.core.metadata.data;
  */
 public interface Message<T> {
     /**
-     * 获取topic
-     *
-     * @return topic
-     */
-    String getTopic();
-
-    /**
      * 获取消息ID
      *
      * @return 消息ID

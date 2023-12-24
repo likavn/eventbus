@@ -2,19 +2,18 @@ package com.github.likavn.eventbus.rabbitmq;
 
 
 import com.github.likavn.eventbus.core.DeliverBus;
-import com.github.likavn.eventbus.core.base.MsgListenerContainer;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.MsgConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.rabbitmq.constant.RabbitConstant;
-import com.github.likavn.eventbus.rabbitmq.support.Connect;
-import com.github.likavn.eventbus.rabbitmq.support.ConnectPool;
 import com.rabbitmq.client.*;
-import com.sun.org.slf4j.internal.Logger;
-import com.sun.org.slf4j.internal.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -24,21 +23,20 @@ import java.util.concurrent.TimeoutException;
  * @author likavn
  * @since 2023/01/01
  */
-public class RabbitMqDelayMsgListener implements MsgListenerContainer {
-    private static final Logger logger = LoggerFactory.getLogger(RabbitMqDelayMsgListener.class);
-
+@Slf4j
+public class RabbitMsgDelayListener implements Lifecycle {
     /**
      * 是否初始化rabbitmq
      */
     private boolean isInitRabbitMq = false;
-
     private final ConnectionFactory connectionFactory;
     private final BusConfig config;
     private final DeliverBus deliverBus;
-    private ConnectPool connectPool = null;
+    private List<Connection> connections = null;
+    private List<Channel> channels = null;
 
     @SuppressWarnings("all")
-    public RabbitMqDelayMsgListener(ConnectionFactory connectionFactory, BusConfig config, DeliverBus deliverBus) {
+    public RabbitMsgDelayListener(ConnectionFactory connectionFactory, BusConfig config, DeliverBus deliverBus) {
         this.connectionFactory = connectionFactory;
         this.config = config;
         this.deliverBus = deliverBus;
@@ -46,11 +44,15 @@ public class RabbitMqDelayMsgListener implements MsgListenerContainer {
 
     @Override
     public void register() throws IOException, TimeoutException {
-        this.connectPool = new ConnectPool(connectionFactory);
-        Connect connect = connectPool.createConnect();
+        connections = new ArrayList<>(1);
+        channels = new ArrayList<>(2);
+        Connection connection = connectionFactory.newConnection();
+        connections.add(connection);
         byte count = 1;
         while (count++ <= config.getConsumerNum()) {
-            bindListener(connect.createChannel());
+            Channel channel = connection.createChannel();
+            channels.add(channel);
+            bindListener(channel);
         }
     }
 
@@ -64,7 +66,7 @@ public class RabbitMqDelayMsgListener implements MsgListenerContainer {
             // 初始化rabbitmq
             initRabbitMq(channel);
 
-            String queueName = String.format(RabbitConstant.DELAY_QUEUE, config.getServiceId());
+            String queueName = String.format(RabbitConstant.QUEUE_DELAY, config.getServiceId());
             channel.basicConsume(queueName, false, new DefaultConsumer(channel) {
                 @Override
                 public void handleDelivery(String consumerTag,
@@ -73,10 +75,10 @@ public class RabbitMqDelayMsgListener implements MsgListenerContainer {
                                            byte[] body) throws IOException {
                     String oldName = Func.reThreadName(MsgConstant.DELAY_MSG_THREAD_NAME);
                     try {
-                        deliverBus.deliver(body);
+                        deliverBus.deliverDelay(body);
                         channel.basicAck(envelope.getDeliveryTag(), false);
                     } catch (Exception ex) {
-                        logger.error("RabbitMqDelayMsgListener", ex);
+                        log.error("RabbitMqDelayMsgListener", ex);
                         channel.basicNack(envelope.getDeliveryTag(), false, true);
                     } finally {
                         Thread.currentThread().setName(oldName);
@@ -84,7 +86,7 @@ public class RabbitMqDelayMsgListener implements MsgListenerContainer {
                 }
             });
         } catch (Exception e) {
-            logger.error("RabbitMqDelayMsgListener.init", e);
+            log.error("RabbitMqDelayMsgListener.init", e);
         }
     }
 
@@ -99,14 +101,14 @@ public class RabbitMqDelayMsgListener implements MsgListenerContainer {
             return;
         }
         // 初始创建交换机
-        String exchangeName = String.format(RabbitConstant.DELAY_EXCHANGE, config.getServiceId());
+        String exchangeName = String.format(RabbitConstant.EXCHANGE_DELAY, config.getServiceId());
         Map<String, Object> args = new HashMap<>(4);
         args.put("x-delayed-type", "direct");
         //属性参数 交换机名称 交换机类型 是否持久化 是否自动删除 配置参数
         channel.exchangeDeclare(exchangeName, "x-delayed-message", true, false, args);
 
         // 定义队列名称
-        String queueName = String.format(RabbitConstant.DELAY_QUEUE, config.getServiceId());
+        String queueName = String.format(RabbitConstant.QUEUE_DELAY, config.getServiceId());
 
         // 声明一个队列。
         // 参数一：队列名称
@@ -122,14 +124,21 @@ public class RabbitMqDelayMsgListener implements MsgListenerContainer {
 
         channel.queueBind(queueName, exchangeName,
                 // 设置路由key
-                String.format(RabbitConstant.DELAY_ROUTING_KEY, config.getServiceId()));
+                String.format(RabbitConstant.ROUTING_KEY_DELAY, config.getServiceId()));
         isInitRabbitMq = true;
     }
 
     @Override
-    public void destroy() throws IOException {
-        if (null != connectPool) {
-            connectPool.close();
+    public void destroy() throws IOException, TimeoutException {
+        if (!Func.isEmpty(channels)) {
+            for (Channel channel : channels) {
+                channel.close();
+            }
+        }
+        if (!Func.isEmpty(connections)) {
+            for (Connection connection : connections) {
+                connection.close();
+            }
         }
     }
 }

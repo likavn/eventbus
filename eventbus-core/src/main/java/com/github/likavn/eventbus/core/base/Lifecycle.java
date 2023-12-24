@@ -6,7 +6,7 @@ package com.github.likavn.eventbus.core.base;
  * @author likavn
  * @date 2023/5/19
  **/
-public interface MsgListenerContainer {
+public interface Lifecycle {
 
     /**
      * 容器第一次初始化、网络重新连接时调用

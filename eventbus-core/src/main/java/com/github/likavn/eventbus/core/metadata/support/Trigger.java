@@ -34,6 +34,13 @@ public class Trigger {
     private Class<?>[] argTypes;
 
     /**
+     * 投递ID
+     */
+    public String getDeliverId() {
+        return String.format("%s#%s", invokeBean.getClass().getName(), method.getName());
+    }
+
+    /**
      * 触发调用
      *
      * @param message 消息
