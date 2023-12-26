@@ -61,6 +61,7 @@ public class EventBusConfig {
     }
 
     @Bean
+    @ConditionalOnBean(MsgSender.class)
     @ConditionalOnMissingBean(DeliverBus.class)
     public DeliverBus deliverBus(InterceptorConfig interceptorConfig, BusConfig config, MsgSender msgSender, SubscriberRegistry registry) {
         return new DeliverBus(interceptorConfig, config, msgSender, registry);

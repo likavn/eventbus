@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.core.api.interceptor;
 
-import com.github.likavn.eventbus.core.metadata.data.Message;
+import com.github.likavn.eventbus.core.metadata.data.Request;
 
 /**
  * 投递错误拦截器
@@ -13,8 +13,8 @@ public interface DeliverExceptionInterceptor {
     /**
      * 拦截器执行
      *
-     * @param message   message
+     * @param request   request
      * @param exception ex
      */
-    void execute(Message<?> message, Exception exception);
+    void execute(Request<?> request, Exception exception);
 }

@@ -2,7 +2,7 @@ package com.github.likavn.eventbus.rabbitmq;
 
 import com.github.likavn.eventbus.core.DeliverBus;
 import com.github.likavn.eventbus.core.base.Lifecycle;
-import com.github.likavn.eventbus.core.constant.MsgConstant;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.core.utils.Func;
@@ -103,7 +103,7 @@ public class RabbitMsgSubscribeListener implements Lifecycle {
                                            Envelope envelope,
                                            AMQP.BasicProperties properties,
                                            byte[] body) throws IOException {
-                    String oldName = Func.reThreadName(MsgConstant.SUBSCRIBE_MSG_THREAD_NAME);
+                    String oldName = Func.reThreadName(BusConstant.SUBSCRIBE_MSG_THREAD_NAME);
                     try {
                         deliverBus.deliver(subscriber, body);
                         channel.basicAck(envelope.getDeliveryTag(), false);

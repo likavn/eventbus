@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
  **/
 @Slf4j
 public class ConnectionWatchdog {
-    private static final String THREAD_NAME_PREFIX = "notify-connectionWatchdog-pool-";
+    private static final String THREAD_NAME_PREFIX = "eventbus-connectionWatchdog-pool-";
     private boolean active = true;
 
     private final AtomicLong firstLostConnectMillisecond = new AtomicLong(-1);

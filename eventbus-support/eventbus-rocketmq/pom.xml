@@ -9,4 +9,11 @@
         <version>2.0</version>
     </parent>
     <artifactId>eventbus-rocketmq</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client-java</artifactId>
+            <version>5.0.5</version>
+        </dependency>
+    </dependencies>
 </project>

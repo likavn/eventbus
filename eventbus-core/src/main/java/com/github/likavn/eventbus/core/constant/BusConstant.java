@@ -5,13 +5,13 @@ import com.github.likavn.eventbus.core.api.MsgSubscribeListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 
 /**
- * 通知常量
+ * eventbus常量
  *
  * @author likavn
  * @since 2023/01/01
  */
-public class MsgConstant {
-    private MsgConstant() {
+public class BusConstant {
+    private BusConstant() {
     }
 
     /**
@@ -25,15 +25,15 @@ public class MsgConstant {
     /**
      * delay thread name
      */
-    public static final String DELAY_MSG_THREAD_NAME = "notify-delayMsg-pool-";
+    public static final String DELAY_MSG_THREAD_NAME = "eventbus-delayMsg-pool-";
 
     /**
      * subscribe thread name
      */
-    public static final String SUBSCRIBE_MSG_THREAD_NAME = "notify-subscribeMsg-pool-";
+    public static final String SUBSCRIBE_MSG_THREAD_NAME = "eventbus-subscribeMsg-pool-";
 
     /**
      * subscribe unAckRetry thread name
      */
-    public static final String SUBSCRIBE_MSG_UN_ACK_RETRY_THREAD_NAME = "notify-subscribeMsg#unAckRetry-pool-";
+    public static final String SUBSCRIBE_MSG_UN_ACK_RETRY_THREAD_NAME = "eventbus-subscribeMsg#unAckRetry-pool-";
 }

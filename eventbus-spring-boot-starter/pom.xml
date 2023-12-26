@@ -29,6 +29,21 @@
             <artifactId>eventbus-core</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.likavn</groupId>
+            <artifactId>eventbus-rabbitmq</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.likavn</groupId>
+            <artifactId>eventbus-redis</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.likavn</groupId>
+            <artifactId>eventbus-rocketmq</artifactId>
+            <version>${revision}</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

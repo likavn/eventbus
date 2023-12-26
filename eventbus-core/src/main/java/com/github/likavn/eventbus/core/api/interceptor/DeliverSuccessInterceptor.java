@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.core.api.interceptor;
 
-import com.github.likavn.eventbus.core.metadata.data.Message;
+import com.github.likavn.eventbus.core.metadata.data.Request;
 
 /**
  * 投递成功拦截器
@@ -13,7 +13,7 @@ public interface DeliverSuccessInterceptor {
     /**
      * 拦截器执行
      *
-     * @param message message
+     * @param request request
      */
-    void execute(Message<?> message);
+    void execute(Request<?> request);
 }

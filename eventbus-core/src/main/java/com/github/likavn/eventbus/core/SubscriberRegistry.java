@@ -6,7 +6,7 @@ import com.github.likavn.eventbus.core.annotation.SubscribeDelay;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.api.MsgSubscribeListener;
 import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
-import com.github.likavn.eventbus.core.constant.MsgConstant;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
@@ -88,7 +88,7 @@ public class SubscriberRegistry {
         Fail fail;
         // 接口实现的消息订阅器
         if (obj instanceof MsgSubscribeListener || obj instanceof MsgDelayListener) {
-            Trigger trigger = getTrigger(obj, MsgConstant.ON_MESSAGE);
+            Trigger trigger = getTrigger(obj, BusConstant.ON_MESSAGE);
             fail = trigger.getMethod().getAnnotation(Fail.class);
             if (null == fail) {
                 fail = cla.getAnnotation(Fail.class);
