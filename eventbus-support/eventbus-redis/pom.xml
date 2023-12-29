@@ -9,7 +9,7 @@
         <version>2.0</version>
     </parent>
     <artifactId>eventbus-redis</artifactId>
-
+    <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>io.lettuce</groupId>

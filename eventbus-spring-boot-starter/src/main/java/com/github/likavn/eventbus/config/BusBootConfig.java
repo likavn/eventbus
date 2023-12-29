@@ -1,6 +1,5 @@
 package com.github.likavn.eventbus.config;
 
-import com.github.likavn.eventbus.SubscriberBootRegistry;
 import com.github.likavn.eventbus.core.ConnectionWatchdog;
 import com.github.likavn.eventbus.core.DeliverBus;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
@@ -13,10 +12,14 @@ import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
+import com.github.likavn.eventbus.prop.BusProperties;
+import com.github.likavn.eventbus.provider.rabbit.BusBootRabbitConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,24 +29,33 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
+ * boot 启动配置
+ *
  * @author likavn
  * @date 2023/12/20
  **/
 @Slf4j
 @Configuration
-public class EventBusConfig {
+@EnableConfigurationProperties(BusProperties.class)
+@ImportAutoConfiguration({BusBootRabbitConfig.class})
+public class BusBootConfig {
 
+    /**
+     * 事件总线配置
+     */
     @Bean
-    @ConditionalOnMissingBean(SubscriberBootRegistry.class)
-    public SubscriberBootRegistry subscriptionRegistry() {
-        return new SubscriberBootRegistry();
+    public BusConfig busConfig(BusProperties properties) {
+        return BusConfig.builder().serviceId(properties.getServiceId())
+                .type(properties.getType())
+                .consumerNum(properties.getConsumerNum())
+                .testConnect(properties.getTestConnect())
+                .fail(properties.getFail())
+                .build();
     }
 
-    @Bean
-    public BusConfig busConfig() {
-        return new BusConfig();
-    }
-
+    /**
+     * 事件总线拦截器配置
+     */
     @Bean
     @ConditionalOnMissingBean(InterceptorConfig.class)
     public InterceptorConfig interceptorConfig(
@@ -54,12 +66,18 @@ public class EventBusConfig {
         return new InterceptorConfig(sendBeforeInterceptor, sendAfterInterceptor, deliverSuccessInterceptor, deliverExceptionInterceptor);
     }
 
+    /**
+     * 事件总线订阅者注册
+     */
     @Bean
     @ConditionalOnMissingBean(SubscriberRegistry.class)
     public SubscriberRegistry subscriberRegistry(BusConfig config) {
         return new SubscriberRegistry(config);
     }
 
+    /**
+     * 事件总线
+     */
     @Bean
     @ConditionalOnBean(MsgSender.class)
     @ConditionalOnMissingBean(DeliverBus.class)
@@ -67,6 +85,9 @@ public class EventBusConfig {
         return new DeliverBus(interceptorConfig, config, msgSender, registry);
     }
 
+    /**
+     * 连接监控
+     */
     @Bean
     @ConditionalOnBean(NodeTestConnect.class)
     public ConnectionWatchdog connectionWatchdog(ApplicationContext applicationContext, NodeTestConnect nodeTestConnect, BusConfig busConfig) {

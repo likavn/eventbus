@@ -1,13 +1,15 @@
 package com.github.likavn.eventbus.redis.support;
 
+import com.github.likavn.eventbus.core.exception.EventBusException;
 import io.lettuce.core.StreamMessage;
 import io.lettuce.core.XReadArgs;
+import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
+import org.apache.commons.pool2.impl.GenericObjectPool;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -17,29 +19,34 @@ import java.util.function.Supplier;
  * @date 2023/10/19
  **/
 public class StreamPollTask implements Runnable {
-    private final RedisCommands<String, String> commands;
+    private GenericObjectPool<StatefulRedisConnection<String, String>> pool;
     private final Subscriber subscriber;
     private final XReadArgs.StreamOffset<String> streamOffset;
     private final XReadArgs xReadArgs;
-    private final Long msgCount;
+    private final StreamMessageListenerContainer.StreamMessageListenerContainerOptions options;
     private final Supplier<List<StreamMessage<String, String>>> supplier;
     private volatile State state = State.CREATED;
     private volatile boolean isInEventLoop = false;
     private volatile CountDownLatch awaitStart = new CountDownLatch(1);
-    private final Consumer<Throwable> errorHandler;
 
-    public StreamPollTask(RedisCommands<String, String> commands, Subscriber subscriber, Long msgCount, Consumer<Throwable> errorHandler) {
-        this.commands = commands;
+    public StreamPollTask(GenericObjectPool<StatefulRedisConnection<String, String>> pool, Subscriber subscriber,
+                          StreamMessageListenerContainer.StreamMessageListenerContainerOptions options) {
         this.subscriber = subscriber;
-        this.msgCount = msgCount;
-        this.errorHandler = errorHandler;
+        this.pool = pool;
+        this.options = options;
         this.streamOffset = XReadArgs.StreamOffset.lastConsumed(subscriber.getStreamKey());
-        this.xReadArgs = XReadArgs.Builder.block(Duration.ofSeconds(0));
+        this.xReadArgs = XReadArgs.Builder.block(Duration.ofSeconds(0)).count(options.getBatchSize());
         this.supplier = getSupplier();
     }
 
     private Supplier<List<StreamMessage<String, String>>> getSupplier() {
-        return () -> commands.xreadgroup(subscriber.getConsumer(), xReadArgs, streamOffset);
+        return () -> {
+            try (StatefulRedisConnection<String, String> connection = pool.borrowObject()) {
+                return connection.sync().xreadgroup(subscriber.getConsumer(), xReadArgs, streamOffset);
+            } catch (Exception e) {
+                throw new EventBusException(e);
+            }
+        };
     }
 
     private List<StreamMessage<String, String>> readMessages() {
@@ -67,19 +74,21 @@ public class StreamPollTask implements Runnable {
                 if (messages.isEmpty()) {
                     continue; // 在没有新消息时继续轮询
                 }
+                try (StatefulRedisConnection<String, String> connection = pool.borrowObject()) {
+                    RedisCommands<String, String> commands = connection.sync();
+                    for (StreamMessage<String, String> message : messages) {
+                        subscriber.accept(message.getStream());
 
-                for (StreamMessage<String, String> message : messages) {
-                    subscriber.accept(message.getStream());
-
-                    // 手动确认消息已被处理
-                    commands.xack(subscriber.getStreamKey(), subscriber.getGroup(), message.getId());
+                        // 手动确认消息已被处理
+                        commands.xack(subscriber.getStreamKey(), subscriber.getGroup(), message.getId());
+                    }
                 }
             } catch (InterruptedException e) {
                 cancel();
                 Thread.currentThread().interrupt();
-            } catch (RuntimeException e) {
+            } catch (Exception e) {
                 cancel();
-                errorHandler.accept(e);
+                options.getErrorHandler().accept(e);
             }
         } while (isSubscriptionActive());
     }

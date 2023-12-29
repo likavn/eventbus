@@ -3,7 +3,7 @@ package com.github.likavn.eventbus.core.annotation;
 import java.lang.annotation.*;
 
 /**
- * 消息订阅注解
+ * 及时消息订阅注解
  *
  * @author likavn
  * @date 2023/6/15
@@ -26,5 +26,5 @@ public @interface Subscribe {
     /**
      * 消息投递失败异常处理注解
      */
-    Fail fail() default @Fail(callback = "");
+    Fail fail() default @Fail(callMethod = "");
 }

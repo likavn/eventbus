@@ -61,16 +61,8 @@ public class Assert {
      * @throws IllegalArgumentException 如果数组为空或数组中存在空元素
      */
     public void notEmpty(Object[] array, String message) {
-        if (array != null) {
-            Object[] var2 = array;
-            int var3 = array.length;
-
-            for (int var4 = 0; var4 < var3; ++var4) {
-                Object element = var2[var4];
-                if (element == null) {
-                    throw new IllegalArgumentException(message);
-                }
-            }
+        if (Func.isEmpty(array)) {
+            throw new IllegalArgumentException(message);
         }
     }
 

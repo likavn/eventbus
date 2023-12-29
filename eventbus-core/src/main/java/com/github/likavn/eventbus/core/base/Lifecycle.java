@@ -9,12 +9,16 @@ package com.github.likavn.eventbus.core.base;
 public interface Lifecycle {
 
     /**
-     * 容器第一次初始化、网络重新连接时调用
+     * 注册,网络连接成功时调用
+     *
+     * @throws Exception exception
      */
     void register() throws Exception;
 
     /**
      * 销毁,网络断开、容器销毁时调用
+     *
+     * @throws Exception exception
      */
     void destroy() throws Exception;
 }

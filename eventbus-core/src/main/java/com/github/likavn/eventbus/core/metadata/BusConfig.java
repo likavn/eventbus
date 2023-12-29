@@ -1,5 +1,6 @@
 package com.github.likavn.eventbus.core.metadata;
 
+import lombok.Builder;
 import lombok.Data;
 import lombok.ToString;
 
@@ -11,6 +12,7 @@ import lombok.ToString;
  */
 @Data
 @ToString
+@Builder
 public class BusConfig {
     /**
      * 服务ID
@@ -18,7 +20,7 @@ public class BusConfig {
     private String serviceId;
 
     /**
-     * 消息引擎类别（redis、rabbitmq、rocketmq）
+     * 消息引擎类别（redis、rabbitmq、rocketmq、pulsar）
      */
     private String type;
 

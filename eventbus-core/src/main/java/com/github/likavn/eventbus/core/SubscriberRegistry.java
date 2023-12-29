@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 订阅器注册中心
@@ -93,7 +94,7 @@ public class SubscriberRegistry {
             if (null == fail) {
                 fail = cla.getAnnotation(Fail.class);
             }
-            FailTrigger failTrigger = null == fail ? null : new FailTrigger(fail, getTrigger(obj, fail.callback()));
+            FailTrigger failTrigger = null == fail ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
             // 接口实现的及时消息订阅器
             if (obj instanceof MsgSubscribeListener) {
                 MsgSubscribeListener<?> listener = (MsgSubscribeListener<?>) obj;
@@ -133,7 +134,7 @@ public class SubscriberRegistry {
             serviceId = Func.isEmpty(serviceId) ? config.getServiceId() : serviceId;
             // 获取投递异常处理
             fail = msgType.isTimely() ? subscribe.fail() : subscribeDelay.fail();
-            FailTrigger failTrigger = Func.isEmpty(fail.callback()) ? null : new FailTrigger(fail, getTrigger(obj, fail.callback()));
+            FailTrigger failTrigger = Func.isEmpty(fail.callMethod()) ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
             for (String code : subscribe.codes()) {
                 Subscriber subscriber = new Subscriber(serviceId, code, msgType, trigger, failTrigger);
                 if (msgType.isTimely()) {
@@ -201,5 +202,9 @@ public class SubscriberRegistry {
 
     public Subscriber getMsgDelayListener(Class<? extends MsgDelayListener> cla) {
         return msgDelayListenerMap.get(cla);
+    }
+
+    public List<Subscriber> getSubscribers() {
+        return subscriberMap.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
 }

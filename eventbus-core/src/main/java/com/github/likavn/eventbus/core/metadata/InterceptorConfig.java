@@ -4,8 +4,8 @@ import com.github.likavn.eventbus.core.api.interceptor.DeliverExceptionIntercept
 import com.github.likavn.eventbus.core.api.interceptor.DeliverSuccessInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.github.likavn.eventbus.core.metadata.data.Request;
+import lombok.Setter;
 
 /**
  * 拦截器配置信息
@@ -13,17 +13,16 @@ import lombok.NoArgsConstructor;
  * @author likavn
  * @date 2023/12/17
  **/
-@Data
-@NoArgsConstructor
+@Setter
 public class InterceptorConfig {
 
-    private SendBeforeInterceptor sendBeforeInterceptor;
+    private final SendBeforeInterceptor sendBeforeInterceptor;
 
-    private SendAfterInterceptor sendAfterInterceptor;
+    private final SendAfterInterceptor sendAfterInterceptor;
 
-    private DeliverSuccessInterceptor deliverSuccessInterceptor;
+    private final DeliverSuccessInterceptor deliverSuccessInterceptor;
 
-    private DeliverExceptionInterceptor deliverExceptionInterceptor;
+    private final DeliverExceptionInterceptor deliverExceptionInterceptor;
 
     public InterceptorConfig(SendBeforeInterceptor sendBeforeInterceptor,
                              SendAfterInterceptor sendAfterInterceptor,
@@ -33,5 +32,29 @@ public class InterceptorConfig {
         this.sendAfterInterceptor = sendAfterInterceptor;
         this.deliverSuccessInterceptor = deliverSuccessInterceptor;
         this.deliverExceptionInterceptor = deliverExceptionInterceptor;
+    }
+
+    public void sendBeforeExecute(Request<?> request) {
+        if (sendBeforeInterceptor != null) {
+            sendBeforeInterceptor.execute(request);
+        }
+    }
+
+    public void sendAfterExecute(Request<?> request) {
+        if (sendAfterInterceptor != null) {
+            sendAfterInterceptor.execute(request);
+        }
+    }
+
+    public void deliverSuccessExecute(Request<?> request) {
+        if (deliverSuccessInterceptor != null) {
+            deliverSuccessInterceptor.execute(request);
+        }
+    }
+
+    public void deliverExceptionExecute(Request<?> request, Exception exception) {
+        if (deliverExceptionInterceptor != null) {
+            deliverExceptionInterceptor.execute(request, exception);
+        }
     }
 }

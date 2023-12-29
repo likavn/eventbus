@@ -5,8 +5,7 @@
     <parent>
         <groupId>com.github.likavn</groupId>
         <artifactId>eventbus</artifactId>
-        <version>${revision}</version>
-        <relativePath>../pom.xml</relativePath>
+        <version>2.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>eventbus-spring-boot-starter</artifactId>
@@ -29,20 +28,38 @@
             <artifactId>eventbus-core</artifactId>
             <version>${revision}</version>
         </dependency>
+        <!--rabbitmq -->
         <dependency>
             <groupId>com.github.likavn</groupId>
             <artifactId>eventbus-rabbitmq</artifactId>
             <version>${revision}</version>
+            <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!--redis -->
         <dependency>
             <groupId>com.github.likavn</groupId>
             <artifactId>eventbus-redis</artifactId>
             <version>${revision}</version>
+            <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- rocketmq -->
         <dependency>
             <groupId>com.github.likavn</groupId>
             <artifactId>eventbus-rocketmq</artifactId>
             <version>${revision}</version>
+            <optional>true</optional>
         </dependency>
     </dependencies>
     <dependencyManagement>

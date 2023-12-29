@@ -1,10 +1,9 @@
 package com.github.likavn.eventbus.rabbitmq;
 
-import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
-import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
 import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
+import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.rabbitmq.constant.RabbitConstant;
@@ -32,10 +31,9 @@ public class RabbitMsgSender extends AbstractSenderAdapter implements Lifecycle 
     private final BusConfig config;
     private ChannelPool channelPool = null;
 
-    public RabbitMsgSender(ConnectionFactory connectionFactory, SendBeforeInterceptor beforeInterceptor,
-                           SendAfterInterceptor afterInterceptor,
+    public RabbitMsgSender(ConnectionFactory connectionFactory, InterceptorConfig interceptorConfig,
                            BusConfig config) {
-        super(beforeInterceptor, afterInterceptor, config);
+        super(interceptorConfig, config);
         this.config = config;
         this.connectionFactory = connectionFactory;
     }

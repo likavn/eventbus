@@ -68,9 +68,7 @@ public class DeliverBus {
         try {
             subscriber.getTrigger().invoke(request);
             // 投递成功 拦截器
-            if (null != interceptorConfig && null != interceptorConfig.getDeliverSuccessInterceptor()) {
-                interceptorConfig.getDeliverSuccessInterceptor().execute(request);
-            }
+            interceptorConfig.deliverSuccessExecute(request);
         } catch (Exception ex) {
             failHandle(subscriber, request, ex);
         }
@@ -108,9 +106,7 @@ public class DeliverBus {
             }
 
             // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
-            if (null != interceptorConfig && null != interceptorConfig.getDeliverExceptionInterceptor()) {
-                interceptorConfig.getDeliverExceptionInterceptor().execute(request, ex);
-            }
+            interceptorConfig.deliverExceptionExecute(request, ex);
         } catch (Exception var2) {
             // 捕获异常并记录错误日志
             log.error("DeliverBus.failHandle error", var2);

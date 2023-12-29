@@ -1,9 +1,8 @@
 package com.github.likavn.eventbus.core.base;
 
 import com.github.likavn.eventbus.core.api.MsgSender;
-import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
-import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
+import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
@@ -17,24 +16,20 @@ import java.util.UUID;
  * @since 2023/01/01
  */
 public abstract class AbstractSenderAdapter implements MsgSender {
-    private final SendBeforeInterceptor beforeInterceptor;
-    private final SendAfterInterceptor afterInterceptor;
+    private final InterceptorConfig interceptorConfig;
     private final BusConfig config;
 
-    public AbstractSenderAdapter(SendBeforeInterceptor beforeInterceptor,
-                                 SendAfterInterceptor afterInterceptor,
-                                 BusConfig config) {
-        this.beforeInterceptor = beforeInterceptor;
-        this.afterInterceptor = afterInterceptor;
+    public AbstractSenderAdapter(InterceptorConfig interceptorConfig, BusConfig config) {
+        this.interceptorConfig = interceptorConfig;
         this.config = config;
     }
 
     @Override
     public void send(Request<?> request) {
-        wrap(request);
-        beforeInterceptor(request);
+        build(request);
+        interceptorConfig.sendBeforeExecute(request);
         toSend(request);
-        afterInterceptor(request);
+        interceptorConfig.sendAfterExecute(request);
     }
 
     /**
@@ -47,10 +42,10 @@ public abstract class AbstractSenderAdapter implements MsgSender {
     @Override
     public void sendDelayMessage(Request<?> request) {
         request.setType(MsgType.DELAY);
-        wrap(request);
-        beforeInterceptor(request);
+        build(request);
+        interceptorConfig.sendBeforeExecute(request);
         toSendDelayMessage(request);
-        afterInterceptor(request);
+        interceptorConfig.sendAfterExecute(request);
     }
 
     /**
@@ -61,39 +56,17 @@ public abstract class AbstractSenderAdapter implements MsgSender {
     public abstract void toSendDelayMessage(Request<?> request);
 
     /**
-     * 发送前拦截器
-     *
-     * @param request req
-     */
-    private void beforeInterceptor(Request<?> request) {
-        if (null != beforeInterceptor) {
-            beforeInterceptor.execute(request);
-        }
-    }
-
-    /**
-     * 发送后拦截器
-     *
-     * @param request req
-     */
-    private void afterInterceptor(Request<?> request) {
-        if (null != afterInterceptor) {
-            afterInterceptor.execute(request);
-        }
-    }
-
-    /**
      * 发送消息前置操作
      *
      * @param request req
      */
-    protected void wrap(Request<?> request) {
+    protected void build(Request<?> request) {
         Assert.notNull(request.getBody(), "消息体不能为空");
         if (null == request.getServiceId()) {
             request.setServiceId(config.getServiceId());
         }
         if (null == request.getRequestId()) {
-            request.setRequestId(UUID.randomUUID().toString().replaceAll("-", ""));
+            request.setRequestId(UUID.randomUUID().toString().replace("-", ""));
         }
         if (null == request.getDeliverNum()) {
             request.setDeliverNum(1);
