@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 带有前缀名称的线程工厂
  *
  * @author likavn
- * @since 2023/01/01
+ * @date 2024/01/01
  */
 public class NamedThreadFactory implements ThreadFactory {
 

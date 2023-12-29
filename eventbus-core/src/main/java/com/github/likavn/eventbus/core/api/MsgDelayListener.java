@@ -7,7 +7,7 @@ import com.github.likavn.eventbus.core.metadata.data.Message;
  * 注：只能订阅当前应用服务的延时消息
  *
  * @author likavn
- * @since 2023/01/01
+ * @date 2024/01/01
  */
 public interface MsgDelayListener<T> {
 

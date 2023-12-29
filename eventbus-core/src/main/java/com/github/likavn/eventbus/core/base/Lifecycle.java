@@ -4,7 +4,7 @@ package com.github.likavn.eventbus.core.base;
  * 各中间件实现的监听容器初始化接口
  *
  * @author likavn
- * @date 2023/5/19
+ * @date 2024/01/01
  **/
 public interface Lifecycle {
 

@@ -16,7 +16,7 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
  * redis消息生产者
  *
  * @author likavn
- * @since 2023/01/01
+ * @date 2024/01/01
  */
 @Slf4j
 public class RedisMsgSender extends AbstractSenderAdapter {

@@ -12,7 +12,7 @@ import java.lang.reflect.Method;
  * 触发器实体
  *
  * @author likavn
- * @date 2023/12/20
+ * @date 2024/01/01
  **/
 @Data
 @AllArgsConstructor

@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * 配置
  *
  * @author likavn
- * @since 2023/01/01
+ * @date 2024/01/01
  */
 @Data
 @ToString

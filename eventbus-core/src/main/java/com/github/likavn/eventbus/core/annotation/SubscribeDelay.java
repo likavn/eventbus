@@ -6,7 +6,7 @@ import java.lang.annotation.*;
  * 延时消息订阅注解
  *
  * @author likavn
- * @date 2023/6/15
+ * @date 2024/01/01
  **/
 @Documented
 @Target({ElementType.METHOD})

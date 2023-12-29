@@ -16,7 +16,7 @@ import java.util.concurrent.TimeoutException;
  * rabbitMq连接状态测试
  *
  * @author likavn
- * @date 2023/5/30
+ * @date 2024/01/01
  **/
 @Slf4j
 public class RabbitNodeTestConnect implements NodeTestConnect, Lifecycle {

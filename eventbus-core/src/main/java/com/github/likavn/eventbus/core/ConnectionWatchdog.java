@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * 检测连接状态
  *
  * @author likavn
- * @date 2023/5/30
+ * @date 2024/01/01
  **/
 @Slf4j
 public class ConnectionWatchdog {

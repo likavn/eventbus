@@ -16,7 +16,7 @@ import java.util.function.Supplier;
  * stream poll task
  *
  * @author likavn
- * @date 2023/10/19
+ * @date 2024/01/01
  **/
 public class StreamPollTask implements Runnable {
     private GenericObjectPool<StatefulRedisConnection<String, String>> pool;

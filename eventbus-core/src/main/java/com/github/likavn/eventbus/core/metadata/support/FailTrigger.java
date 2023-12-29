@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
  * 消息投递失败触发器
  *
  * @author likavn
- * @date 2023/12/20
+ * @date 2024/01/01
  **/
 @EqualsAndHashCode(callSuper = true)
 @Data

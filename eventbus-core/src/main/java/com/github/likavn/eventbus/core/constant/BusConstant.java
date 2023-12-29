@@ -8,7 +8,7 @@ import com.github.likavn.eventbus.core.metadata.data.Message;
  * eventbus常量
  *
  * @author likavn
- * @since 2023/01/01
+ * @date 2024/01/01
  */
 public class BusConstant {
     private BusConstant() {

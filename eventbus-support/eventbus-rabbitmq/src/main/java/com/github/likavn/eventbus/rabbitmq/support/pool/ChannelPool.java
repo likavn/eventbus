@@ -15,7 +15,7 @@ import java.util.concurrent.TimeoutException;
  * channel pool
  *
  * @author likavn
- * @date 2023/12/24
+ * @date 2024/01/01
  **/
 public class ChannelPool {
     private final GenericObjectPool<Channel> internalPool;

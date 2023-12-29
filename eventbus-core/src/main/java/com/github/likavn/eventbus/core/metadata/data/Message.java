@@ -4,7 +4,7 @@ package com.github.likavn.eventbus.core.metadata.data;
  * 通知消息体
  *
  * @author likavn
- * @since 2023/01/01
+ * @date 2024/01/01
  */
 public interface Message<T> {
     /**

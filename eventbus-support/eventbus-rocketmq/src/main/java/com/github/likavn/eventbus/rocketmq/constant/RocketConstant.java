@@ -4,7 +4,7 @@ package com.github.likavn.eventbus.rocketmq.constant;
  * rocket常量
  *
  * @author likavn
- * @since 2023/01/01
+ * @date 2024/01/01
  */
 public class RocketConstant {
     private RocketConstant() {

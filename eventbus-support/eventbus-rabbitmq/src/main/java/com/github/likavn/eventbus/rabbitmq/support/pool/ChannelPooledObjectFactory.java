@@ -10,7 +10,7 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
  * Channel pool factory
  *
  * @author likavn
- * @date 2023/12/24
+ * @date 2024/01/01
  **/
 public class ChannelPooledObjectFactory extends BasePooledObjectFactory<Channel> {
 

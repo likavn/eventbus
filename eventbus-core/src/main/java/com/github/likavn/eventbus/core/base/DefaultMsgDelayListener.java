@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
  * 及时消息重试及{@link SubscribeDelay}注解订阅的消息
  *
  * @author likavn
- * @date 2023/12/20
+ * @date 2024/01/01
  **/
 @Slf4j
 public class DefaultMsgDelayListener implements MsgDelayListener<Object> {

@@ -14,6 +14,8 @@ import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.rabbit.BusBootRabbitConfig;
+import com.github.likavn.eventbus.provider.redis.BusBootRedisConfig;
+import com.github.likavn.eventbus.provider.rocket.BusBootRocketConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -23,21 +25,23 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 
 /**
  * boot 启动配置
  *
  * @author likavn
- * @date 2023/12/20
+ * @date 2024/01/01
  **/
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(BusProperties.class)
-@ImportAutoConfiguration({BusBootRabbitConfig.class})
+@ImportAutoConfiguration({BusBootRabbitConfig.class, BusBootRedisConfig.class, BusBootRocketConfig.class})
 public class BusBootConfig {
 
     /**
@@ -71,8 +75,27 @@ public class BusBootConfig {
      */
     @Bean
     @ConditionalOnMissingBean(SubscriberRegistry.class)
-    public SubscriberRegistry subscriberRegistry(BusConfig config) {
-        return new SubscriberRegistry(config);
+    public SubscriberRegistry subscriberRegistry(ApplicationContext context, BusConfig config) {
+        log.info("eventbus 开始注册订阅者");
+        // Component
+        Map<String, Object> beanMap = context.getBeansWithAnnotation(Component.class);
+        List<Object> objects = new ArrayList<>(beanMap.values());
+
+        // Controller
+        beanMap = context.getBeansWithAnnotation(Controller.class);
+        objects.addAll(beanMap.values());
+
+        // Repository
+        beanMap = context.getBeansWithAnnotation(Repository.class);
+        objects.addAll(beanMap.values());
+
+        // Service
+        beanMap = context.getBeansWithAnnotation(Service.class);
+        objects.addAll(beanMap.values());
+
+        SubscriberRegistry registry = new SubscriberRegistry(config);
+        registry.register(objects);
+        return registry;
     }
 
     /**

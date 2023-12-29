@@ -8,7 +8,7 @@ import java.util.function.Consumer;
  * 订阅器
  *
  * @author likavn
- * @date 2023/12/26
+ * @date 2024/01/01
  **/
 @Data
 public class Subscriber {

@@ -6,7 +6,7 @@ import com.github.likavn.eventbus.core.metadata.data.Request;
  * 投递成功拦截器
  *
  * @author likavn
- * @date 2023/12/17
+ * @date 2024/01/01
  **/
 public interface DeliverSuccessInterceptor {
 

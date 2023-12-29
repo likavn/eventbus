@@ -13,7 +13,7 @@ import java.util.UUID;
  * 发送消息体包装处理类
  *
  * @author likavn
- * @since 2023/01/01
+ * @date 2024/01/01
  */
 public abstract class AbstractSenderAdapter implements MsgSender {
     private final InterceptorConfig interceptorConfig;

@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Configuration;
  * rabbitMq实现配置
  *
  * @author likavn
- * @since 2023/01/01
+ * @date 2024/01/01
  */
 @Configuration
 @ConditionalOnClass(RabbitTemplate.class)

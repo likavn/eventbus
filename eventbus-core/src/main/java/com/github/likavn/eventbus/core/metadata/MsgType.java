@@ -4,7 +4,7 @@ package com.github.likavn.eventbus.core.metadata;
  * 消息类型
  *
  * @author likavn
- * @date 2023/12/21
+ * @date 2024/01/01
  **/
 public enum MsgType {
     /**

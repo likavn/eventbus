@@ -5,7 +5,7 @@ package com.github.likavn.eventbus.core.exception;
  * Base RuntimeException for errors that occur when executing AMQP operations.
  *
  * @author likavn
- * @date 2023/12/22
+ * @date 2024/01/01
  */
 public class EventBusException extends RuntimeException {
 

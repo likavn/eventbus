@@ -11,7 +11,7 @@ import lombok.Setter;
  * 拦截器配置信息
  *
  * @author likavn
- * @date 2023/12/17
+ * @date 2024/01/01
  **/
 @Setter
 public class InterceptorConfig {

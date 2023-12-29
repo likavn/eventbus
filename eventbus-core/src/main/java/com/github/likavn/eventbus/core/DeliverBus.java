@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
  * 消息投递分发器
  *
  * @author likavn
- * @date 2023/12/17
+ * @date 2024/01/01
  **/
 @Slf4j
 public class DeliverBus {
@@ -93,7 +93,7 @@ public class DeliverBus {
         }
 
         // 获取有效的投递次数
-        int deliverNum = null != fail ? fail.retry() : config.getFail().getRetryNum();
+        int deliverNum = (null != fail && fail.retry() >= 0) ? fail.retry() : config.getFail().getRetryNum();
         if (request.getDeliverNum() <= deliverNum) {
             // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
             failReTry(request, fail);
@@ -121,7 +121,7 @@ public class DeliverBus {
      */
     private void failReTry(Request<?> request, Fail fail) {
         // 获取下次投递失败时间
-        long delayTime = null != fail ? fail.nextTime() : config.getFail().getNextTime();
+        long delayTime = (null != fail && fail.nextTime() > 0) ? fail.nextTime() : config.getFail().getNextTime();
         request.setDelayTime(delayTime);
 
         // 投递次数加一

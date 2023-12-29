@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * 订阅器注册中心
  *
  * @author likavn
- * @date 2023/6/29
+ * @date 2024/01/01
  **/
 @Slf4j
 public class SubscriberRegistry {

@@ -14,7 +14,7 @@ import java.util.function.Consumer;
  * stream 监听容器
  *
  * @author likavn
- * @date 2023/12/26
+ * @date 2024/01/01
  **/
 public class StreamMessageListenerContainer {
     /**
