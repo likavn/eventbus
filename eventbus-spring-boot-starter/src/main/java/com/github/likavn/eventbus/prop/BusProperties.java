@@ -18,7 +18,7 @@ public class BusProperties {
     /**
      * 服务ID
      */
-    private String serviceId;
+    private String serviceId = "${spring.application.name}";
 
     /**
      * 消息引擎类别（redis、rabbitmq、rocketmq、pulsar）

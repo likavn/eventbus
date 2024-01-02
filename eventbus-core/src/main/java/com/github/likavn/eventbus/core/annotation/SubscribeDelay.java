@@ -1,9 +1,12 @@
 package com.github.likavn.eventbus.core.annotation;
 
+import com.github.likavn.eventbus.core.metadata.BusConfig;
+
 import java.lang.annotation.*;
 
 /**
  * 延时消息订阅注解
+ * 注：只能订阅本服务{@link BusConfig#getServiceId()}下的延时消息
  *
  * @author likavn
  * @date 2024/01/01

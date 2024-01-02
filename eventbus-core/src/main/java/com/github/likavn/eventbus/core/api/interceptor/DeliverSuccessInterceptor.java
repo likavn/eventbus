@@ -3,7 +3,7 @@ package com.github.likavn.eventbus.core.api.interceptor;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 
 /**
- * 投递成功拦截器
+ * 投递成功全局拦截器
  *
  * @author likavn
  * @date 2024/01/01

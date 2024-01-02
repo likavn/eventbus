@@ -1,7 +1,7 @@
 package com.github.likavn.eventbus.rabbitmq;
 
 
-import com.github.likavn.eventbus.core.DeliverBus;
+import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
@@ -31,15 +31,15 @@ public class RabbitMsgDelayListener implements Lifecycle {
     private boolean isInitRabbitMq = false;
     private final ConnectionFactory connectionFactory;
     private final BusConfig config;
-    private final DeliverBus deliverBus;
+    private final DeliveryBus deliveryBus;
     private List<Connection> connections = null;
     private List<Channel> channels = null;
 
     @SuppressWarnings("all")
-    public RabbitMsgDelayListener(ConnectionFactory connectionFactory, BusConfig config, DeliverBus deliverBus) {
+    public RabbitMsgDelayListener(ConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus) {
         this.connectionFactory = connectionFactory;
         this.config = config;
-        this.deliverBus = deliverBus;
+        this.deliveryBus = deliveryBus;
     }
 
     @Override
@@ -75,7 +75,7 @@ public class RabbitMsgDelayListener implements Lifecycle {
                                            byte[] body) throws IOException {
                     String oldName = Func.reThreadName(BusConstant.DELAY_MSG_THREAD_NAME);
                     try {
-                        deliverBus.deliverDelay(body);
+                        deliveryBus.deliverDelay(body);
                         channel.basicAck(envelope.getDeliveryTag(), false);
                     } catch (Exception ex) {
                         log.error("RabbitMqDelayMsgListener", ex);

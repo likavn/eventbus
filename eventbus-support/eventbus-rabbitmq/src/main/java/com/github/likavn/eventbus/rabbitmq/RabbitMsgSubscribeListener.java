@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.rabbitmq;
 
-import com.github.likavn.eventbus.core.DeliverBus;
+import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
@@ -30,17 +30,17 @@ public class RabbitMsgSubscribeListener implements Lifecycle {
     private boolean isCreateExchange = false;
     private final ConnectionFactory connectionFactory;
     private final List<Subscriber> subscribers;
-    private final DeliverBus deliverBus;
+    private final DeliveryBus deliveryBus;
     private final BusConfig config;
     private List<Connection> connections = null;
     private List<Channel> channels = null;
 
     @SuppressWarnings("all")
     public RabbitMsgSubscribeListener(ConnectionFactory connectionFactory,
-                                      DeliverBus deliverBus, BusConfig config, List<Subscriber> subscribers) {
+                                      DeliveryBus deliveryBus, BusConfig config, List<Subscriber> subscribers) {
         this.connectionFactory = connectionFactory;
         this.subscribers = subscribers;
-        this.deliverBus = deliverBus;
+        this.deliveryBus = deliveryBus;
         this.config = config;
     }
 
@@ -105,7 +105,7 @@ public class RabbitMsgSubscribeListener implements Lifecycle {
                                            byte[] body) throws IOException {
                     String oldName = Func.reThreadName(BusConstant.SUBSCRIBE_MSG_THREAD_NAME);
                     try {
-                        deliverBus.deliver(subscriber, body);
+                        deliveryBus.deliver(subscriber, body);
                         channel.basicAck(envelope.getDeliveryTag(), false);
                     } catch (Exception ex) {
                         log.error("RabbitMsgSubscribeListener.bindListener", ex);

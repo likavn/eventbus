@@ -1,7 +1,7 @@
 package com.github.likavn.eventbus.config;
 
 import com.github.likavn.eventbus.core.ConnectionWatchdog;
-import com.github.likavn.eventbus.core.DeliverBus;
+import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.interceptor.DeliverExceptionInterceptor;
@@ -13,6 +13,7 @@ import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.prop.BusProperties;
+import com.github.likavn.eventbus.provider.pulsar.BusBootPulsarConfig;
 import com.github.likavn.eventbus.provider.rabbit.BusBootRabbitConfig;
 import com.github.likavn.eventbus.provider.redis.BusBootRedisConfig;
 import com.github.likavn.eventbus.provider.rocket.BusBootRocketConfig;
@@ -41,7 +42,15 @@ import java.util.*;
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(BusProperties.class)
-@ImportAutoConfiguration({BusBootRabbitConfig.class, BusBootRedisConfig.class, BusBootRocketConfig.class})
+@ImportAutoConfiguration({
+        // rabbit
+        BusBootRabbitConfig.class,
+        // redis
+        BusBootRedisConfig.class,
+        // rocket
+        BusBootRocketConfig.class,
+        // pulsar
+        BusBootPulsarConfig.class})
 public class BusBootConfig {
 
     /**
@@ -103,9 +112,9 @@ public class BusBootConfig {
      */
     @Bean
     @ConditionalOnBean(MsgSender.class)
-    @ConditionalOnMissingBean(DeliverBus.class)
-    public DeliverBus deliverBus(InterceptorConfig interceptorConfig, BusConfig config, MsgSender msgSender, SubscriberRegistry registry) {
-        return new DeliverBus(interceptorConfig, config, msgSender, registry);
+    @ConditionalOnMissingBean(DeliveryBus.class)
+    public DeliveryBus deliveryBus(InterceptorConfig interceptorConfig, BusConfig config, MsgSender msgSender, SubscriberRegistry registry) {
+        return new DeliveryBus(interceptorConfig, config, msgSender, registry);
     }
 
     /**

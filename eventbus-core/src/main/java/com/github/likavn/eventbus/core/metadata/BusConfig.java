@@ -1,8 +1,6 @@
 package com.github.likavn.eventbus.core.metadata;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.ToString;
+import lombok.*;
 
 /**
  * 配置
@@ -13,6 +11,8 @@ import lombok.ToString;
 @Data
 @ToString
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class BusConfig {
     /**
      * 服务ID
@@ -63,12 +63,12 @@ public class BusConfig {
     @ToString
     public static class Fail {
         /**
-         * 重试次数
+         * 消息投递失败时，一定时间内再次进行投递的次数，默认3次
          */
         private Integer retryNum = 3;
 
         /**
-         * 下次触发时间，单位：秒
+         * 下次触发时间，单位：秒，默认10秒
          */
         private Long nextTime = 10L;
     }

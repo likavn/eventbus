@@ -16,7 +16,7 @@ import java.lang.annotation.*;
 public @interface Subscribe {
 
     /**
-     * 消息所属来源服务ID或服务名。默认订阅本服务配置的ID
+     * 消息所属来源服务ID或服务名。默认订阅本服务{@link BusConfig#getServiceId()}配置的ID
      *
      * @see BusConfig#getServiceId()
      */

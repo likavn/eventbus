@@ -14,6 +14,7 @@
         <module>eventbus-rabbitmq</module>
         <module>eventbus-redis</module>
         <module>eventbus-rocketmq</module>
+        <module>eventbus-pulsar</module>
     </modules>
     <dependencies>
         <dependency>

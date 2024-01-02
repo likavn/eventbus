@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.provider.rabbit;
 
-import com.github.likavn.eventbus.core.DeliverBus;
+import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
@@ -39,13 +39,13 @@ public class BusBootRabbitConfig {
 
     @Bean
     public RabbitMsgSubscribeListener rabbitMsgSubscribeListener(
-            ConnectionFactory connectionFactory, DeliverBus deliverBus, BusConfig config, SubscriberRegistry registry) {
-        return new RabbitMsgSubscribeListener(connectionFactory, deliverBus, config, registry.getSubscribers());
+            ConnectionFactory connectionFactory, DeliveryBus deliveryBus, BusConfig config, SubscriberRegistry registry) {
+        return new RabbitMsgSubscribeListener(connectionFactory, deliveryBus, config, registry.getSubscribers());
     }
 
     @Bean
-    public RabbitMsgDelayListener rabbitMsgDelayListener(ConnectionFactory connectionFactory, DeliverBus deliverBus, BusConfig config) {
-        return new RabbitMsgDelayListener(connectionFactory, config, deliverBus);
+    public RabbitMsgDelayListener rabbitMsgDelayListener(ConnectionFactory connectionFactory, DeliveryBus deliveryBus, BusConfig config) {
+        return new RabbitMsgDelayListener(connectionFactory, config, deliveryBus);
     }
 
     @Bean

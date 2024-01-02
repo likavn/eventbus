@@ -17,16 +17,16 @@ import lombok.extern.slf4j.Slf4j;
  * @date 2024/01/01
  **/
 @Slf4j
-public class DeliverBus {
+public class DeliveryBus {
     private final InterceptorConfig interceptorConfig;
     private final BusConfig config;
     private final MsgSender msgSender;
     private final SubscriberRegistry registry;
 
-    public DeliverBus(InterceptorConfig interceptorConfig,
-                      BusConfig config,
-                      MsgSender msgSender,
-                      SubscriberRegistry registry) {
+    public DeliveryBus(InterceptorConfig interceptorConfig,
+                       BusConfig config,
+                       MsgSender msgSender,
+                       SubscriberRegistry registry) {
         this.interceptorConfig = interceptorConfig;
         this.config = config;
         this.msgSender = msgSender;
@@ -109,7 +109,7 @@ public class DeliverBus {
             interceptorConfig.deliverExceptionExecute(request, ex);
         } catch (Exception var2) {
             // 捕获异常并记录错误日志
-            log.error("DeliverBus.failHandle error", var2);
+            log.error("deliveryBus.failHandle error", var2);
         }
     }
 
