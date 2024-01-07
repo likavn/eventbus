@@ -40,6 +40,11 @@ public class ConnectionWatchdog {
         if (Func.isEmpty(containers)) {
             return;
         }
+        try {
+            register();
+        } catch (Exception e) {
+            log.error("ConnectionWatchdog init", e);
+        }
         registerScheduler();
     }
 

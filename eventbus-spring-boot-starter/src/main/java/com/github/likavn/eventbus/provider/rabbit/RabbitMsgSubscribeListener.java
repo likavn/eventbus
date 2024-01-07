@@ -34,6 +34,7 @@ public class RabbitMsgSubscribeListener implements NetLifecycle {
     private final List<Subscriber> subscribers;
     private final CachingConnectionFactory connectionFactory;
     private final String serviceExchangeName;
+    private Connection connection = null;
 
     public RabbitMsgSubscribeListener(BusConfig config,
                                       DeliveryBus deliveryBus,
@@ -44,17 +45,15 @@ public class RabbitMsgSubscribeListener implements NetLifecycle {
         this.subscribers = subscribers;
         this.connectionFactory = connectionFactory;
         this.serviceExchangeName = String.format(RabbitConstant.EXCHANGE, config.getServiceId());
-        register();
     }
 
-    @SuppressWarnings("all")
     @Override
     public void register() {
-        Connection newConnection = connectionFactory.createConnection();
+        this.connection = connectionFactory.createConnection();
         for (Subscriber subscriber : subscribers) {
             int num = 0;
             while (num++ < config.getConsumerNum()) {
-                createSubscriber(subscriber, newConnection);
+                createSubscriber(subscriber, connection);
             }
         }
     }
@@ -133,5 +132,8 @@ public class RabbitMsgSubscribeListener implements NetLifecycle {
     @Override
     public void destroy() {
         // destroy
+        if (null != this.connection) {
+            this.connection.close();
+        }
     }
 }

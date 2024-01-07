@@ -35,6 +35,7 @@ public class RabbitMsgDelayListener implements NetLifecycle {
     private final BusConfig config;
     private final DeliveryBus deliveryBus;
     private final CachingConnectionFactory connectionFactory;
+    private Connection connection = null;
 
     @SuppressWarnings("all")
     public RabbitMsgDelayListener(BusConfig config,
@@ -43,12 +44,11 @@ public class RabbitMsgDelayListener implements NetLifecycle {
         this.config = config;
         this.deliveryBus = deliveryBus;
         this.connectionFactory = connectionFactory;
-        register();
     }
 
     @Override
     public void register() {
-        Connection connection = connectionFactory.createConnection();
+        this.connection = connectionFactory.createConnection();
         byte count = 1;
         while (count++ <= config.getConsumerNum()) {
             bindListener(connection);
@@ -131,5 +131,8 @@ public class RabbitMsgDelayListener implements NetLifecycle {
     @Override
     public void destroy() {
         // destroy
+        if (null != this.connection) {
+            this.connection.close();
+        }
     }
 }
