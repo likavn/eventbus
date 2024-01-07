@@ -3,7 +3,6 @@ package com.github.likavn.eventbus.demo;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import com.github.likavn.eventbus.demo.domain.TMsg;
-import com.github.likavn.eventbus.demo.listener.DemoMsgDelayListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -46,7 +45,7 @@ public class EventBusApplication extends SpringBootServletInitializer {
     @GetMapping(value = "/trigger")
     public String queryById() {
         List<TMsg> msgs = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1; i++) {
             TMsg request = new TMsg();
             request.setName("999121#" + i);
             request.setContent("kkss");
@@ -54,8 +53,12 @@ public class EventBusApplication extends SpringBootServletInitializer {
         }
 
         msgs.parallelStream().forEach(msg -> {
+            // 测试订阅消息
             msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);
-            msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg, 15);
+            // 测试延时消息，直接关联处理类
+            //msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg, 15);
+            // 测试延时消息，传递消息代码code
+            //msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, 15);
         });
 
         log.info("发送成功...");

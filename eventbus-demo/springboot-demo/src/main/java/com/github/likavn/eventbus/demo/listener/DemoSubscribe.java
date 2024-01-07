@@ -16,13 +16,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class DemoSubscribe {
 
-    @Subscribe(codes = MsgConstant.TEST_MSG_SUBSCRIBE,
-            fail = @Fail(callMethod = "exceptionHandler", retry = 5, nextTime = 10))
-    public void onMessage(Message<TMsg> msg) {
+    @Subscribe(codes = MsgConstant.TEST_MSG_SUBSCRIBE, fail = @Fail(callMethod = "exceptionHandler"))
+    public void action(Message<TMsg> msg) {
         log.info("onMessage: {}", msg);
+        throw new RuntimeException("DemoSubscribeDelay test");
     }
 
-    public void exceptionHandler(Message<TMsg> msg, Exception e) {
-        log.error("exceptionHandler: {}", msg, e);
+    public void exceptionHandler(Message<TMsg> msg, Throwable throwable) {
+        log.error("exceptionHandler: {}", msg, throwable);
     }
 }

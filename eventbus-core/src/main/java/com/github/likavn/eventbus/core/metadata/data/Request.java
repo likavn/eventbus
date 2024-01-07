@@ -1,7 +1,9 @@
 package com.github.likavn.eventbus.core.metadata.data;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.metadata.MsgType;
+import com.github.likavn.eventbus.core.metadata.support.Trigger;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.*;
 
@@ -20,11 +22,11 @@ import lombok.*;
 public class Request<T> extends Topic implements Message<T> {
     private static final long serialVersionUID = 1L;
     /**
-     * 事件ID
+     * 事件ID,默认UUID
      */
     private String requestId;
     /**
-     * 消息接收处理器ID=全类名+方法名
+     * 消息接收处理器（消费者ID）ID=全类名+方法名{@link Trigger#getDeliverId()}
      */
     private String deliverId;
 
@@ -51,7 +53,7 @@ public class Request<T> extends Topic implements Message<T> {
     /**
      * 消息类型,默认及时消息
      */
-    private MsgType type = MsgType.TIMELY;
+    private MsgType type;
 
     @Builder
     public Request(Class<? extends MsgDelayListener> delayListener,
@@ -62,7 +64,7 @@ public class Request<T> extends Topic implements Message<T> {
         this.body = body;
         this.deliverNum = deliverNum;
         this.delayTime = delayTime;
-        this.type = (null == type ? MsgType.TIMELY : type);
+        this.type = type;
     }
 
     @Override
@@ -81,6 +83,7 @@ public class Request<T> extends Topic implements Message<T> {
     }
 
     @Override
+    @JSONField(serialize = false)
     public String getTopic() {
         return Func.getTopic(serviceId, code);
     }

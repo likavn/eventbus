@@ -15,12 +15,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class DemoMsgDelayListener implements MsgDelayListener<TMsg> {
     @Override
-    @Fail(callMethod = "exceptionHandler", retry = 5, nextTime = 15)
+    @Fail(callMethod = "exceptionHandler", retry = 1, nextTime = 15)
     public void onMessage(Message<TMsg> message) {
-        log.info("onMessage: {}", message);
+        TMsg body = message.getBody();
+        log.info("接收消息: {}", message);
+        throw new RuntimeException("DemoMsgDelayListener test");
     }
 
-    public void exceptionHandler(Message<TMsg> message, Exception e) {
-        log.info("exception: {}", message);
+    public void exceptionHandler(Message<TMsg> message, Throwable throwable) {
+        TMsg body = message.getBody();
+        log.error("消息投递失败！: {}，{}", throwable.getMessage(), message);
     }
 }

@@ -6,7 +6,9 @@ import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
+import com.github.likavn.eventbus.core.utils.Func;
 
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -26,7 +28,8 @@ public abstract class AbstractSenderAdapter implements MsgSender {
 
     @Override
     public void send(Request<?> request) {
-        build(request);
+        request.setType(MsgType.TIMELY);
+        checkBuild(request);
         interceptorConfig.sendBeforeExecute(request);
         toSend(request);
         interceptorConfig.sendAfterExecute(request);
@@ -41,8 +44,8 @@ public abstract class AbstractSenderAdapter implements MsgSender {
 
     @Override
     public void sendDelayMessage(Request<?> request) {
-        request.setType(MsgType.DELAY);
-        build(request);
+        request.setType(null == request.getType() ? MsgType.DELAY : request.getType());
+        checkBuild(request);
         interceptorConfig.sendBeforeExecute(request);
         toSendDelayMessage(request);
         interceptorConfig.sendAfterExecute(request);
@@ -60,19 +63,22 @@ public abstract class AbstractSenderAdapter implements MsgSender {
      *
      * @param request req
      */
-    protected void build(Request<?> request) {
-        Assert.notNull(request.getBody(), "消息体不能为空");
-        if (null == request.getServiceId()) {
-            request.setServiceId(config.getServiceId());
-        }
-        if (null == request.getRequestId()) {
-            request.setRequestId(UUID.randomUUID().toString().replace("-", ""));
-        }
-        if (null == request.getDeliverNum()) {
-            request.setDeliverNum(1);
-        }
-        if (null != request.getDelayListener()) {
-            Assert.isTrue(!(null == request.getDelayTime() || 0 >= request.getDelayTime()), "delayTime is null or zreo");
+    protected void checkBuild(Request<?> request) {
+        // 确保传入的对象不为空
+        Objects.requireNonNull(request.getBody(), "消息体不能为空");
+
+        // 设置服务ID为默认值，如果为空的话
+        request.setServiceId(Func.isEmpty(request.getServiceId()) ? config.getServiceId() : request.getServiceId());
+
+        // 设置请求ID为默认值，如果为空的话
+        request.setRequestId(Func.isEmpty(request.getRequestId()) ? UUID.randomUUID().toString().replace("-", "") : request.getRequestId());
+
+        // 设置递送数量为默认值，如果为空的话
+        request.setDeliverNum(request.getDeliverNum() != null ? request.getDeliverNum() : 1);
+
+        // 如果延迟监听器不为空，则进行延迟时间的校验
+        if (request.getDelayListener() != null) {
+            Assert.isTrue(request.getDelayTime() != null && request.getDelayTime() > 0, "delayTime is null or zero");
         }
     }
 }

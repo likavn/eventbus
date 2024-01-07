@@ -9,7 +9,6 @@
     <version>2.0</version>
     <modules>
         <module>eventbus-core</module>
-        <module>eventbus-support</module>
         <module>eventbus-spring-boot-starter</module>
         <module>eventbus-demo</module>
     </modules>

@@ -2,13 +2,18 @@ package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
 import com.github.likavn.eventbus.core.api.MsgSender;
+import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
+import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
+import com.github.likavn.eventbus.core.metadata.support.Trigger;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.extern.slf4j.Slf4j;
+
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * 消息投递分发器
@@ -43,6 +48,15 @@ public class DeliveryBus {
     }
 
     /**
+     * 接收
+     *
+     * @param body body
+     */
+    public void deliver(Subscriber subscriber, String body) {
+        deliver(subscriber, Func.convertByJson(body));
+    }
+
+    /**
      * 接收延时消息
      *
      * @param body body
@@ -62,15 +76,23 @@ public class DeliveryBus {
      * 投递消息
      */
     public void deliver(Subscriber subscriber, Request<?> request) {
+        if (null != request.getDeliverId()) {
+            Subscriber sub = registry.getSubscriber(request.getDeliverId());
+            if (null != sub) {
+                subscriber = sub;
+            }
+        }
+        Trigger trigger = subscriber.getTrigger();
+        request.setDeliverId(trigger.getDeliverId());
         if (log.isDebugEnabled()) {
             log.debug("deliver msg：{}", Func.toJson(request));
         }
         try {
-            subscriber.getTrigger().invoke(request);
+            trigger.invoke(request);
             // 投递成功 拦截器
             interceptorConfig.deliverSuccessExecute(request);
-        } catch (Exception ex) {
-            failHandle(subscriber, request, ex);
+        } catch (Throwable throwable) {
+            failHandle(subscriber, request, throwable);
         }
     }
 
@@ -79,11 +101,16 @@ public class DeliveryBus {
      *
      * @param subscriber subscriber
      * @param request    request
-     * @param ex         ex
+     * @param throwable  throwable
      */
-    private void failHandle(Subscriber subscriber, Request<?> request, Exception ex) {
+    private void failHandle(Subscriber subscriber, Request<?> request, Throwable throwable) {
+        if (!(throwable.getCause() instanceof InvocationTargetException)) {
+            throw new EventBusException(throwable.getCause());
+        }
+        // 获取异常的真正原因
+        throwable = throwable.getCause().getCause();
         // 发生异常时记录错误日志
-        log.error("deliver error", ex);
+        log.error("deliver error", throwable);
         // 获取订阅器的FailTrigger
         FailTrigger failTrigger = subscriber.getFailTrigger();
         Fail fail = null;
@@ -102,12 +129,12 @@ public class DeliveryBus {
         try {
             // 如果FailTrigger不为空，则执行订阅器的异常处理
             if (null != failTrigger) {
-                failTrigger.invoke(request, ex);
+                failTrigger.invoke(request, throwable);
             }
 
             // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
-            interceptorConfig.deliverExceptionExecute(request, ex);
-        } catch (Exception var2) {
+            interceptorConfig.deliverThrowableExecute(request, throwable);
+        } catch (Throwable var2) {
             // 捕获异常并记录错误日志
             log.error("deliveryBus.failHandle error", var2);
         }
@@ -123,6 +150,10 @@ public class DeliveryBus {
         // 获取下次投递失败时间
         long delayTime = (null != fail && fail.nextTime() > 0) ? fail.nextTime() : config.getFail().getNextTime();
         request.setDelayTime(delayTime);
+        // 如果没有设置延时监听器，则设置默认的延时监听器
+        if (null == request.getDelayListener()) {
+            request.setDelayListener(DefaultMsgDelayListener.class);
+        }
 
         // 投递次数加一
         request.setDeliverNum(request.getDeliverNum() + 1);

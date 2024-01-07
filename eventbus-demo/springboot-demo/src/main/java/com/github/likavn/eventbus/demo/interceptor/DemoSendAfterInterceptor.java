@@ -15,6 +15,6 @@ import org.springframework.stereotype.Component;
 public class DemoSendAfterInterceptor implements SendAfterInterceptor {
     @Override
     public void execute(Request<?> request) {
-        log.info("DemoSendAfterInterceptor execute,{}", JSONObject.toJSONString(request));
+        log.debug("发送后拦截器,{}", JSONObject.toJSONString(request));
     }
 }

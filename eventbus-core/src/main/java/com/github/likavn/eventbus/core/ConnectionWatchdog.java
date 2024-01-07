@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.core;
 
-import com.github.likavn.eventbus.core.base.Lifecycle;
+import com.github.likavn.eventbus.core.base.NetLifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.utils.Func;
@@ -30,10 +30,10 @@ public class ConnectionWatchdog {
 
     private final BusConfig.TestConnect properties;
 
-    private final Collection<Lifecycle> containers;
+    private final Collection<NetLifecycle> containers;
 
     public ConnectionWatchdog(NodeTestConnect testConnect,
-                              BusConfig.TestConnect testConnectProperties, Collection<Lifecycle> containers) {
+                              BusConfig.TestConnect testConnectProperties, Collection<NetLifecycle> containers) {
         this.testConnect = testConnect;
         this.properties = testConnectProperties;
         this.containers = containers;
@@ -51,14 +51,14 @@ public class ConnectionWatchdog {
         ScheduledExecutorService scheduler
                 = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory(THREAD_NAME_PREFIX));
         scheduler.scheduleWithFixedDelay(() -> {
-            boolean isConnect = false;
             try {
-                isConnect = testConnect.testConnect();
-            } catch (Exception ex) {
-                log.error("ConnectionWatchdog.testConnect", ex);
-            }
-            log.debug("isConnect... {}", isConnect);
-            try {
+                boolean isConnect = false;
+                try {
+                    isConnect = testConnect.testConnect();
+                } catch (Exception ex) {
+                    log.error("ConnectionWatchdog.testConnect", ex);
+                }
+
                 if (!active && isConnect) {
                     register();
                     active = true;
@@ -69,6 +69,7 @@ public class ConnectionWatchdog {
                 }
                 // 丢失连接+1
                 else if (firstLostConnectMillisecond.get() == -1) {
+                    log.warn("lost connection...");
                     firstLostConnectMillisecond.set(System.currentTimeMillis());
                 }
 
@@ -91,7 +92,7 @@ public class ConnectionWatchdog {
      */
     private void register() throws Exception {
         // 遍历容器列表
-        for (Lifecycle container : containers) {
+        for (NetLifecycle container : containers) {
             // 注册容器
             container.register();
         }
@@ -102,7 +103,7 @@ public class ConnectionWatchdog {
      */
     private void destroy() throws Exception {
         // 遍历容器列表
-        for (Lifecycle container : containers) {
+        for (NetLifecycle container : containers) {
             // 销毁容器
             container.destroy();
         }

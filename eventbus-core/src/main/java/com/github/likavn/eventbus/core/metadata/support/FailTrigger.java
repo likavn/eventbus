@@ -1,10 +1,7 @@
 package com.github.likavn.eventbus.core.metadata.support;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 
 /**
  * 消息投递失败触发器
@@ -12,10 +9,7 @@ import lombok.NoArgsConstructor;
  * @author likavn
  * @date 2024/01/01
  **/
-@EqualsAndHashCode(callSuper = true)
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Getter
 public class FailTrigger extends Trigger {
     /**
      * 投递失败配置信息
@@ -23,7 +17,7 @@ public class FailTrigger extends Trigger {
     private Fail fail;
 
     public FailTrigger(Fail fail, Trigger trigger) {
-        super(trigger.getInvokeBean(), trigger.getMethod(), trigger.getArgTypes());
+        super(trigger.getInvokeBean(), trigger.getMethod());
         this.fail = fail;
     }
 }

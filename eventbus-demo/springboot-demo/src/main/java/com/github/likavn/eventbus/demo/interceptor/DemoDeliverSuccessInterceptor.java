@@ -15,6 +15,6 @@ import org.springframework.stereotype.Component;
 public class DemoDeliverSuccessInterceptor implements DeliverSuccessInterceptor {
     @Override
     public void execute(Request<?> request) {
-        log.info("DemoDeliverSuccessInterceptor execute,{}", JSONObject.toJSONString(request));
+        log.debug("投递消息成功,消费者->{},msg->{}", request.getDeliverId(), JSONObject.toJSONString(request));
     }
 }

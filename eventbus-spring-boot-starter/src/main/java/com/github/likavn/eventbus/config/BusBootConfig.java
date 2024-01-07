@@ -4,18 +4,18 @@ import com.github.likavn.eventbus.core.ConnectionWatchdog;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
-import com.github.likavn.eventbus.core.api.interceptor.DeliverExceptionInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.DeliverSuccessInterceptor;
+import com.github.likavn.eventbus.core.api.interceptor.DeliverThrowableInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
-import com.github.likavn.eventbus.core.base.Lifecycle;
+import com.github.likavn.eventbus.core.base.NetLifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.pulsar.BusBootPulsarConfig;
-import com.github.likavn.eventbus.provider.rabbit.BusBootRabbitConfig;
-import com.github.likavn.eventbus.provider.redis.BusBootRedisConfig;
+import com.github.likavn.eventbus.provider.rabbit.config.BusBootRabbitConfig;
+import com.github.likavn.eventbus.provider.redis.config.BusBootRedisConfig;
 import com.github.likavn.eventbus.provider.rocket.BusBootRocketConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,10 +26,12 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
 
@@ -57,8 +59,18 @@ public class BusBootConfig {
      * 事件总线配置
      */
     @Bean
-    public BusConfig busConfig(BusProperties properties) {
-        return BusConfig.builder().serviceId(properties.getServiceId())
+    public BusConfig busConfig(Environment environment, BusProperties properties) {
+        log.info("eventbus Initializing... {}", properties.getType());
+        // 自动获取服务名
+        String serviceId = properties.getServiceId();
+        if (!StringUtils.hasLength(serviceId)) {
+            serviceId = environment.getProperty("spring.application.name");
+            if (null == serviceId || serviceId.isEmpty()) {
+                serviceId = System.getProperties().getProperty("sun.java.command");
+            }
+        }
+        properties.setServiceId(serviceId);
+        return BusConfig.builder().serviceId(serviceId)
                 .type(properties.getType())
                 .consumerNum(properties.getConsumerNum())
                 .testConnect(properties.getTestConnect())
@@ -75,7 +87,7 @@ public class BusBootConfig {
             @Autowired(required = false) SendBeforeInterceptor sendBeforeInterceptor,
             @Autowired(required = false) SendAfterInterceptor sendAfterInterceptor,
             @Autowired(required = false) DeliverSuccessInterceptor deliverSuccessInterceptor,
-            @Autowired(required = false) DeliverExceptionInterceptor deliverExceptionInterceptor) {
+            @Autowired(required = false) DeliverThrowableInterceptor deliverExceptionInterceptor) {
         return new InterceptorConfig(sendBeforeInterceptor, sendAfterInterceptor, deliverSuccessInterceptor, deliverExceptionInterceptor);
     }
 
@@ -85,7 +97,6 @@ public class BusBootConfig {
     @Bean
     @ConditionalOnMissingBean(SubscriberRegistry.class)
     public SubscriberRegistry subscriberRegistry(ApplicationContext context, BusConfig config) {
-        log.info("eventbus 开始注册订阅者");
         // Component
         Map<String, Object> beanMap = context.getBeansWithAnnotation(Component.class);
         List<Object> objects = new ArrayList<>(beanMap.values());
@@ -123,8 +134,8 @@ public class BusBootConfig {
     @Bean
     @ConditionalOnBean(NodeTestConnect.class)
     public ConnectionWatchdog connectionWatchdog(ApplicationContext applicationContext, NodeTestConnect nodeTestConnect, BusConfig busConfig) {
-        Collection<Lifecycle> containers = Collections.emptyList();
-        Map<String, Lifecycle> containerMap = applicationContext.getBeansOfType(Lifecycle.class);
+        Collection<NetLifecycle> containers = Collections.emptyList();
+        Map<String, NetLifecycle> containerMap = applicationContext.getBeansOfType(NetLifecycle.class);
         if (!containerMap.isEmpty()) {
             containers = containerMap.values();
         }

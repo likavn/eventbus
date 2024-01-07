@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class SubscriberRegistry {
     /**
      * 订阅及时消息处理器
-     * key=订阅器全类名+方法名
+     * key=订阅器全类名+方法名{@link Trigger#getDeliverId()}
      * 注解:
      *
      * @see Subscribe
@@ -44,7 +44,7 @@ public class SubscriberRegistry {
     private final Map<String, List<Subscriber>> subscriberMap = new ConcurrentHashMap<>();
     /**
      * 订阅延时消息处理器
-     * key=serviceId+code,使用方法获取 {@link Func#getTopic(String, String)}
+     * key=code
      * 注解:
      *
      * @see SubscribeDelay
@@ -125,7 +125,7 @@ public class SubscriberRegistry {
             if (null == subscribe && null == subscribeDelay) {
                 continue;
             }
-            Trigger trigger = new Trigger(obj, method, method.getParameterTypes());
+            Trigger trigger = Trigger.of(obj, method);
 
             // 订阅器类型
             MsgType msgType = null != subscribe ? MsgType.TIMELY : MsgType.DELAY;
@@ -135,7 +135,7 @@ public class SubscriberRegistry {
             // 获取投递异常处理
             fail = msgType.isTimely() ? subscribe.fail() : subscribeDelay.fail();
             FailTrigger failTrigger = Func.isEmpty(fail.callMethod()) ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
-            for (String code : subscribe.codes()) {
+            for (String code : msgType.isTimely() ? subscribe.codes() : subscribeDelay.codes()) {
                 Subscriber subscriber = new Subscriber(serviceId, code, msgType, trigger, failTrigger);
                 if (msgType.isTimely()) {
                     putSubscriberMap(subscriber);
@@ -185,7 +185,7 @@ public class SubscriberRegistry {
             }
         }
         Assert.notNull(method, cla.getName() + " Miss method " + methodName);
-        return new Trigger(obj, method, method.getParameterTypes());
+        return Trigger.of(obj, method);
     }
 
     public Subscriber getSubscriber(String deliverId) {

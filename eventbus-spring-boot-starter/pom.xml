@@ -30,12 +30,6 @@
         </dependency>
         <!--rabbitmq -->
         <dependency>
-            <groupId>com.github.likavn</groupId>
-            <artifactId>eventbus-rabbitmq</artifactId>
-            <version>${revision}</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-amqp</artifactId>
             <optional>true</optional>
@@ -43,24 +37,12 @@
 
         <!--redis -->
         <dependency>
-            <groupId>com.github.likavn</groupId>
-            <artifactId>eventbus-redis</artifactId>
-            <version>${revision}</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
             <optional>true</optional>
         </dependency>
 
         <!-- rocketmq -->
-        <dependency>
-            <groupId>com.github.likavn</groupId>
-            <artifactId>eventbus-rocketmq</artifactId>
-            <version>${revision}</version>
-            <optional>true</optional>
-        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>
