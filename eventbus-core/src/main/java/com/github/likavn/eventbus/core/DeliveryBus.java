@@ -76,14 +76,10 @@ public class DeliveryBus {
      * 投递消息
      */
     public void deliver(Subscriber subscriber, Request<?> request) {
-        if (null != request.getDeliverId()) {
-            Subscriber sub = registry.getSubscriber(request.getDeliverId());
-            if (null != sub) {
-                subscriber = sub;
-            }
-        }
         Trigger trigger = subscriber.getTrigger();
-        request.setDeliverId(trigger.getDeliverId());
+        if (null == request.getDeliverId()) {
+            request.setDeliverId(trigger.getDeliverId());
+        }
         if (log.isDebugEnabled()) {
             log.debug("deliver msg：{}", Func.toJson(request));
         }
@@ -109,6 +105,9 @@ public class DeliveryBus {
         }
         // 获取异常的真正原因
         throwable = throwable.getCause().getCause();
+        if (subscriber.getTrigger().getInvokeBean() instanceof DefaultMsgDelayListener) {
+            throwable = throwable.getCause().getCause();
+        }
         // 发生异常时记录错误日志
         log.error("deliver error", throwable);
         // 获取订阅器的FailTrigger

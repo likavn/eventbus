@@ -11,7 +11,7 @@ public class TMsg {
     private String id;
     private String name;
     private String content;
-    private String type;
+    private Integer type;
     private String time;
     private String status;
 }

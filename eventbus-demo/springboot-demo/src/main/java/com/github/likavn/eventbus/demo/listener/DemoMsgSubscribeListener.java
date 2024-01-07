@@ -17,11 +17,11 @@ import java.util.Collections;
 @Component
 public class DemoMsgSubscribeListener extends MsgSubscribeListener<TMsg> {
     protected DemoMsgSubscribeListener() {
-        super(Collections.singletonList(MsgConstant.TEST_MSG_SUBSCRIBE));
+        super(Collections.singletonList(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER));
     }
 
     @Override
     public void onMessage(Message<TMsg> message) {
-        log.info("receive message: {}", message);
+        log.info("接收数据: {}", message);
     }
 }

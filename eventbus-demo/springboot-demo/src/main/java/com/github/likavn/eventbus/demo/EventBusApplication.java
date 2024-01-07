@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/notify")
+@RequestMapping("/eventbus")
 @SpringBootApplication
 @ComponentScan(value = {"com.github.likavn.eventbus.demo.**"})
 public class EventBusApplication extends SpringBootServletInitializer {
@@ -45,16 +45,20 @@ public class EventBusApplication extends SpringBootServletInitializer {
     @GetMapping(value = "/trigger")
     public String queryById() {
         List<TMsg> msgs = new ArrayList<>();
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 100000; i++) {
             TMsg request = new TMsg();
             request.setName("999121#" + i);
             request.setContent("kkss");
+            request.setType(2);
             msgs.add(request);
         }
 
         msgs.parallelStream().forEach(msg -> {
             // 测试订阅消息
-            msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);
+            //msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);
+            // 测试订阅消息，传递消息代码code
+            //msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, 1L);
+            msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, msg);
             // 测试延时消息，直接关联处理类
             //msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg, 15);
             // 测试延时消息，传递消息代码code
@@ -62,6 +66,6 @@ public class EventBusApplication extends SpringBootServletInitializer {
         });
 
         log.info("发送成功...");
-        return "test";
+        return "发送成功...";
     }
 }
