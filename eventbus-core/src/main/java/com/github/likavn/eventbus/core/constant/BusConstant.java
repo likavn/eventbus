@@ -31,9 +31,4 @@ public class BusConstant {
      * subscribe thread name
      */
     public static final String SUBSCRIBE_MSG_THREAD_NAME = "eventbus-subscribeMsg-pool-";
-
-    /**
-     * subscribe unAckRetry thread name
-     */
-    public static final String SUBSCRIBE_MSG_UN_ACK_RETRY_THREAD_NAME = "eventbus-subscribeMsg#unAckRetry-pool-";
 }

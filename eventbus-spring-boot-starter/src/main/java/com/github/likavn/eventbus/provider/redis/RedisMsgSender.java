@@ -8,7 +8,7 @@ import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.Record;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
  * redis消息生产者
@@ -19,23 +19,26 @@ import org.springframework.data.redis.core.RedisTemplate;
 @Slf4j
 public class RedisMsgSender extends AbstractSenderAdapter {
     private final BusConfig config;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    public RedisMsgSender(InterceptorConfig interceptorConfig, BusConfig config, RedisTemplate<String, String> redisTemplate) {
+    public RedisMsgSender(InterceptorConfig interceptorConfig, BusConfig config, StringRedisTemplate stringRedisTemplate) {
         super(interceptorConfig, config);
         this.config = config;
-        this.redisTemplate = redisTemplate;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     @Override
     public void toSend(Request<?> request) {
-        redisTemplate.opsForStream().add(Record.of(Func.toJson(request))
-                .withStreamKey(String.format(RedisConstant.NOTIFY_SUBSCRIBE_PREFIX, request.getTopic())));
+        toSend(String.format(RedisConstant.NOTIFY_SUBSCRIBE_PREFIX, request.getTopic()), request);
+    }
+
+    public void toSend(String streamKey, Request<?> request) {
+        stringRedisTemplate.opsForStream().add(Record.of(Func.toJson(request)).withStreamKey(streamKey));
     }
 
     @Override
     public void toSendDelayMessage(Request<?> request) {
-        redisTemplate.opsForZSet().add(String.format(RedisConstant.NOTIFY_DELAY_PREFIX, config.getServiceId()),
+        stringRedisTemplate.opsForZSet().add(String.format(RedisConstant.NOTIFY_DELAY_PREFIX, config.getServiceId()),
                 Func.toJson(request), (System.currentTimeMillis() + (1000L * request.getDelayTime())));
     }
 }

@@ -34,7 +34,6 @@ public class Subscriber {
      * 失败触发
      */
     private FailTrigger failTrigger;
-
     public Subscriber(String serviceId, String code, MsgType type) {
         this.serviceId = serviceId;
         this.code = code;

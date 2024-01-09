@@ -53,8 +53,4 @@ public class RedisConstant {
      * 1.服务serviceId;
      */
     public static final String NOTIFY_SUBSCRIBE_DELAY_PREFIX = SUFFIX + "subscribe-delay:%s";
-
-    public static final String PUSH_MSG_STREAM_LUA = "pushMsgStream.lua";
-
-    public static final String LOCK_LUA = "lock.lua";
 }

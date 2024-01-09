@@ -2,19 +2,19 @@ package com.github.likavn.eventbus.provider.redis.config;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
-import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.*;
-import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scripting.support.ResourceScriptSource;
 
 /**
@@ -23,54 +23,72 @@ import org.springframework.scripting.support.ResourceScriptSource;
  * @author likavn
  * @date 2024/01/01
  */
+@EnableScheduling
 @Configuration
-@ConditionalOnClass(RedisTemplate.class)
+@ConditionalOnClass(RedisConnectionFactory.class)
 @ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "redis")
 public class BusBootRedisConfig {
 
     @Bean
-    public RedisLuaManage redisLuaManage() {
-        return new RedisLuaManage(RedisConstant.LOCK_LUA, RedisConstant.PUSH_MSG_STREAM_LUA);
+    public StringRedisTemplate busStringRedisTemplate(RedisConnectionFactory connectionFactory) {
+        return new StringRedisTemplate(connectionFactory);
     }
 
     @Bean
-    public DefaultRedisScript<Integer> lockDefaultRedisScript() {
-        DefaultRedisScript<Integer> lockScript = new DefaultRedisScript<>();
-        lockScript.setResultType(Integer.class);
-        lockScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("/scripts/lock.lua")));
-        return lockScript;
+    public RedisMsgSender msgSender(InterceptorConfig interceptorConfig, BusConfig config, StringRedisTemplate busStringRedisTemplate) {
+        return new RedisMsgSender(interceptorConfig, config, busStringRedisTemplate);
+    }
+
+    /**
+     * redis锁脚本
+     */
+    @Bean
+    public DefaultRedisScript<Boolean> lockRedisScript() {
+        DefaultRedisScript<Boolean> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("script/lock.lua")));
+        redisScript.setResultType(Boolean.class);
+        return redisScript;
+    }
+
+    /**
+     * redis推送脚本
+     */
+    @Bean
+    public DefaultRedisScript<Void> pushMsgStreamRedisScript() {
+        DefaultRedisScript<Void> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("script/pushMsgStream.lua")));
+        redisScript.setResultType(Void.class);
+        return redisScript;
     }
 
     @Bean
-    public MsgSender msgSender(InterceptorConfig interceptorConfig, BusConfig config, RedisTemplate<String, String> redisTemplate) {
-        return new RedisMsgSender(interceptorConfig, config, redisTemplate);
-    }
-
-    @Bean
-    public RLock rLock(RedisTemplate<String, String> redisTemplate, DefaultRedisScript<Integer> lockDefaultRedisScript) {
-        return new RLock(redisTemplate, lockDefaultRedisScript);
+    public RLock rLock(StringRedisTemplate busStringRedisTemplate, DefaultRedisScript<Boolean> lockRedisScript) {
+        return new RLock(busStringRedisTemplate, lockRedisScript);
     }
 
     @Bean
     public RedisMsgSubscribeListener redisMsgSubscribeListener(
-            BusProperties busProperties, SubscriberRegistry registry, DeliveryBus deliveryBus, RedisTemplate<String, String> redisTemplate) {
-        return new RedisMsgSubscribeListener(busProperties, registry.getSubscribers(), deliveryBus, redisTemplate);
-    }
-
-    @Bean
-    public RedisPendingMsgResendTask rPendingMsgResendTask(
-            BusProperties busProperties, SubscriberRegistry registry, RLock rLock, MsgSender msgSender, RedisTemplate<String, String> redisTemplate) {
-        return new RedisPendingMsgResendTask(busProperties, registry.getSubscribers(), rLock, msgSender, redisTemplate);
+            StringRedisTemplate busStringRedisTemplate,
+            BusProperties busProperties, SubscriberRegistry registry, DeliveryBus deliveryBus) {
+        return new RedisMsgSubscribeListener(busStringRedisTemplate, busProperties, registry.getSubscribers(), deliveryBus);
     }
 
     @Bean
     public RedisMsgDelayListener redisMsgDelayListener(
-            RedisTemplate<String, String> redisTemplate, BusProperties busProperties, RLock rLock) {
-        return new RedisMsgDelayListener(redisTemplate, busProperties, rLock);
+            StringRedisTemplate stringRedisTemplate,
+            BusProperties busProperties, DefaultRedisScript<Void> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
+        return new RedisMsgDelayListener(stringRedisTemplate, busProperties, pushMsgStreamRedisScript, rLock, deliveryBus);
     }
 
     @Bean
-    public RedisNodeTestConnect redisNodeTestConnect(RedisTemplate<String, String> redisTemplate) {
-        return new RedisNodeTestConnect(redisTemplate);
+    public RedisPendingMsgResendTask redisPendingMsgResendTask(
+            StringRedisTemplate stringRedisTemplate,
+            BusProperties busProperties, SubscriberRegistry registry, RLock rLock, RedisMsgSender msgSender) {
+        return new RedisPendingMsgResendTask(stringRedisTemplate, busProperties, registry.getSubscribers(), rLock, msgSender);
+    }
+
+    @Bean
+    public RedisNodeTestConnect redisNodeTestConnect(StringRedisTemplate stringRedisTemplate) {
+        return new RedisNodeTestConnect(stringRedisTemplate);
     }
 }

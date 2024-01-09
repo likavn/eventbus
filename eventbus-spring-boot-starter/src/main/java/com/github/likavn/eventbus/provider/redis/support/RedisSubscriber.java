@@ -1,7 +1,6 @@
 package com.github.likavn.eventbus.provider.redis.support;
 
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
-import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 
 /**
  * redis消息订阅监听器消费者实体数据
@@ -21,10 +20,10 @@ public final class RedisSubscriber extends Subscriber {
      */
     private final String group;
 
-    public RedisSubscriber(Subscriber subscriber) {
+    public RedisSubscriber(Subscriber subscriber, String subscribePrefix) {
         super(subscriber.getServiceId(), subscriber.getCode(), subscriber.getType(), subscriber.getTrigger(), subscriber.getFailTrigger());
-        this.streamKey = String.format(RedisConstant.NOTIFY_SUBSCRIBE_PREFIX, subscriber.getTopic());
-        this.group = subscriber.getTrigger().getDeliverId();
+        this.streamKey = String.format(subscribePrefix, subscriber.getTopic());
+        this.group = null != subscriber.getTrigger() ? subscriber.getTrigger().getDeliverId() : subscriber.getServiceId();
     }
 
     public String getStreamKey() {

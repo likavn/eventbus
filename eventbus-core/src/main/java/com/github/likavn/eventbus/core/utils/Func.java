@@ -3,9 +3,11 @@ package com.github.likavn.eventbus.core.utils;
 import com.alibaba.fastjson.JSONValidator;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONReader;
+import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import lombok.experimental.UtilityClass;
 
+import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -109,7 +111,24 @@ public class Func {
         poolExecutor.purge();
     }
 
+    /**
+     * 获取主机名
+     *
+     * @return 主机名
+     */
+    public String getHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (Exception e) {
+            throw new EventBusException(e);
+        }
+    }
+
     public String getTopic(String serviceId, String code) {
+        Assert.notEmpty(serviceId, "serviceId can not be empty");
+        if (Func.isEmpty(code)) {
+            return serviceId;
+        }
         return serviceId + "." + code;
     }
 }

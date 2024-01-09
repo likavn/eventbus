@@ -54,6 +54,19 @@ public class Assert {
     }
 
     /**
+     * 检查字符串不为空
+     *
+     * @param str     字符串
+     * @param message 消息
+     * @throws IllegalArgumentException 如果数组为空或数组中存在空元素
+     */
+    public void notEmpty(String str, String message) {
+        if (Func.isEmpty(str)) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    /**
      * 检查数组不为空
      *
      * @param array   数组

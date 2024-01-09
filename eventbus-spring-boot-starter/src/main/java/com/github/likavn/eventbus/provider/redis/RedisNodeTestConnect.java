@@ -3,7 +3,7 @@ package com.github.likavn.eventbus.provider.redis;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import io.lettuce.core.RedisCommandTimeoutException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
  * redis连接状态测试
@@ -14,16 +14,16 @@ import org.springframework.data.redis.core.RedisTemplate;
 @Slf4j
 public class RedisNodeTestConnect implements NodeTestConnect {
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    public RedisNodeTestConnect(RedisTemplate<String, String> redisTemplate) {
-        this.redisTemplate = redisTemplate;
+    public RedisNodeTestConnect(StringRedisTemplate stringRedisTemplate) {
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     @Override
     public boolean testConnect() {
         try {
-            redisTemplate.hasKey("notify.test");
+            stringRedisTemplate.hasKey("notify.test");
         } catch (RedisCommandTimeoutException ex) {
             log.error("redis timeout", ex);
             return false;

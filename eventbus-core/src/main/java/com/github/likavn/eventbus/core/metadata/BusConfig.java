@@ -48,12 +48,12 @@ public class BusConfig {
         /**
          * 轮询检测时间间隔，单位：秒
          */
-        private Long pollSecond = 15L;
+        private Long pollSecond = 35L;
 
         /**
          * 丢失连接最长时间大于等于次值设置监听容器为连接断开，单位：秒
          */
-        private Long loseConnectMaxMilliSecond = 60L;
+        private Long loseConnectMaxMilliSecond = 120L;
     }
 
     /**

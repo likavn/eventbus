@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.provider.redis;
 
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 import java.util.Collections;
@@ -16,12 +16,12 @@ public class RLock {
      * 分布式锁过期时间,单位：秒
      */
     private static final Long LOCK_REDIS_TIMEOUT = 30L;
-    private final RedisTemplate<String, String> redisTemplate;
-    private final DefaultRedisScript<Integer> lockDefaultRedisScript;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final DefaultRedisScript<Boolean> lockRedisScript;
 
-    public RLock(RedisTemplate<String, String> redisTemplate, DefaultRedisScript<Integer> lockDefaultRedisScript) {
-        this.redisTemplate = redisTemplate;
-        this.lockDefaultRedisScript = lockDefaultRedisScript;
+    public RLock(StringRedisTemplate stringRedisTemplate, DefaultRedisScript<Boolean> lockRedisScript) {
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.lockRedisScript = lockRedisScript;
     }
 
     /**
@@ -42,11 +42,8 @@ public class RLock {
      * @return t
      */
     public boolean getLock(String key, long timeout) {
-        Integer value = redisTemplate.execute(new DefaultRedisScript<>("return redis.call('EXISTS', lockKey)"), Collections.singletonList(key), null);
-        if (null == value || value != 1) {
-            return false;
-        }
-        return true;
+        Boolean flag = stringRedisTemplate.execute(lockRedisScript, Collections.singletonList(key), "" + timeout);
+        return Boolean.TRUE.equals(flag);
     }
 
     /**
@@ -55,6 +52,6 @@ public class RLock {
      * @param key k
      */
     public void releaseLock(String key) {
-        redisTemplate.delete(key);
+        stringRedisTemplate.delete(key);
     }
 }

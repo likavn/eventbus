@@ -27,5 +27,5 @@ spring:
     virtual-host: /
 
 eventbus:
-  type: rabbitmq
+  type: redis
   consumer-num: 1

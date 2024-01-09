@@ -45,7 +45,7 @@ public class EventBusApplication extends SpringBootServletInitializer {
     @GetMapping(value = "/trigger")
     public String queryById() {
         List<TMsg> msgs = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10000; i++) {
             TMsg request = new TMsg();
             request.setName("999121#" + i);
             request.setContent("kkss");
@@ -58,11 +58,11 @@ public class EventBusApplication extends SpringBootServletInitializer {
             //msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);
             // 测试订阅消息，传递消息代码code
             //msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, 1L);
-            msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, msg);
+            // msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, msg);
             // 测试延时消息，直接关联处理类
             //msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg, 15);
             // 测试延时消息，传递消息代码code
-            msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, 15);
+            msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, 10);
         });
 
         log.info("发送成功...");

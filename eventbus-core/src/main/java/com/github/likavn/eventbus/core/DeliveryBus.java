@@ -61,10 +61,27 @@ public class DeliveryBus {
      *
      * @param body body
      */
-    @SuppressWarnings("all")
+    public void deliverDelay(String body) {
+        deliverDelay(Func.convertByJson(body));
+    }
+
+    /**
+     * 接收延时消息
+     *
+     * @param body body
+     */
     public void deliverDelay(byte[] body) {
-        Request request = Func.convertByBytes(body);
-        Subscriber subscriber = registry.getMsgDelayListener(request.getDelayListener());
+        deliverDelay(Func.convertByBytes(body));
+    }
+
+    /**
+     * 接收延时消息
+     *
+     * @param body body
+     */
+    @SuppressWarnings("all")
+    public void deliverDelay(Request request) {
+        Subscriber subscriber = registry.getSubscriberDelay(request);
         if (null == subscriber) {
             log.error("delay msg handler not found class={}", request.getDelayListener().getName());
             return;

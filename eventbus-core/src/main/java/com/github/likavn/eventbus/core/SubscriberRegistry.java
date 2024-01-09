@@ -9,6 +9,7 @@ import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
+import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
@@ -64,6 +65,11 @@ public class SubscriberRegistry {
 
     private final BusConfig config;
 
+    /**
+     * 构造器
+     *
+     * @param config 配置
+     */
     public SubscriberRegistry(BusConfig config) {
         this.config = config;
     }
@@ -162,6 +168,11 @@ public class SubscriberRegistry {
         subscriberMap.put(deliverId, subscribers);
     }
 
+    /**
+     * 新增订阅器
+     *
+     * @param subscriber subscriber
+     */
     private void putSubscriberDelayMap(Subscriber subscriber) {
         Assert.isTrue(!subscriberDelayMap.containsKey(subscriber.getCode()),
                 "subscribeDelay code=" + subscriber.getCode() + "存在相同的延时消息处理器");
@@ -188,6 +199,12 @@ public class SubscriberRegistry {
         return Trigger.of(obj, method);
     }
 
+    /**
+     * 获取订阅器
+     *
+     * @param deliverId deliverId
+     * @return subscriber
+     */
     public Subscriber getSubscriber(String deliverId) {
         List<Subscriber> subscribers = subscriberMap.get(deliverId);
         if (Func.isEmpty(subscribers)) {
@@ -196,14 +213,50 @@ public class SubscriberRegistry {
         return subscribers.get(0);
     }
 
+    /**
+     * 获取延时消息处理器
+     *
+     * @param code code
+     * @return subscriber
+     */
     public Subscriber getSubscriberDelay(String code) {
         return subscriberDelayMap.get(code);
     }
 
+    /**
+     * 获取延时消息处理器
+     *
+     * @param cla class
+     * @return subscriber
+     */
+    @SuppressWarnings("all")
     public Subscriber getMsgDelayListener(Class<? extends MsgDelayListener> cla) {
         return msgDelayListenerMap.get(cla);
     }
 
+    /**
+     * 获取延时消息处理器
+     *
+     * @param request request
+     * @return subscriber
+     */
+    @SuppressWarnings("all")
+    public Subscriber getSubscriberDelay(Request request) {
+        Subscriber subscriber = null;
+        if (null != request.getDelayListener()) {
+            subscriber = getMsgDelayListener(request.getDelayListener());
+        }
+        if (null == subscriber) {
+            subscriber = getSubscriberDelay(request.getCode());
+        }
+        return subscriber;
+    }
+
+    /**
+     * 获取所有订阅器
+     *
+     * @return subscribers
+     */
     public List<Subscriber> getSubscribers() {
         return subscriberMap.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
