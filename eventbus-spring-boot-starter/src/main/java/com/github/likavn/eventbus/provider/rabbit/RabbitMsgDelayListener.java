@@ -50,7 +50,7 @@ public class RabbitMsgDelayListener implements NetLifecycle {
     public void register() {
         this.connection = connectionFactory.createConnection();
         byte count = 1;
-        while (count++ <= config.getConsumerNum()) {
+        while (count++ <= config.getConsumerCount()) {
             bindListener(connection);
         }
     }

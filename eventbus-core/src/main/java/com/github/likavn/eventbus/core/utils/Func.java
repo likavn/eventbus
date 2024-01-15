@@ -6,9 +6,12 @@ import com.alibaba.fastjson2.JSONReader;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -19,8 +22,11 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @author likavn
  * @date 2024/01/01
  */
+@Slf4j
 @UtilityClass
 public class Func {
+    private static volatile String HOST_NAME = null;
+
     /**
      * toJson
      *
@@ -117,11 +123,33 @@ public class Func {
      * @return 主机名
      */
     public String getHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-            throw new EventBusException(e);
+        if (null == HOST_NAME) {
+            synchronized (Func.class) {
+                if (null == HOST_NAME) {
+                    try {
+                        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+                        while (interfaces.hasMoreElements()) {
+                            NetworkInterface iface = interfaces.nextElement();
+                            if (iface.isLoopback() || !iface.isUp()) {
+                                continue;
+                            }
+                            Enumeration<InetAddress> addresses = iface.getInetAddresses();
+                            while (addresses.hasMoreElements()) {
+                                InetAddress addr = addresses.nextElement();
+                                if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()) {
+                                    continue;
+                                }
+                                HOST_NAME = addr.getHostAddress();
+                                break;
+                            }
+                        }
+                    } catch (Exception e) {
+                        throw new EventBusException(e);
+                    }
+                }
+            }
         }
+        return HOST_NAME;
     }
 
     public String getTopic(String serviceId, String code) {

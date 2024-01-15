@@ -52,7 +52,7 @@ public class RabbitMsgSubscribeListener implements NetLifecycle {
         this.connection = connectionFactory.createConnection();
         for (Subscriber subscriber : subscribers) {
             int num = 0;
-            while (num++ < config.getConsumerNum()) {
+            while (num++ < config.getConsumerCount()) {
                 createSubscriber(subscriber, connection);
             }
         }

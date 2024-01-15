@@ -1,8 +1,8 @@
 package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
-import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
+import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 import com.github.likavn.eventbus.provider.redis.support.AbstractDefaultStreamContainer;
@@ -16,7 +16,6 @@ import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 
-import java.net.InetAddress;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,18 +43,12 @@ public class RedisMsgSubscribeListener extends AbstractDefaultStreamContainer {
 
     @Override
     protected void addReceives(StreamMessageListenerContainer<String, ObjectRecord<String, String>> listenerContainer) {
-        String hostName;
-        try {
-            hostName = InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-            throw new EventBusException(e);
-        }
+        String hostName = Func.getHostName();
         subscribers.forEach(subscriber -> {
             // 初始化组
             XStream.addConsumerGroup(stringRedisTemplate, subscriber);
-
             int num = 1;
-            while (num++ <= busProperties.getConsumerNum()) {
+            while (num++ <= busProperties.getConsumerCount()) {
                 // 使用监听容器对象开始监听消费（使用的是手动确认方式）
                 listenerContainer.receive(Consumer.from(subscriber.getGroup(), hostName + "-" + num),
                         StreamOffset.create(subscriber.getStreamKey(), ReadOffset.lastConsumed()),

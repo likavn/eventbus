@@ -2,10 +2,13 @@ package com.github.likavn.eventbus.provider.redis.config;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
+import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.*;
+import com.github.likavn.eventbus.schedule.ScheduledTaskRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +18,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scripting.support.ResourceScriptSource;
 
 /**
@@ -73,18 +77,33 @@ public class BusBootRedisConfig {
         return new RedisMsgSubscribeListener(busStringRedisTemplate, busProperties, registry.getSubscribers(), deliveryBus);
     }
 
+
+    @Bean
+    public ThreadPoolTaskScheduler busThreadPoolTaskScheduler() {
+        ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
+        taskScheduler.setPoolSize(3);
+        taskScheduler.setRemoveOnCancelPolicy(true);
+        taskScheduler.setThreadFactory(new NamedThreadFactory(BusConstant.TASK_NAME));
+        return taskScheduler;
+    }
+
+    @Bean
+    public ScheduledTaskRegistry scheduledTaskRegistry(ThreadPoolTaskScheduler busThreadPoolTaskScheduler) {
+        return new ScheduledTaskRegistry(busThreadPoolTaskScheduler);
+    }
+
     @Bean
     public RedisMsgDelayListener redisMsgDelayListener(
-            StringRedisTemplate stringRedisTemplate,
+            StringRedisTemplate stringRedisTemplate, ScheduledTaskRegistry taskRegistry,
             BusProperties busProperties, DefaultRedisScript<Void> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
-        return new RedisMsgDelayListener(stringRedisTemplate, busProperties, pushMsgStreamRedisScript, rLock, deliveryBus);
+        return new RedisMsgDelayListener(stringRedisTemplate, taskRegistry, busProperties, pushMsgStreamRedisScript, rLock, deliveryBus);
     }
 
     @Bean
     public RedisPendingMsgResendTask redisPendingMsgResendTask(
-            StringRedisTemplate stringRedisTemplate,
+            StringRedisTemplate stringRedisTemplate, ScheduledTaskRegistry scheduledTaskRegistry,
             BusProperties busProperties, SubscriberRegistry registry, RLock rLock, RedisMsgSender msgSender) {
-        return new RedisPendingMsgResendTask(stringRedisTemplate, busProperties, registry.getSubscribers(), rLock, msgSender);
+        return new RedisPendingMsgResendTask(stringRedisTemplate, scheduledTaskRegistry, busProperties, registry.getSubscribers(), rLock, msgSender);
     }
 
     @Bean

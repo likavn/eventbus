@@ -72,7 +72,7 @@ public class BusBootConfig {
         properties.setServiceId(serviceId);
         return BusConfig.builder().serviceId(serviceId)
                 .type(properties.getType())
-                .consumerNum(properties.getConsumerNum())
+                .consumerCount(properties.getConsumerCount())
                 .testConnect(properties.getTestConnect())
                 .fail(properties.getFail())
                 .build();

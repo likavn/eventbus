@@ -28,7 +28,7 @@ public class BusProperties {
     /**
      * 消费者数量
      */
-    private Integer consumerNum = 2;
+    private Integer consumerCount = 2;
 
     /**
      * 节点联通性配置

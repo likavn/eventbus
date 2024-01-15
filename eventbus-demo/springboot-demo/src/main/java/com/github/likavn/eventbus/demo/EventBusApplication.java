@@ -55,14 +55,14 @@ public class EventBusApplication extends SpringBootServletInitializer {
 
         msgs.parallelStream().forEach(msg -> {
             // 测试订阅消息
-            //msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);
+            msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);
             // 测试订阅消息，传递消息代码code
             //msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, 1L);
             // msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, msg);
             // 测试延时消息，直接关联处理类
             //msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg, 15);
             // 测试延时消息，传递消息代码code
-            msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, 10);
+            //  msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, 10);
         });
 
         log.info("发送成功...");

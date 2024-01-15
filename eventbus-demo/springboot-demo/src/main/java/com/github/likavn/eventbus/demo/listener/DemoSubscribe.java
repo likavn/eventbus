@@ -18,8 +18,8 @@ public class DemoSubscribe {
 
     @Subscribe(codes = MsgConstant.TEST_MSG_SUBSCRIBE, fail = @Fail(callMethod = "exceptionHandler"))
     public void action(Message<TMsg> msg) {
-        log.info("onMessage: {}", msg);
-        throw new RuntimeException("DemoSubscribeDelay test");
+        log.info("onMessage: {}", 1);
+        //  throw new RuntimeException("DemoSubscribeDelay test");
     }
 
     public void exceptionHandler(Message<TMsg> msg, Throwable throwable) {

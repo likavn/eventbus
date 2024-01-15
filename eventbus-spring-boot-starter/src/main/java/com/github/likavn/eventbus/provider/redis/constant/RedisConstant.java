@@ -37,7 +37,7 @@ public class RedisConstant {
      * <p>
      * 1. 服务serviceId;
      */
-    public static final String NOTIFY_SUBSCRIBE_TIMEOUT_RESENDLOCK_PREFIX = SUFFIX + "subscribe.timeout-resend-lock:%s";
+    public static final String PENDING_MSG_LOCK_PREFIX = "%s-%s";
 
     /**
      * 消息队列前缀

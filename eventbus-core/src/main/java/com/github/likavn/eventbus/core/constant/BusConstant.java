@@ -23,6 +23,11 @@ public class BusConstant {
     public static final String ON_MESSAGE = "onMessage";
 
     /**
+     * thread name
+     */
+    public static final String TASK_NAME = "eventbus-task-pool-";
+
+    /**
      * delay thread name
      */
     public static final String DELAY_MSG_THREAD_NAME = "eventbus-delayMsg-pool-";

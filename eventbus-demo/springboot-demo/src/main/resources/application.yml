@@ -28,4 +28,6 @@ spring:
 
 eventbus:
   type: redis
-  consumer-num: 1
+  consumer-count: 5
+  redis:
+    executor-pool-size: 50

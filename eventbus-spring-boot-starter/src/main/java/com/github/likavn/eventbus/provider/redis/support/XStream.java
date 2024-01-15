@@ -1,5 +1,6 @@
 package com.github.likavn.eventbus.provider.redis.support;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.StreamInfo;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -9,6 +10,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * @author likavn
  * @date 2024/1/9
  **/
+@Slf4j
 public class XStream {
     /**
      * 创建消费者组
