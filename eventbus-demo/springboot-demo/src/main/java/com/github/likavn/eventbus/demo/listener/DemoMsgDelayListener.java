@@ -19,7 +19,7 @@ public class DemoMsgDelayListener implements MsgDelayListener<TMsg> {
     public void onMessage(Message<TMsg> message) {
         TMsg body = message.getBody();
         log.info("接收消息: {}", message);
-        throw new RuntimeException("DemoMsgDelayListener test");
+      //  throw new RuntimeException("DemoMsgDelayListener test");
     }
 
     public void exceptionHandler(Message<TMsg> message, Throwable throwable) {

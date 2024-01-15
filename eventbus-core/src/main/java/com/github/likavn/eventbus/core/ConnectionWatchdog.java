@@ -46,7 +46,6 @@ public class ConnectionWatchdog {
             log.error("ConnectionWatchdog init", e);
         }
         registerScheduler();
-        log.info("ConnectionWatchdog init");
     }
 
     /**

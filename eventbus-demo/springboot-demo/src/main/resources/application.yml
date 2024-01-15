@@ -31,3 +31,4 @@ eventbus:
   consumer-count: 5
   redis:
     executor-pool-size: 50
+    deliver-timeout: 30

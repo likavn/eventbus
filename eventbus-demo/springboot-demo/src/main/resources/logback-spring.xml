@@ -61,7 +61,7 @@
     <!-- 每天生成一个html格式的日志结束 -->
 
     <!--myibatis log configure -->
-    <logger name="com.github" level="INFO"/>
+    <logger name="com.github" level="DEBUG"/>
     <logger name="com.apache.ibatis" level="INFO"/>
     <logger name="java.sql.Connection" level="INFO"/>
     <logger name="java.sql.Statement" level="INFO"/>

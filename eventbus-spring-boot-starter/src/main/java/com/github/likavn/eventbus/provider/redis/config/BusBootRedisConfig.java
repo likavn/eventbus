@@ -81,7 +81,7 @@ public class BusBootRedisConfig {
     @Bean
     public ThreadPoolTaskScheduler busThreadPoolTaskScheduler() {
         ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-        taskScheduler.setPoolSize(3);
+        taskScheduler.setPoolSize(2);
         taskScheduler.setRemoveOnCancelPolicy(true);
         taskScheduler.setThreadFactory(new NamedThreadFactory(BusConstant.TASK_NAME));
         return taskScheduler;

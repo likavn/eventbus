@@ -142,12 +142,13 @@ public class RedisPendingMsgResendTask implements NetLifecycle {
                 return;
             }
             Request<?> request = Func.convertByJson(result.get(0).getValue());
+            request.setDeliverNum(request.getDeliverNum() + 1);
             // 重新投递消息
             if (subscriber.getType().isTimely()) {
                 request.setDeliverId(subscriber.getTrigger().getDeliverId());
-                msgSender.send(request);
+                msgSender.toSend(request);
             } else {
-                msgSender.send(delayStreamKey, request);
+                msgSender.toSend(delayStreamKey, request);
             }
             // 如果手动消费成功后，往消费组提交消息的ACK
             stringRedisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), message.getId());
