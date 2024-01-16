@@ -1,23 +1,22 @@
 package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
-import com.github.likavn.eventbus.core.utils.Func;
+import com.github.likavn.eventbus.core.metadata.MsgType;
+import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
-import com.github.likavn.eventbus.provider.redis.support.AbstractDefaultStreamContainer;
-import com.github.likavn.eventbus.provider.redis.support.XStream;
+import com.github.likavn.eventbus.provider.redis.support.AbstractStreamListenerContainer;
+import com.github.likavn.eventbus.provider.redis.support.RedisSubscriber;
 import com.github.likavn.eventbus.schedule.ScheduledTaskRegistry;
 import com.github.likavn.eventbus.schedule.Task;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.connection.stream.Consumer;
-import org.springframework.data.redis.connection.stream.ObjectRecord;
-import org.springframework.data.redis.connection.stream.ReadOffset;
-import org.springframework.data.redis.connection.stream.StreamOffset;
+import org.springframework.data.redis.connection.stream.Record;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 延时消息处理类
@@ -26,7 +25,7 @@ import java.util.Arrays;
  * @since 2023/01/01
  */
 @Slf4j
-public class RedisMsgDelayListener extends AbstractDefaultStreamContainer {
+public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     /**
      * 轮询时间间隔，单位：毫秒
      */
@@ -38,12 +37,12 @@ public class RedisMsgDelayListener extends AbstractDefaultStreamContainer {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final RLock rLock;
-    private final DefaultRedisScript<Void> pushMsgStreamRedisScript;
     private final DeliveryBus deliveryBus;
+    private final DefaultRedisScript<Void> pushMsgStreamRedisScript;
     /**
      * 延时消息key,zset
      */
-    private final String delayKey;
+    private final String delayZetKey;
     /**
      * 轮询锁
      */
@@ -60,13 +59,13 @@ public class RedisMsgDelayListener extends AbstractDefaultStreamContainer {
                                  BusProperties busProperties, DefaultRedisScript<Void> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
         super(stringRedisTemplate, busProperties);
         this.stringRedisTemplate = stringRedisTemplate;
+        this.scheduledTaskRegistry = scheduledTaskRegistry;
         this.pushMsgStreamRedisScript = pushMsgStreamRedisScript;
         this.rLock = rLock;
         this.deliveryBus = deliveryBus;
-        this.delayKey = String.format(RedisConstant.NOTIFY_DELAY_PREFIX, busProperties.getServiceId());
+        this.delayZetKey = String.format(RedisConstant.NOTIFY_DELAY_PREFIX, busProperties.getServiceId());
         this.pollLockKey = String.format(RedisConstant.NOTIFY_DELAY_LOCK_PREFIX, busProperties.getServiceId());
         this.delayStreamKey = String.format(RedisConstant.NOTIFY_SUBSCRIBE_DELAY_PREFIX, busProperties.getServiceId());
-        this.scheduledTaskRegistry = scheduledTaskRegistry;
     }
 
     @Override
@@ -93,7 +92,7 @@ public class RedisMsgDelayListener extends AbstractDefaultStreamContainer {
                 return;
             }
             stringRedisTemplate.execute(pushMsgStreamRedisScript,
-                    Arrays.asList(delayKey, delayStreamKey),
+                    Arrays.asList(delayZetKey, delayStreamKey),
                     // 到当前时间之前的消息 + 推送数量
                     String.valueOf(System.currentTimeMillis()), String.valueOf(MAX_PUSH_COUNT));
         } finally {
@@ -104,21 +103,16 @@ public class RedisMsgDelayListener extends AbstractDefaultStreamContainer {
     }
 
     @Override
-    protected void addReceives(StreamMessageListenerContainer<String, ObjectRecord<String, String>> listenerContainer) {
-        String groupName = busProperties.getServiceId();
-        String hostName = Func.getHostName();
-        // 初始化组
-        XStream.addConsumerGroup(stringRedisTemplate, delayStreamKey, groupName);
-        int num = 1;
-        while (num++ <= busProperties.getConsumerCount()) {
-            // 使用监听容器对象开始监听消费（使用的是手动确认方式）
-            listenerContainer.receive(Consumer.from(groupName, hostName + "-" + num),
-                    StreamOffset.create(delayStreamKey, ReadOffset.lastConsumed()),
-                    msg -> {
-                        deliveryBus.deliverDelay(msg.getValue());
-                        stringRedisTemplate.opsForStream().acknowledge(delayStreamKey, groupName, msg.getId());
-                    });
-        }
+    protected List<RedisSubscriber> getSubscribers() {
+        RedisSubscriber subscriber = new RedisSubscriber(
+                new Subscriber(busProperties.getServiceId(), null, MsgType.DELAY), RedisConstant.NOTIFY_SUBSCRIBE_DELAY_PREFIX);
+        return Collections.singletonList(subscriber);
+    }
+
+    @Override
+    protected void deliver(RedisSubscriber subscriber, Record<String, String> msg) {
+        deliveryBus.deliverDelay(msg.getValue());
+        stringRedisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), msg.getId());
     }
 
     @Override

@@ -21,7 +21,7 @@ public abstract class AbstractSenderAdapter implements MsgSender {
     private final InterceptorConfig interceptorConfig;
     private final BusConfig config;
 
-    public AbstractSenderAdapter(InterceptorConfig interceptorConfig, BusConfig config) {
+    protected AbstractSenderAdapter(InterceptorConfig interceptorConfig, BusConfig config) {
         this.interceptorConfig = interceptorConfig;
         this.config = config;
     }
