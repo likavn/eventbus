@@ -18,12 +18,12 @@ public class DemoMsgDelayListener implements MsgDelayListener<TMsg> {
     @Fail(callMethod = "exceptionHandler", retry = 1, nextTime = 15)
     public void onMessage(Message<TMsg> message) {
         TMsg body = message.getBody();
-        log.info("接收消息: {}", message);
+        log.info("接收消息: {}", message.getRequestId());
       //  throw new RuntimeException("DemoMsgDelayListener test");
     }
 
     public void exceptionHandler(Message<TMsg> message, Throwable throwable) {
         TMsg body = message.getBody();
-        log.error("消息投递失败！: {}，{}", throwable.getMessage(), message);
+        log.error("消息投递失败！: {}，{}", message.getRequestId(), throwable.getMessage());
     }
 }

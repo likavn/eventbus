@@ -2,6 +2,7 @@ package com.github.likavn.eventbus.core.api;
 
 import com.github.likavn.eventbus.core.metadata.data.Message;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -20,6 +21,15 @@ public abstract class MsgSubscribeListener<T> {
      * 消息类型，用于区分不同的消息类型
      */
     private final List<String> codes;
+
+    /**
+     * 构造器
+     *
+     * @param codes 消息编码
+     */
+    protected MsgSubscribeListener(String... codes) {
+        this(Arrays.asList(codes));
+    }
 
     /**
      * 构造器

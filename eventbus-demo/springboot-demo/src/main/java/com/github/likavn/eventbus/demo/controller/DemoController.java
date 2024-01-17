@@ -30,14 +30,14 @@ public class DemoController {
     @GetMapping(value = "/trigger")
     public String trigger() {
         List<TMsg> msgs = new ArrayList<>();
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 10; i++) {
             TMsg request = new TMsg();
             request.setName("999121#" + i);
             request.setContent("kkss");
             request.setType(2);
             msgs.add(request);
         }
-
+        log.info("开始发送，数据{}条...", msgs.size());
         msgs.parallelStream().forEach(msg -> {
             // 测试订阅消息
             // msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);

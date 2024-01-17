@@ -16,7 +16,14 @@ import org.springframework.stereotype.Component;
 public class DemoSubscribeDelay {
 
     @SubscribeDelay(codes = MsgConstant.TEST_MSG_DELAY_SUBSCRIBE)
+    // @SubscribeDelay(codes = MsgConstant.TEST_MSG_DELAY_SUBSCRIBE,fail = @Fail(callMethod = "exceptionHandler"))
     public void action(Message<TMsg> message) {
-        log.info("onMessage: {}", message);
+        TMsg body = message.getBody();
+        log.info("接收数据: {}", message.getRequestId());
+        //  throw new RuntimeException("DemoSubscribeDelay test");
+    }
+
+    public void exceptionHandler(Message<TMsg> message, Throwable throwable) {
+        log.error("消息投递失败！: {}，{}", message.getRequestId(), throwable.getMessage());
     }
 }
