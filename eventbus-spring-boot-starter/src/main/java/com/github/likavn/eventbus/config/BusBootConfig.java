@@ -1,5 +1,6 @@
 package com.github.likavn.eventbus.config;
 
+import com.github.likavn.eventbus.BootConnectionWatchdog;
 import com.github.likavn.eventbus.core.ConnectionWatchdog;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
@@ -8,7 +9,7 @@ import com.github.likavn.eventbus.core.api.interceptor.DeliverSuccessInterceptor
 import com.github.likavn.eventbus.core.api.interceptor.DeliverThrowableInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
-import com.github.likavn.eventbus.core.base.NetLifecycle;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
@@ -134,11 +135,11 @@ public class BusBootConfig {
     @Bean
     @ConditionalOnBean(NodeTestConnect.class)
     public ConnectionWatchdog connectionWatchdog(ApplicationContext applicationContext, NodeTestConnect nodeTestConnect, BusConfig busConfig) {
-        Collection<NetLifecycle> containers = Collections.emptyList();
-        Map<String, NetLifecycle> containerMap = applicationContext.getBeansOfType(NetLifecycle.class);
+        Collection<Lifecycle> components = Collections.emptyList();
+        Map<String, Lifecycle> containerMap = applicationContext.getBeansOfType(Lifecycle.class);
         if (!containerMap.isEmpty()) {
-            containers = containerMap.values();
+            components = containerMap.values();
         }
-        return new ConnectionWatchdog(nodeTestConnect, busConfig.getTestConnect(), containers);
+        return new BootConnectionWatchdog(nodeTestConnect, busConfig.getTestConnect(), components);
     }
 }

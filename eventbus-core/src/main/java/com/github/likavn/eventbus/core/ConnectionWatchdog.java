@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.core;
 
-import com.github.likavn.eventbus.core.base.NetLifecycle;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.utils.Func;
@@ -30,13 +30,19 @@ public class ConnectionWatchdog {
 
     private final BusConfig.TestConnect properties;
 
-    private final Collection<NetLifecycle> containers;
+    private final Collection<Lifecycle> containers;
 
     public ConnectionWatchdog(NodeTestConnect testConnect,
-                              BusConfig.TestConnect testConnectProperties, Collection<NetLifecycle> containers) {
+                              BusConfig.TestConnect testConnectProperties, Collection<Lifecycle> containers) {
         this.testConnect = testConnect;
         this.properties = testConnectProperties;
         this.containers = containers;
+    }
+
+    /**
+     * 启动检测连接状态
+     */
+    public void startup() {
         if (Func.isEmpty(containers)) {
             return;
         }
@@ -97,7 +103,7 @@ public class ConnectionWatchdog {
      */
     private void register() throws Exception {
         // 遍历容器列表
-        for (NetLifecycle container : containers) {
+        for (Lifecycle container : containers) {
             // 注册容器
             container.register();
         }
@@ -108,7 +114,7 @@ public class ConnectionWatchdog {
      */
     private void destroy() throws Exception {
         // 遍历容器列表
-        for (NetLifecycle container : containers) {
+        for (Lifecycle container : containers) {
             // 销毁容器
             container.destroy();
         }

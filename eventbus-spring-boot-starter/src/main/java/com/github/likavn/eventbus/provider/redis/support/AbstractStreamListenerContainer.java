@@ -1,7 +1,6 @@
 package com.github.likavn.eventbus.provider.redis.support;
 
-import com.github.likavn.eventbus.core.base.NetLifecycle;
-import com.github.likavn.eventbus.core.constant.BusConstant;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.prop.BusProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -26,15 +25,17 @@ import java.util.concurrent.TimeUnit;
  * @date 2024/1/9
  **/
 @Slf4j
-public abstract class AbstractStreamListenerContainer implements NetLifecycle {
+public abstract class AbstractStreamListenerContainer implements Lifecycle {
     protected final StringRedisTemplate stringRedisTemplate;
     protected final BusProperties busProperties;
+    protected final String threadName;
     protected ThreadPoolExecutor listenerExecutor;
     protected StreamMessageListenerContainer<String, ObjectRecord<String, String>> listenerContainer;
 
-    public AbstractStreamListenerContainer(StringRedisTemplate stringRedisTemplate, BusProperties busProperties) {
+    public AbstractStreamListenerContainer(StringRedisTemplate stringRedisTemplate, BusProperties busProperties, String threadName) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.busProperties = busProperties;
+        this.threadName = threadName;
     }
 
     @Override
@@ -49,7 +50,7 @@ public abstract class AbstractStreamListenerContainer implements NetLifecycle {
                 1,
                 TimeUnit.MINUTES,
                 new LinkedBlockingDeque<>(),
-                new CustomizableThreadFactory(BusConstant.SUBSCRIBE_MSG_THREAD_NAME));
+                new CustomizableThreadFactory(threadName));
         // 创建配置对象
         var options
                 = StreamMessageListenerContainer

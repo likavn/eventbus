@@ -107,7 +107,7 @@ public class BusBootRedisConfig {
     }
 
     @Bean
-    public RedisNodeTestConnect redisNodeTestConnect(StringRedisTemplate stringRedisTemplate) {
-        return new RedisNodeTestConnect(stringRedisTemplate);
+    public RedisNodeTestConnect redisNodeTestConnect(StringRedisTemplate stringRedisTemplate, BusConfig config) {
+        return new RedisNodeTestConnect(stringRedisTemplate, config);
     }
 }

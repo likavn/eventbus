@@ -1,6 +1,7 @@
 package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.prop.BusProperties;
@@ -56,16 +57,17 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
 
     public RedisMsgDelayListener(StringRedisTemplate stringRedisTemplate,
                                  ScheduledTaskRegistry scheduledTaskRegistry,
-                                 BusProperties busProperties, DefaultRedisScript<Void> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
-        super(stringRedisTemplate, busProperties);
+                                 BusProperties busProperties,
+                                 DefaultRedisScript<Void> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
+        super(stringRedisTemplate, busProperties, BusConstant.DELAY_MSG_THREAD_NAME);
         this.stringRedisTemplate = stringRedisTemplate;
         this.scheduledTaskRegistry = scheduledTaskRegistry;
         this.pushMsgStreamRedisScript = pushMsgStreamRedisScript;
         this.rLock = rLock;
         this.deliveryBus = deliveryBus;
-        this.delayZetKey = String.format(RedisConstant.NOTIFY_DELAY_PREFIX, busProperties.getServiceId());
-        this.pollLockKey = String.format(RedisConstant.NOTIFY_DELAY_LOCK_PREFIX, busProperties.getServiceId());
-        this.delayStreamKey = String.format(RedisConstant.NOTIFY_SUBSCRIBE_DELAY_PREFIX, busProperties.getServiceId());
+        this.delayZetKey = String.format(RedisConstant.BUS_DELAY_PREFIX, busProperties.getServiceId());
+        this.pollLockKey = String.format(RedisConstant.BUS_DELAY_LOCK_PREFIX, busProperties.getServiceId());
+        this.delayStreamKey = String.format(RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX, busProperties.getServiceId());
     }
 
     @Override
@@ -105,7 +107,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     @Override
     protected List<RedisSubscriber> getSubscribers() {
         RedisSubscriber subscriber = new RedisSubscriber(
-                new Subscriber(busProperties.getServiceId(), null, MsgType.DELAY), RedisConstant.NOTIFY_SUBSCRIBE_DELAY_PREFIX);
+                new Subscriber(busProperties.getServiceId(), null, MsgType.DELAY), RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX);
         return Collections.singletonList(subscriber);
     }
 

@@ -1,6 +1,7 @@
 package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
@@ -28,10 +29,10 @@ public class RedisMsgSubscribeListener extends AbstractStreamListenerContainer {
                                      BusProperties busProperties,
                                      List<Subscriber> subscribers,
                                      DeliveryBus deliveryBus) {
-        super(stringRedisTemplate, busProperties);
+        super(stringRedisTemplate, busProperties, BusConstant.SUBSCRIBE_MSG_THREAD_NAME);
         this.deliveryBus = deliveryBus;
         this.subscribers = subscribers.stream().map(t
-                -> new RedisSubscriber(t, RedisConstant.NOTIFY_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
+                -> new RedisSubscriber(t, RedisConstant.BUS_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
     }
 
     @Override

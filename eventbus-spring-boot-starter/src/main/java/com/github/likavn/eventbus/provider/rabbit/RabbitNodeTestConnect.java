@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.provider.rabbit;
 
-import com.github.likavn.eventbus.core.base.NetLifecycle;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.provider.rabbit.constant.RabbitConstant;
@@ -19,7 +19,7 @@ import java.io.IOException;
  * @date 2023/5/30
  **/
 @Slf4j
-public class RabbitNodeTestConnect implements NodeTestConnect, NetLifecycle {
+public class RabbitNodeTestConnect implements NodeTestConnect, Lifecycle {
     private final CachingConnectionFactory connectionFactory;
     private final String queueName;
     private Connection connection;

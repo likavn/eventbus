@@ -1,7 +1,7 @@
 package com.github.likavn.eventbus.provider.rabbit;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
-import com.github.likavn.eventbus.core.base.NetLifecycle;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
@@ -23,7 +23,7 @@ import java.util.List;
  * @author likavn
  * @since 2023/01/01
  **/
-public class RabbitMsgSubscribeListener implements NetLifecycle {
+public class RabbitMsgSubscribeListener implements Lifecycle {
     private static final Logger logger = LoggerFactory.getLogger(RabbitMsgSubscribeListener.class);
     /**
      * 是否创建交换机

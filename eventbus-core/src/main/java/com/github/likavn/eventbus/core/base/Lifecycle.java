@@ -6,7 +6,7 @@ package com.github.likavn.eventbus.core.base;
  * @author likavn
  * @date 2024/01/01
  **/
-public interface NetLifecycle {
+public interface Lifecycle {
 
     /**
      * 注册,网络连接成功时调用

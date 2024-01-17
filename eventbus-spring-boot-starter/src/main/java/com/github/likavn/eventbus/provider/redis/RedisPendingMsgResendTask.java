@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.provider.redis;
 
-import com.github.likavn.eventbus.core.base.NetLifecycle;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * @date 2024/1/4
  **/
 @Slf4j
-public class RedisPendingMsgResendTask implements NetLifecycle {
+public class RedisPendingMsgResendTask implements Lifecycle {
     private static final long POLLING_INTERVAL = 35L;
     private static final String CRON = POLLING_INTERVAL + " * * * * ?";
     private final BusProperties busProperties;
@@ -57,14 +57,14 @@ public class RedisPendingMsgResendTask implements NetLifecycle {
         this.busProperties = busProperties;
         this.rLock = rLock;
         this.msgSender = msgSender;
-        this.delayStreamKey = String.format(RedisConstant.NOTIFY_SUBSCRIBE_DELAY_PREFIX, busProperties.getServiceId());
+        this.delayStreamKey = String.format(RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX, busProperties.getServiceId());
         // 及时消息订阅
         this.redisSubscribers = subscribers.stream().map(t
-                -> new RedisSubscriber(t, RedisConstant.NOTIFY_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
+                -> new RedisSubscriber(t, RedisConstant.BUS_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
 
         // 延时的消息订阅
         Subscriber subscriberDelay = new Subscriber(busProperties.getServiceId(), null, MsgType.DELAY);
-        this.redisSubscribers.add(new RedisSubscriber(subscriberDelay, RedisConstant.NOTIFY_SUBSCRIBE_DELAY_PREFIX));
+        this.redisSubscribers.add(new RedisSubscriber(subscriberDelay, RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX));
     }
 
     @Override
@@ -83,7 +83,8 @@ public class RedisPendingMsgResendTask implements NetLifecycle {
     public void pendingMessagesResendExecute(List<RedisSubscriber> subscribers) {
         StreamOperations<String, String, String> sops = stringRedisTemplate.opsForStream();
         subscribers.forEach(subscriber -> {
-            String lockKey = String.format(RedisConstant.PENDING_MSG_LOCK_PREFIX, subscriber.getStreamKey(), subscriber.getGroup());
+            String lockKey = String.format(RedisConstant.LOCK_PENDING_MSG_PREFIX,
+                    busProperties.getServiceId(), subscriber.getStreamKey(), subscriber.getGroup());
             // 获取锁,并锁定一定间隔时长，此处故意不释放锁，防止重复执行
             if (!rLock.getLock(lockKey, POLLING_INTERVAL)) {
                 return;

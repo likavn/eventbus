@@ -29,7 +29,7 @@ public class RedisMsgSender extends AbstractSenderAdapter {
 
     @Override
     public void toSend(Request<?> request) {
-        toSend(String.format(RedisConstant.NOTIFY_SUBSCRIBE_PREFIX, request.getTopic()), request);
+        toSend(String.format(RedisConstant.BUS_SUBSCRIBE_PREFIX, request.getTopic()), request);
     }
 
     public void toSend(String streamKey, Request<?> request) {
@@ -38,7 +38,7 @@ public class RedisMsgSender extends AbstractSenderAdapter {
 
     @Override
     public void toSendDelayMessage(Request<?> request) {
-        stringRedisTemplate.opsForZSet().add(String.format(RedisConstant.NOTIFY_DELAY_PREFIX, config.getServiceId()),
+        stringRedisTemplate.opsForZSet().add(String.format(RedisConstant.BUS_DELAY_PREFIX, config.getServiceId()),
                 Func.toJson(request), (System.currentTimeMillis() + (1000L * request.getDelayTime())));
     }
 }
