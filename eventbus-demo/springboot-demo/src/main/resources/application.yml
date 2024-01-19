@@ -1,10 +1,11 @@
 server:
-  port: 8081
+  port: 8080
 spring:
   application:
     name: park-server
-  profiles:
-    active: dev
+  freemarker:
+    suffix: .html
+    template-loader-path: classpath:/templates/
   #redis 配置
   redis:
     database: 0

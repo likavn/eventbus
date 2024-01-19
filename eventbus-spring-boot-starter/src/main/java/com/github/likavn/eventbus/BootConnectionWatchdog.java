@@ -4,6 +4,8 @@ import com.github.likavn.eventbus.core.ConnectionWatchdog;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
@@ -15,14 +17,23 @@ import java.util.Collection;
  * @author likavn
  * @date 2024/1/17
  **/
-public class BootConnectionWatchdog extends ConnectionWatchdog implements ApplicationRunner {
+@Slf4j
+public class BootConnectionWatchdog
+        extends ConnectionWatchdog implements ApplicationRunner, DisposableBean {
     public BootConnectionWatchdog(NodeTestConnect testConnect,
-                                  BusConfig.TestConnect testConnectProperties, Collection<Lifecycle> components) {
+                                  BusConfig.TestConnect testConnectProperties,
+                                  Collection<Lifecycle> components) {
         super(testConnect, testConnectProperties, components);
     }
 
     @Override
     public void run(ApplicationArguments args) {
         super.startup();
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        log.info("eventbus is shutdown");
+        super.destroy();
     }
 }

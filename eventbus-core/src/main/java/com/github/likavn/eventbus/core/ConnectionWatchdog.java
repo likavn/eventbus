@@ -22,7 +22,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 public class ConnectionWatchdog {
     private static final String THREAD_NAME_PREFIX = "eventbus-connectionWatchdog-pool-";
-    private boolean active = true;
+    private volatile boolean active = false;
+
+    private volatile boolean connect = true;
 
     private final AtomicLong firstLostConnectMillisecond = new AtomicLong(-1);
 
@@ -70,9 +72,9 @@ public class ConnectionWatchdog {
                     log.error("ConnectionWatchdog.testConnect", ex);
                 }
 
-                if (!active && isConnect) {
+                if (!connect && isConnect) {
                     register();
-                    active = true;
+                    connect = true;
                 }
 
                 if (isConnect) {
@@ -87,10 +89,10 @@ public class ConnectionWatchdog {
                 // 丢失超过固定阀值，则销毁容器
                 if (firstLostConnectMillisecond.get() != -1
                         && System.currentTimeMillis() - firstLostConnectMillisecond.get() >= loseConnectMaxMilliSecond) {
-                    if (active) {
+                    if (connect) {
                         destroy();
                     }
-                    active = false;
+                    connect = false;
                 }
             } catch (Exception ex) {
                 log.error("ConnectionWatchdog.registerScheduler", ex);
@@ -101,23 +103,29 @@ public class ConnectionWatchdog {
     /**
      * 注册所有容器
      */
-    private void register() throws Exception {
+    public void register() throws Exception {
         // 遍历容器列表
         for (Lifecycle container : containers) {
             // 注册容器
             container.register();
         }
+        active = true;
     }
 
     /**
      * 销毁所有容器
      */
-    private void destroy() throws Exception {
+    public void destroy() throws Exception {
         // 遍历容器列表
         for (Lifecycle container : containers) {
             // 销毁容器
             container.destroy();
         }
+        active = false;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
 }
