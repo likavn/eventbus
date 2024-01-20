@@ -3,9 +3,6 @@ server:
 spring:
   application:
     name: park-server
-  freemarker:
-    suffix: .html
-    template-loader-path: classpath:/templates/
   #redis 配置
   redis:
     database: 0
@@ -28,4 +25,5 @@ spring:
     virtual-host: /
 
 eventbus:
-  type: redis
+  #type: redis
+  type: rabbitmq

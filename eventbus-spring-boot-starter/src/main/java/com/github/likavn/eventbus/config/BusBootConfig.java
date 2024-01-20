@@ -61,7 +61,7 @@ public class BusBootConfig {
      */
     @Bean
     public BusConfig busConfig(Environment environment, BusProperties properties) {
-        log.info("eventbus Initializing... {}", properties.getType());
+        log.info("Eventbus Initializing... {}", properties.getType());
         // 自动获取服务名
         String serviceId = properties.getServiceId();
         if (!StringUtils.hasLength(serviceId)) {
