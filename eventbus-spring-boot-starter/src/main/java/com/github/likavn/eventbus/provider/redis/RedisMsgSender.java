@@ -18,12 +18,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  */
 @Slf4j
 public class RedisMsgSender extends AbstractSenderAdapter {
-    private final BusConfig config;
     private final StringRedisTemplate stringRedisTemplate;
 
-    public RedisMsgSender(InterceptorConfig interceptorConfig, BusConfig config, StringRedisTemplate stringRedisTemplate) {
-        super(interceptorConfig, config);
-        this.config = config;
+    public RedisMsgSender(StringRedisTemplate stringRedisTemplate, BusConfig config, InterceptorConfig interceptorConfig) {
+        super(config, interceptorConfig);
         this.stringRedisTemplate = stringRedisTemplate;
     }
 
@@ -38,7 +36,7 @@ public class RedisMsgSender extends AbstractSenderAdapter {
 
     @Override
     public void toSendDelayMessage(Request<?> request) {
-        stringRedisTemplate.opsForZSet().add(String.format(RedisConstant.BUS_DELAY_PREFIX, config.getServiceId()),
+        stringRedisTemplate.opsForZSet().add(String.format(RedisConstant.BUS_DELAY_PREFIX, request.getServiceId()),
                 Func.toJson(request), (System.currentTimeMillis() + (1000L * request.getDelayTime())));
     }
 }

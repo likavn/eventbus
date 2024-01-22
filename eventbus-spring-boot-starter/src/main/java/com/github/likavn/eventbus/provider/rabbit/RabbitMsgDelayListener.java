@@ -34,9 +34,9 @@ public class RabbitMsgDelayListener extends AbstractCachingConnectionContainer {
     private final BusConfig config;
     private final DeliveryBus deliveryBus;
 
-    public RabbitMsgDelayListener(BusConfig config,
-                                  DeliveryBus deliveryBus,
-                                  CachingConnectionFactory connectionFactory) {
+    public RabbitMsgDelayListener(CachingConnectionFactory connectionFactory,
+                                  BusConfig config,
+                                  DeliveryBus deliveryBus) {
         super(connectionFactory);
         this.config = config;
         this.deliveryBus = deliveryBus;

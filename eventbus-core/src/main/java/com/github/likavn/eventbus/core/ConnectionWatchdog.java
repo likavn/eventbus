@@ -2,6 +2,7 @@ package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
+import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
@@ -28,6 +29,7 @@ public class ConnectionWatchdog {
     private final NodeTestConnect testConnect;
     private final BusConfig.TestConnect properties;
     private final Collection<Lifecycle> components;
+    private ScheduledExecutorService scheduler;
 
     public ConnectionWatchdog(NodeTestConnect testConnect,
                               BusConfig.TestConnect testConnectProperties, Collection<Lifecycle> components) {
@@ -37,26 +39,44 @@ public class ConnectionWatchdog {
     }
 
     /**
-     * 启动检测连接状态
+     * 启动检测状态
      */
     public void startup() {
         if (Func.isEmpty(components)) {
             return;
         }
         try {
+            this.active = true;
             register();
         } catch (Exception e) {
-            log.error("ConnectionWatchdog init", e);
+            log.error("eventbus startup", e);
+            throw new EventBusException(e);
         }
-        registerScheduler();
+        // 启动定时任务
+        startTask();
     }
 
     /**
-     * 注册连接检测定时任务，校验连接并重新注册或销毁容器
+     * 停止检测状态
      */
-    private void registerScheduler() {
-        ScheduledExecutorService scheduler
-                = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory(THREAD_NAME_PREFIX));
+    public void shutdown() {
+        try {
+            this.active = false;
+            destroy();
+        } catch (Exception e) {
+            log.error("eventbus shutdown", e);
+            throw new EventBusException(e);
+        }
+    }
+
+    /**
+     * 注册连接检测定时任务
+     */
+    private void startTask() {
+        if (null != scheduler) {
+            return;
+        }
+        scheduler = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory(THREAD_NAME_PREFIX));
         scheduler.scheduleWithFixedDelay(this::pollTestConnectTask, 0, properties.getPollSecond(), TimeUnit.SECONDS);
     }
 
@@ -70,7 +90,7 @@ public class ConnectionWatchdog {
             try {
                 isConnect = testConnect.testConnect();
             } catch (Exception ex) {
-                log.error("ConnectionWatchdog.testConnect", ex);
+                log.error("ConnectionWatchdog.testConnect fail", ex);
             }
 
             if (!connect && isConnect) {
@@ -96,34 +116,38 @@ public class ConnectionWatchdog {
                 connect = false;
             }
         } catch (Exception ex) {
-            log.error("ConnectionWatchdog.registerScheduler", ex);
+            log.error("ConnectionWatchdog.pollTestConnectTask", ex);
         }
     }
 
     /**
-     * 注册所有组件
+     * 注册所有监听组件
      */
-    public void register() throws Exception {
-        // 遍历组件列表
-        for (Lifecycle component : components) {
-            // 注册组件
-            component.register();
+    private void register() throws Exception {
+        if (this.active) {
+            // 遍历组件列表
+            for (Lifecycle component : components) {
+                // 注册组件
+                component.register();
+            }
+            log.info("eventbus register success");
         }
-        active = true;
     }
 
     /**
-     * 销毁所有组件
+     * 销毁所有监听组件
      */
-    public void destroy() throws Exception {
+    private void destroy() throws Exception {
         // 遍历组件列表
         for (Lifecycle component : components) {
             // 销毁组件
             component.destroy();
         }
-        active = false;
     }
 
+    /**
+     * 获取当前监听组件状态
+     */
     public boolean isActive() {
         return active;
     }

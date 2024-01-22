@@ -18,12 +18,12 @@ import java.util.UUID;
  * @date 2024/01/01
  */
 public abstract class AbstractSenderAdapter implements MsgSender {
-    private final InterceptorConfig interceptorConfig;
     private final BusConfig config;
+    private final InterceptorConfig interceptorConfig;
 
-    protected AbstractSenderAdapter(InterceptorConfig interceptorConfig, BusConfig config) {
-        this.interceptorConfig = interceptorConfig;
+    protected AbstractSenderAdapter(BusConfig config, InterceptorConfig interceptorConfig) {
         this.config = config;
+        this.interceptorConfig = interceptorConfig;
     }
 
     @Override

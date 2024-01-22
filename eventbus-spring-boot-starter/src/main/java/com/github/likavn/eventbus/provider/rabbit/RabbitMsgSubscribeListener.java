@@ -34,10 +34,10 @@ public class RabbitMsgSubscribeListener extends AbstractCachingConnectionContain
     private final List<Subscriber> subscribers;
     private final String serviceExchangeName;
 
-    public RabbitMsgSubscribeListener(BusConfig config,
+    public RabbitMsgSubscribeListener(CachingConnectionFactory connectionFactory,
+                                      BusConfig config,
                                       DeliveryBus deliveryBus,
-                                      List<Subscriber> subscribers,
-                                      CachingConnectionFactory connectionFactory) {
+                                      List<Subscriber> subscribers) {
         super(connectionFactory);
         this.config = config;
         this.deliveryBus = deliveryBus;

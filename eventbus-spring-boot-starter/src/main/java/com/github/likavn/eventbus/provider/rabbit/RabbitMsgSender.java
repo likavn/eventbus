@@ -16,19 +16,17 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
  * @since 2023/01/01
  */
 public class RabbitMsgSender extends AbstractSenderAdapter {
-    private final BusConfig config;
     private final RabbitTemplate rabbitTemplate;
 
-    public RabbitMsgSender(InterceptorConfig interceptorConfig, BusConfig config, RabbitTemplate rabbitTemplate) {
-        super(interceptorConfig, config);
-        this.config = config;
+    public RabbitMsgSender(RabbitTemplate rabbitTemplate, BusConfig config, InterceptorConfig interceptorConfig) {
+        super(config, interceptorConfig);
         this.rabbitTemplate = rabbitTemplate;
     }
 
     @Override
     public void toSend(Request<?> request) {
         rabbitTemplate.convertAndSend(
-                String.format(RabbitConstant.EXCHANGE, config.getServiceId()),
+                String.format(RabbitConstant.EXCHANGE, request.getServiceId()),
                 String.format(RabbitConstant.ROUTING, request.getTopic()),
                 Func.toJson(request),
                 message -> {
@@ -41,8 +39,8 @@ public class RabbitMsgSender extends AbstractSenderAdapter {
     @Override
     public void toSendDelayMessage(Request<?> request) {
         rabbitTemplate.convertAndSend(
-                String.format(RabbitConstant.EXCHANGE_DELAY, config.getServiceId()),
-                String.format(RabbitConstant.ROUTING_KEY_DELAY, config.getServiceId()),
+                String.format(RabbitConstant.EXCHANGE_DELAY, request.getServiceId()),
+                String.format(RabbitConstant.ROUTING_KEY_DELAY, request.getServiceId()),
                 Func.toJson(request),
                 message -> {
                     //配置消息的过期时间,单位：毫秒

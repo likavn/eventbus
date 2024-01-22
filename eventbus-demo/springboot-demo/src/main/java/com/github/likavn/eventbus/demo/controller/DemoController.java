@@ -70,7 +70,7 @@ public class DemoController {
     @GetMapping(value = "/start")
     public R<Boolean> start() {
         try {
-            connectionWatchdog.register();
+            connectionWatchdog.startup();
             log.info("启动成功...");
             return R.ok(Boolean.TRUE);
         } catch (Exception e) {
@@ -82,7 +82,7 @@ public class DemoController {
     @GetMapping(value = "/stop")
     public R<Boolean> stop() {
         try {
-            connectionWatchdog.destroy();
+            connectionWatchdog.shutdown();
             log.info("关闭成功...");
             return R.ok(Boolean.TRUE);
         } catch (Exception e) {

@@ -39,8 +39,8 @@ public class BusBootRedisConfig {
     }
 
     @Bean
-    public RedisMsgSender msgSender(InterceptorConfig interceptorConfig, BusConfig config, StringRedisTemplate busStringRedisTemplate) {
-        return new RedisMsgSender(interceptorConfig, config, busStringRedisTemplate);
+    public RedisMsgSender msgSender(StringRedisTemplate busStringRedisTemplate, BusConfig config, InterceptorConfig interceptorConfig) {
+        return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig);
     }
 
     /**

@@ -32,8 +32,8 @@ public class BootConnectionWatchdog
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         log.info("eventbus is shutdown");
-        super.destroy();
+        super.shutdown();
     }
 }

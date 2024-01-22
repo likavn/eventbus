@@ -28,22 +28,23 @@ import org.springframework.context.annotation.Configuration;
 public class BusBootRabbitConfig {
 
     @Bean
-    public MsgSender msgSender(InterceptorConfig interceptorConfig, BusConfig config, RabbitTemplate rabbitTemplate) {
-        return new RabbitMsgSender(interceptorConfig, config, rabbitTemplate);
+    public MsgSender msgSender(RabbitTemplate rabbitTemplate, BusConfig config, InterceptorConfig interceptorConfig) {
+        return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig);
     }
 
     @Bean
-    public RabbitMsgSubscribeListener rabbitMsgSubscribeListener(BusConfig config, SubscriberRegistry registry, DeliveryBus deliveryBus, CachingConnectionFactory connectionFactory) {
-        return new RabbitMsgSubscribeListener(config, deliveryBus, registry.getSubscribers(), connectionFactory);
+    public RabbitMsgSubscribeListener rabbitMsgSubscribeListener(
+            CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, SubscriberRegistry registry) {
+        return new RabbitMsgSubscribeListener(connectionFactory, config, deliveryBus, registry.getSubscribers());
     }
 
     @Bean
-    public RabbitMsgDelayListener rabbitMsgDelayListener(BusConfig config, DeliveryBus deliveryBus, CachingConnectionFactory connectionFactory) {
-        return new RabbitMsgDelayListener(config, deliveryBus, connectionFactory);
+    public RabbitMsgDelayListener rabbitMsgDelayListener(CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus) {
+        return new RabbitMsgDelayListener(connectionFactory, config, deliveryBus);
     }
 
     @Bean
-    public RabbitNodeTestConnect redisNodeTestConnect(BusConfig config, CachingConnectionFactory connectionFactory) {
-        return new RabbitNodeTestConnect(config, connectionFactory);
+    public RabbitNodeTestConnect redisNodeTestConnect(CachingConnectionFactory connectionFactory, BusConfig config) {
+        return new RabbitNodeTestConnect(connectionFactory, config);
     }
 }
