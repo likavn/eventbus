@@ -17,5 +17,5 @@ public interface DeliverThrowableInterceptor {
      * @param request   request
      * @param throwable t
      */
-    void execute(Request<?> request, Throwable throwable);
+    void execute(Request<String> request, Throwable throwable);
 }

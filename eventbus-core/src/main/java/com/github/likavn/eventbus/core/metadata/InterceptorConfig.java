@@ -5,6 +5,7 @@ import com.github.likavn.eventbus.core.api.interceptor.DeliverThrowableIntercept
 import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
 import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.github.likavn.eventbus.core.utils.Func;
 import lombok.Setter;
 
 /**
@@ -14,14 +15,11 @@ import lombok.Setter;
  * @date 2024/01/01
  **/
 @Setter
+@SuppressWarnings("all")
 public class InterceptorConfig {
-
     private final SendBeforeInterceptor sendBeforeInterceptor;
-
     private final SendAfterInterceptor sendAfterInterceptor;
-
     private final DeliverSuccessInterceptor deliverSuccessInterceptor;
-
     private final DeliverThrowableInterceptor deliverThrowableInterceptor;
 
     public InterceptorConfig(SendBeforeInterceptor sendBeforeInterceptor,
@@ -34,29 +32,65 @@ public class InterceptorConfig {
         this.deliverThrowableInterceptor = deliverThrowableInterceptor;
     }
 
+    /**
+     * 发送前拦截
+     *
+     * @param request 请求
+     */
     public void sendBeforeExecute(Request<?> request) {
         // 只有第一次发送才执行拦截器
         if (sendBeforeInterceptor != null && request.getDeliverNum() <= 1) {
-            sendBeforeInterceptor.execute(request);
+            convertRequest(request);
+            sendBeforeInterceptor.execute((Request<String>) request);
         }
     }
 
+    /**
+     * 发送后拦截
+     *
+     * @param request 请求
+     */
     public void sendAfterExecute(Request<?> request) {
         // 只有第一次发送才执行拦截器
         if (sendAfterInterceptor != null && request.getDeliverNum() <= 1) {
-            sendAfterInterceptor.execute(request);
+            convertRequest(request);
+            sendAfterInterceptor.execute((Request<String>) request);
         }
     }
 
+    /**
+     * 接收成功拦截
+     *
+     * @param request 请求
+     */
     public void deliverSuccessExecute(Request<?> request) {
         if (deliverSuccessInterceptor != null) {
-            deliverSuccessInterceptor.execute(request);
+            convertRequest(request);
+            deliverSuccessInterceptor.execute((Request<String>) request);
         }
     }
 
+    /**
+     * 接收异常拦截
+     *
+     * @param request   请求
+     * @param throwable 异常
+     */
     public void deliverThrowableExecute(Request<?> request, Throwable throwable) {
         if (deliverThrowableInterceptor != null) {
-            deliverThrowableInterceptor.execute(request, throwable);
+            convertRequest(request);
+            deliverThrowableInterceptor.execute((Request<String>) request, throwable);
+        }
+    }
+
+    /**
+     * 将请求体转换为json
+     *
+     * @param request 请求
+     */
+    private void convertRequest(Request request) {
+        if (!(request.getBody() instanceof String)) {
+            request.setBody(Func.toJson(request.getBody()));
         }
     }
 }

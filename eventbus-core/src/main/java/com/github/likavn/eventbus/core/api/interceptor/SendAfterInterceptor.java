@@ -15,5 +15,5 @@ public interface SendAfterInterceptor {
      *
      * @param request request
      */
-    void execute(Request<?> request);
+    void execute(Request<String> request);
 }

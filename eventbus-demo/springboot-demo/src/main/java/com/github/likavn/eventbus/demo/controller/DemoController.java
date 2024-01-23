@@ -71,7 +71,6 @@ public class DemoController {
     public R<Boolean> start() {
         try {
             connectionWatchdog.startup();
-            log.info("启动成功...");
             return R.ok(Boolean.TRUE);
         } catch (Exception e) {
             log.error("DemoController.start", e);
@@ -83,7 +82,6 @@ public class DemoController {
     public R<Boolean> stop() {
         try {
             connectionWatchdog.shutdown();
-            log.info("关闭成功...");
             return R.ok(Boolean.TRUE);
         } catch (Exception e) {
             log.error("DemoController.stop", e);

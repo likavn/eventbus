@@ -48,6 +48,7 @@ public class ConnectionWatchdog {
         try {
             this.active = true;
             register();
+            this.connect = true;
         } catch (Exception e) {
             log.error("eventbus startup", e);
             throw new EventBusException(e);
@@ -67,6 +68,13 @@ public class ConnectionWatchdog {
             log.error("eventbus shutdown", e);
             throw new EventBusException(e);
         }
+    }
+
+    /**
+     * 获取当前监听组件状态
+     */
+    public boolean isActive() {
+        return active;
     }
 
     /**
@@ -90,7 +98,7 @@ public class ConnectionWatchdog {
             try {
                 isConnect = testConnect.testConnect();
             } catch (Exception ex) {
-                log.error("ConnectionWatchdog.testConnect fail", ex);
+                log.error("testConnect fail", ex);
             }
 
             if (!connect && isConnect) {
@@ -116,7 +124,7 @@ public class ConnectionWatchdog {
                 connect = false;
             }
         } catch (Exception ex) {
-            log.error("ConnectionWatchdog.pollTestConnectTask", ex);
+            log.error("pollTestConnectTask", ex);
         }
     }
 
@@ -124,14 +132,15 @@ public class ConnectionWatchdog {
      * 注册所有监听组件
      */
     private void register() throws Exception {
-        if (this.active) {
-            // 遍历组件列表
-            for (Lifecycle component : components) {
-                // 注册组件
-                component.register();
-            }
-            log.info("eventbus register success");
+        if (!this.active) {
+            return;
         }
+        // 遍历组件列表
+        for (Lifecycle component : components) {
+            // 注册组件
+            component.register();
+        }
+        log.info("Eventbus register success");
     }
 
     /**
@@ -143,13 +152,6 @@ public class ConnectionWatchdog {
             // 销毁组件
             component.destroy();
         }
+        log.info("Eventbus destroy success");
     }
-
-    /**
-     * 获取当前监听组件状态
-     */
-    public boolean isActive() {
-        return active;
-    }
-
 }

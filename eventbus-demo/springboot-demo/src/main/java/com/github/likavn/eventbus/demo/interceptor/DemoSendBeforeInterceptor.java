@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DemoSendBeforeInterceptor implements SendBeforeInterceptor {
     @Override
-    public void execute(Request<?> request) {
-        log.debug("发送前拦截器,{}", JSONObject.toJSONString(request));
+    public void execute(Request<String> request) {
+        log.info("发送前拦截器,{}", JSONObject.toJSONString(request));
     }
 }

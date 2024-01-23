@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DemoDeliverThrowableInterceptor implements DeliverThrowableInterceptor {
     @Override
-    public void execute(Request<?> request, Throwable throwable) {
+    public void execute(Request<String> request, Throwable throwable) {
         log.error("消息投递失败！{}", throwable.getMessage());
     }
 }
