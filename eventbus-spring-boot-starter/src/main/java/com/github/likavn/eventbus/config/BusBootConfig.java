@@ -135,11 +135,11 @@ public class BusBootConfig {
     @Bean
     @ConditionalOnBean(NodeTestConnect.class)
     public ConnectionWatchdog connectionWatchdog(ApplicationContext applicationContext, NodeTestConnect nodeTestConnect, BusConfig busConfig) {
-        Collection<Lifecycle> components = Collections.emptyList();
+        Collection<Lifecycle> listeners = Collections.emptyList();
         Map<String, Lifecycle> containerMap = applicationContext.getBeansOfType(Lifecycle.class);
         if (!containerMap.isEmpty()) {
-            components = containerMap.values();
+            listeners = containerMap.values();
         }
-        return new BootConnectionWatchdog(nodeTestConnect, busConfig.getTestConnect(), components);
+        return new BootConnectionWatchdog(nodeTestConnect, busConfig.getTestConnect(), listeners);
     }
 }

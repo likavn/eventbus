@@ -1,7 +1,7 @@
 package com.github.likavn.eventbus.demo.controller;
 
-import com.github.likavn.eventbus.BootConnectionWatchdog;
 import com.github.likavn.eventbus.core.api.MsgSender;
+import com.github.likavn.eventbus.core.base.MsgListenerContainer;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import com.github.likavn.eventbus.demo.domain.R;
@@ -25,7 +25,7 @@ public class DemoController {
     private MsgSender msgSender;
 
     @Resource
-    private BootConnectionWatchdog connectionWatchdog;
+    private MsgListenerContainer msgListenerContainer;
 
     /**
      * 测试消息
@@ -34,7 +34,7 @@ public class DemoController {
     public R<Boolean> trigger(@PathVariable("type") Integer type,
                               @PathVariable("count") Long count, @PathParam("delayTime") Long delayTime, @RequestBody String msg) {
         try {
-            log.info("发送消息数量count={},msg={}", count, msg);
+            log.info("发送消息数量count={}条,msg={}", count, msg);
             Assert.notEmpty(msg, "msg不能为空");
             for (int i = 0; i < count; i++) {
                 switch (type) {
@@ -64,13 +64,13 @@ public class DemoController {
 
     @GetMapping(value = "/active")
     public R<Boolean> active() {
-        return R.ok(connectionWatchdog.isActive());
+        return R.ok(msgListenerContainer.isActive());
     }
 
     @GetMapping(value = "/start")
     public R<Boolean> start() {
         try {
-            connectionWatchdog.startup();
+            msgListenerContainer.startup();
             return R.ok(Boolean.TRUE);
         } catch (Exception e) {
             log.error("DemoController.start", e);
@@ -81,7 +81,7 @@ public class DemoController {
     @GetMapping(value = "/stop")
     public R<Boolean> stop() {
         try {
-            connectionWatchdog.shutdown();
+            msgListenerContainer.shutdown();
             return R.ok(Boolean.TRUE);
         } catch (Exception e) {
             log.error("DemoController.stop", e);

@@ -1,7 +1,7 @@
 package com.github.likavn.eventbus.core.base;
 
 /**
- * 各中间件实现的监听容器初始化接口
+ * 中间件实现监听容器初始化接口
  *
  * @author likavn
  * @date 2024/01/01
@@ -9,16 +9,16 @@ package com.github.likavn.eventbus.core.base;
 public interface Lifecycle {
 
     /**
-     * 注册,网络连接成功时调用
+     * 监听组件注册
      *
-     * @throws Exception exception
+     * @throws Exception e
      */
     void register() throws Exception;
 
     /**
-     * 销毁,网络断开、容器销毁时调用
+     * 监听组件销毁
      *
-     * @throws Exception exception
+     * @throws Exception e
      */
     void destroy() throws Exception;
 }

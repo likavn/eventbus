@@ -22,8 +22,8 @@ public class BootConnectionWatchdog
         extends ConnectionWatchdog implements ApplicationRunner, DisposableBean {
     public BootConnectionWatchdog(NodeTestConnect testConnect,
                                   BusConfig.TestConnect testConnectProperties,
-                                  Collection<Lifecycle> components) {
-        super(testConnect, testConnectProperties, components);
+                                  Collection<Lifecycle> listeners) {
+        super(testConnect, testConnectProperties, listeners);
     }
 
     @Override
@@ -33,7 +33,6 @@ public class BootConnectionWatchdog
 
     @Override
     public void destroy() {
-        log.info("eventbus is shutdown");
         super.shutdown();
     }
 }
