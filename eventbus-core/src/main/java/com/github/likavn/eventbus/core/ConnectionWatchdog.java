@@ -37,9 +37,11 @@ public class ConnectionWatchdog extends MsgListenerContainer {
 
     @Override
     public void startup() {
-        // 启动监听器
+        // 启动监听器,连不上会抛出异常
         super.startup();
 
+        // 连接成功
+        this.connect = true;
         // 创建连接检测定时任务
         createTask();
     }
@@ -68,9 +70,7 @@ public class ConnectionWatchdog extends MsgListenerContainer {
             }
 
             if (!connect && isConnect) {
-                if (!active) {
-                    registerListeners();
-                }
+                registerListeners();
                 connect = true;
             }
 

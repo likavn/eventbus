@@ -27,3 +27,5 @@ spring:
 eventbus:
   #type: redis
   type: rabbitmq
+  test-connect:
+    loseConnectMaxMilliSecond: 40

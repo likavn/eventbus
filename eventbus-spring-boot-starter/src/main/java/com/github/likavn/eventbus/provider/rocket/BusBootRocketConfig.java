@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @ConditionalOnClass(RabbitTemplate.class)
-@ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rocket")
+@ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rocketmq")
 public class BusBootRocketConfig {
 
 }

@@ -82,6 +82,6 @@ public class MsgListenerContainer {
             // 销毁组件
             listener.destroy();
         }
-        log.info("Eventbus destroy listeners success");
+        log.info("Eventbus destroy listeners...");
     }
 }
