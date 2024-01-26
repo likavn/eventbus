@@ -56,7 +56,7 @@ public class RabbitMsgDelayListener extends AbstractCachingConnectionContainer {
      */
     private void createConsumer() throws IOException {
         Channel channel = createChannel();
-        channel.basicConsume(String.format(RabbitConstant.QUEUE_DELAY, config.getServiceId()),
+        channel.basicConsume(String.format(RabbitConstant.DELAY_QUEUE, config.getServiceId()),
                 false,
                 new DefaultConsumer(channel) {
                     @Override
@@ -87,15 +87,15 @@ public class RabbitMsgDelayListener extends AbstractCachingConnectionContainer {
         }
         try (Channel channel = createChannel()) {
             // 初始创建交换机
-            String exchangeName = String.format(RabbitConstant.EXCHANGE_DELAY, config.getServiceId());
+            String exchangeName = String.format(RabbitConstant.DELAY_EXCHANGE, config.getServiceId());
             Map<String, Object> args = new HashMap<>(4);
             args.put("x-delayed-type", "direct");
             //属性参数 交换机名称 交换机类型 是否持久化 是否自动删除 配置参数
             channel.exchangeDeclare(exchangeName, "x-delayed-message", true, false, args);
             // 定义队列名称
-            String queueName = String.format(RabbitConstant.QUEUE_DELAY, config.getServiceId());
+            String queueName = String.format(RabbitConstant.DELAY_QUEUE, config.getServiceId());
             channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, exchangeName, String.format(RabbitConstant.ROUTING_KEY_DELAY, config.getServiceId()));
+            channel.queueBind(queueName, exchangeName, String.format(RabbitConstant.DELAY_ROUTING_KEY, config.getServiceId()));
             isCreateExchange = true;
         }
     }

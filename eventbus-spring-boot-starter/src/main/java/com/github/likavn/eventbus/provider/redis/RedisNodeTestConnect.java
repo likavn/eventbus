@@ -2,7 +2,6 @@ package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import io.lettuce.core.RedisCommandTimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -27,10 +26,10 @@ public class RedisNodeTestConnect implements NodeTestConnect {
     public boolean testConnect() {
         try {
             stringRedisTemplate.hasKey(testKey);
-        } catch (RedisCommandTimeoutException ex) {
+            return true;
+        } catch (Exception ex) {
             log.error("redis timeout", ex);
             return false;
         }
-        return true;
     }
 }

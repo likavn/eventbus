@@ -58,10 +58,10 @@ public class BusBootRedisConfig {
      * redis推送脚本
      */
     @Bean
-    public DefaultRedisScript<Void> pushMsgStreamRedisScript() {
-        DefaultRedisScript<Void> redisScript = new DefaultRedisScript<>();
+    public DefaultRedisScript<Long> pushMsgStreamRedisScript() {
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
         redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("script/pushMsgStream.lua")));
-        redisScript.setResultType(Void.class);
+        redisScript.setResultType(Long.class);
         return redisScript;
     }
 
@@ -95,7 +95,7 @@ public class BusBootRedisConfig {
     @Bean
     public RedisMsgDelayListener redisMsgDelayListener(
             StringRedisTemplate stringRedisTemplate, ScheduledTaskRegistry taskRegistry,
-            BusProperties busProperties, DefaultRedisScript<Void> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
+            BusProperties busProperties, DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
         return new RedisMsgDelayListener(stringRedisTemplate, taskRegistry, busProperties, pushMsgStreamRedisScript, rLock, deliveryBus);
     }
 

@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
  **/
 @Slf4j
 @Component
-public class DemoMsgSubscribeListener extends MsgSubscribeListener<TMsg> {
-    protected DemoMsgSubscribeListener() {
+public class Demo2MsgSubscribeListener extends MsgSubscribeListener<TMsg> {
+    protected Demo2MsgSubscribeListener() {
         super(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER);
     }
 
@@ -24,7 +24,7 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<TMsg> {
     public void onMessage(Message<TMsg> message) {
         TMsg body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
-        throw new RuntimeException("DemoMsgSubscribeListener test");
+        //  throw new RuntimeException("DemoMsgSubscribeListener test");
     }
 
     /**

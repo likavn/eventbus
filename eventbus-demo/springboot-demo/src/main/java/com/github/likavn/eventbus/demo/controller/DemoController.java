@@ -45,7 +45,7 @@ public class DemoController {
                         msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, msg);
                         break;
                     case 3:
-                        msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, 10);
+                        msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, delayTime);
                         break;
                     case 4:
                         msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg, delayTime);

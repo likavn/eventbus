@@ -68,7 +68,7 @@ public class RabbitMsgSubscribeListener extends AbstractCachingConnectionContain
         String queueName = String.format(RabbitConstant.QUEUE, subscriber.getTopic(), subscriber.getTrigger().getDeliverId());
         channel.queueDeclare(queueName, true, false, false, null);
         // 设置路由key
-        channel.queueBind(queueName, serviceExchangeName, String.format(RabbitConstant.ROUTING, subscriber.getTopic()));
+        channel.queueBind(queueName, serviceExchangeName, String.format(RabbitConstant.ROUTING_KEY, subscriber.getTopic()));
 
         // 使用DefaultConsumer进行消息消费
         channel.basicConsume(queueName, false, new DefaultConsumer(channel) {

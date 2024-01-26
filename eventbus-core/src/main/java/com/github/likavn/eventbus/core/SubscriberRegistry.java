@@ -88,60 +88,102 @@ public class SubscriberRegistry {
     /**
      * 注册器
      */
-    @SuppressWarnings("all")
     public void register(Object obj) {
-        // class
-        Class<?> cla = obj.getClass();
-        Fail fail;
         // 接口实现的消息订阅器
         if (obj instanceof MsgSubscribeListener || obj instanceof MsgDelayListener) {
-            Trigger trigger = getTrigger(obj, BusConstant.ON_MESSAGE);
-            fail = trigger.getMethod().getAnnotation(Fail.class);
-            if (null == fail) {
-                fail = cla.getAnnotation(Fail.class);
-            }
-            FailTrigger failTrigger = null == fail ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
-            // 接口实现的及时消息订阅器
-            if (obj instanceof MsgSubscribeListener) {
-                MsgSubscribeListener<?> listener = (MsgSubscribeListener<?>) obj;
-                String serviceId = Func.isEmpty(listener.getServiceId()) ? config.getServiceId() : listener.getServiceId();
-                listener.getCodes().forEach(code -> {
-                    Subscriber subscriber = new Subscriber(serviceId, code, MsgType.TIMELY, trigger, failTrigger);
-                    putSubscriberMap(subscriber);
-                });
-            }
-            // 接口实现的延时消息处理器
-            else {
-                MsgDelayListener<?> listener = (MsgDelayListener<?>) obj;
-                Subscriber subscriber = new Subscriber();
-                subscriber.setServiceId(config.getServiceId());
-                subscriber.setType(MsgType.DELAY);
-                subscriber.setTrigger(trigger);
-                subscriber.setFailTrigger(failTrigger);
-                msgDelayListenerMap.put(listener.getClass(), subscriber);
-            }
+            registerInterfaceListeners(obj);
             return;
         }
 
         // 注解实现的消息订阅器
-        for (Method method : cla.getMethods()) {
-            // 存在及时消息订阅
+        registerAnnotationListeners(obj);
+    }
+
+    /**
+     * 注册接口实现的消息订阅器
+     *
+     * @param obj 实例
+     */
+    private void registerInterfaceListeners(Object obj) {
+        Trigger trigger = getTrigger(obj, BusConstant.ON_MESSAGE);
+        Fail fail = trigger.getMethod().getAnnotation(Fail.class);
+        if (null == fail) {
+            fail = obj.getClass().getAnnotation(Fail.class);
+        }
+        FailTrigger failTrigger = null == fail ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
+        // 接口实现的及时消息订阅器
+        if (obj instanceof MsgSubscribeListener) {
+            MsgSubscribeListener<?> listener = (MsgSubscribeListener<?>) obj;
+            String serviceId = Func.isEmpty(listener.getServiceId()) ? config.getServiceId() : listener.getServiceId();
+            listener.getCodes().forEach(code -> {
+                Subscriber subscriber = new Subscriber(serviceId, code, MsgType.TIMELY, trigger, failTrigger);
+                putSubscriberMap(subscriber);
+            });
+        }
+        // 接口实现的延时消息处理器
+        else {
+            MsgDelayListener<?> listener = (MsgDelayListener<?>) obj;
+            Subscriber subscriber = new Subscriber();
+            subscriber.setServiceId(config.getServiceId());
+            subscriber.setType(MsgType.DELAY);
+            subscriber.setTrigger(trigger);
+            subscriber.setFailTrigger(failTrigger);
+            msgDelayListenerMap.put(listener.getClass(), subscriber);
+        }
+    }
+
+    /**
+     * 注册注解实现的消息订阅器
+     *
+     * @param obj 实例
+     **/
+    private void registerAnnotationListeners(Object obj) {
+        boolean isCreated = false;
+        // 遍历对象的类方法集合
+        for (Method method : obj.getClass().getMethods()) {
+            // 获取方法上的Subscribe注解和SubscribeDelay注解
             Subscribe subscribe = method.getAnnotation(Subscribe.class);
             SubscribeDelay subscribeDelay = method.getAnnotation(SubscribeDelay.class);
+
+            // 如果注解都为空，则继续下一个方法
             if (null == subscribe && null == subscribeDelay) {
                 continue;
             }
+
+            // 确保一个订阅器类只有一个订阅器
+            Assert.isTrue(!isCreated, String.format("存在重复的订阅器，一个订阅器类只能存在一个，class：%s", obj.getClass()));
+            isCreated = true;
+
+            // 创建触发器对象
             Trigger trigger = Trigger.of(obj, method);
 
             // 订阅器类型
-            MsgType msgType = null != subscribe ? MsgType.TIMELY : MsgType.DELAY;
+            MsgType msgType = MsgType.DELAY;
+            String serviceId = config.getServiceId();
+            Fail fail;
+            String[] codes;
+            // 判断是否有Subscribe注解
+            if (null != subscribe) {
+                msgType = MsgType.TIMELY;
 
-            String serviceId = msgType.isTimely() ? subscribe.serviceId() : null;
-            serviceId = Func.isEmpty(serviceId) ? config.getServiceId() : serviceId;
-            // 获取投递异常处理
-            fail = msgType.isTimely() ? subscribe.fail() : subscribeDelay.fail();
+                // 从注解中获取serviceId
+                if (!Func.isEmpty(subscribe.serviceId())) {
+                    serviceId = subscribe.serviceId();
+                }
+
+                fail = subscribe.fail();
+                codes = subscribe.codes();
+            } else {
+                // 从注解SubscribeDelay中获取投递异常处理
+                fail = subscribeDelay.fail();
+                codes = subscribeDelay.codes();
+            }
+
+            // 判断是否需要失败触发器
             FailTrigger failTrigger = Func.isEmpty(fail.callMethod()) ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
-            for (String code : msgType.isTimely() ? subscribe.codes() : subscribeDelay.codes()) {
+
+            // 遍历code数组，创建Subscriber对象并存入相应的Map中
+            for (String code : codes) {
                 Subscriber subscriber = new Subscriber(serviceId, code, msgType, trigger, failTrigger);
                 if (msgType.isTimely()) {
                     putSubscriberMap(subscriber);
@@ -151,6 +193,7 @@ public class SubscriberRegistry {
             }
         }
     }
+
 
     /**
      * 新增订阅器

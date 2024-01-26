@@ -27,7 +27,7 @@ public class RabbitMsgSender extends AbstractSenderAdapter {
     public void toSend(Request<?> request) {
         rabbitTemplate.convertAndSend(
                 String.format(RabbitConstant.EXCHANGE, request.getServiceId()),
-                String.format(RabbitConstant.ROUTING, request.getTopic()),
+                String.format(RabbitConstant.ROUTING_KEY, request.getTopic()),
                 Func.toJson(request),
                 message -> {
                     message.getMessageProperties().setContentEncoding("utf-8");
@@ -39,8 +39,8 @@ public class RabbitMsgSender extends AbstractSenderAdapter {
     @Override
     public void toSendDelayMessage(Request<?> request) {
         rabbitTemplate.convertAndSend(
-                String.format(RabbitConstant.EXCHANGE_DELAY, request.getServiceId()),
-                String.format(RabbitConstant.ROUTING_KEY_DELAY, request.getServiceId()),
+                String.format(RabbitConstant.DELAY_EXCHANGE, request.getServiceId()),
+                String.format(RabbitConstant.DELAY_ROUTING_KEY, request.getServiceId()),
                 Func.toJson(request),
                 message -> {
                     //配置消息的过期时间,单位：毫秒

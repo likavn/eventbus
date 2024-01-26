@@ -5,11 +5,8 @@ import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.provider.rabbit.constant.RabbitConstant;
 import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.AmqpConnectException;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.Connection;
-
-import java.io.IOException;
 
 /**
  * rabbitMq连接状态测试
@@ -26,7 +23,7 @@ public class RabbitNodeTestConnect implements NodeTestConnect {
 
     public RabbitNodeTestConnect(CachingConnectionFactory connectionFactory, BusConfig config) {
         this.connectionFactory = connectionFactory;
-        this.queueName = String.format(RabbitConstant.QUEUE_DELAY, config.getServiceId());
+        this.queueName = String.format(RabbitConstant.DELAY_QUEUE, config.getServiceId());
     }
 
     @Override
@@ -40,8 +37,8 @@ public class RabbitNodeTestConnect implements NodeTestConnect {
             }
             channel.consumerCount(queueName);
             return true;
-        } catch (AmqpConnectException | IOException ex) {
-            log.error("rabbitMq timeout", ex);
+        } catch (Exception ex) {
+            log.error("rabbitMq testConnect", ex);
             return false;
         }
     }

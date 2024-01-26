@@ -30,17 +30,36 @@ public enum MsgType {
             return true;
         }
     };
+
+    /**
+     * 消息类型的值
+     */
     @JSONField
     private final Integer value;
 
+    /**
+     * 构造函数
+     *
+     * @param value 消息类型的值
+     */
     MsgType(Integer value) {
         this.value = value;
     }
 
+    /**
+     * 判断消息类型是否为及时消息
+     *
+     * @return true代表是及时消息，false代表不是及时消息
+     */
     public boolean isTimely() {
         return false;
     }
 
+    /**
+     * 判断消息类型是否为延迟消息
+     *
+     * @return true代表是延迟消息，false代表不是延迟消息
+     */
     public boolean isDelay() {
         return false;
     }

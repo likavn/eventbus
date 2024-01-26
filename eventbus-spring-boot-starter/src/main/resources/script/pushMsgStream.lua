@@ -37,3 +37,10 @@ while pollCount >= 0 do
     end
     pollCount = pollCount - 1
 end
+
+--- 下个消息的过期时间
+local v = redis.call('zrange', delayKey, 0, 0, 'WITHSCORES');
+if v[1] ~= nil then
+    return v[2];
+end
+return nil;

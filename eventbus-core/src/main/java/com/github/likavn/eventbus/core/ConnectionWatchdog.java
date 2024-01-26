@@ -54,7 +54,8 @@ public class ConnectionWatchdog extends MsgListenerContainer {
             return;
         }
         scheduler = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory(THREAD_NAME_PREFIX));
-        scheduler.scheduleWithFixedDelay(this::pollTestConnectTask, 0, properties.getPollSecond(), TimeUnit.SECONDS);
+        scheduler.scheduleWithFixedDelay(this::pollTestConnectTask,
+                properties.getPollSecond(), properties.getPollSecond(), TimeUnit.SECONDS);
     }
 
     /**
@@ -62,13 +63,7 @@ public class ConnectionWatchdog extends MsgListenerContainer {
      */
     private void pollTestConnectTask() {
         try {
-            boolean isConnect = false;
-            try {
-                isConnect = testConnect.testConnect();
-            } catch (Exception ex) {
-                log.error("testConnect fail", ex);
-            }
-
+            boolean isConnect = testConnect.testConnect();
             if (!connect && isConnect) {
                 registerListeners();
                 connect = true;
@@ -85,7 +80,8 @@ public class ConnectionWatchdog extends MsgListenerContainer {
 
             // 丢失超过固定阀值，则销毁容器
             if (firstLostConnectMillisecond.get() != -1
-                    && System.currentTimeMillis() - firstLostConnectMillisecond.get() >= 1000L * properties.getLoseConnectMaxMilliSecond()) {
+                    && System.currentTimeMillis() -
+                    firstLostConnectMillisecond.get() >= 1000L * properties.getLoseConnectMaxMilliSecond()) {
                 if (connect) {
                     destroyListeners();
                 }

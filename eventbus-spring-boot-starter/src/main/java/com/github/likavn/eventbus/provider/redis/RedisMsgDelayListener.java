@@ -39,7 +39,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     private final StringRedisTemplate stringRedisTemplate;
     private final RLock rLock;
     private final DeliveryBus deliveryBus;
-    private final DefaultRedisScript<Void> pushMsgStreamRedisScript;
+    private final DefaultRedisScript<Long> pushMsgStreamRedisScript;
     /**
      * 延时消息key,zset
      */
@@ -58,7 +58,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     public RedisMsgDelayListener(StringRedisTemplate stringRedisTemplate,
                                  ScheduledTaskRegistry scheduledTaskRegistry,
                                  BusProperties busProperties,
-                                 DefaultRedisScript<Void> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
+                                 DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
         super(stringRedisTemplate, busProperties, BusConstant.DELAY_MSG_THREAD_NAME);
         this.stringRedisTemplate = stringRedisTemplate;
         this.scheduledTaskRegistry = scheduledTaskRegistry;
@@ -93,7 +93,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
             if (!lock) {
                 return;
             }
-            stringRedisTemplate.execute(pushMsgStreamRedisScript,
+            Long nextCurrentTimeMillis = stringRedisTemplate.execute(pushMsgStreamRedisScript,
                     Arrays.asList(delayZetKey, delayStreamKey),
                     // 到当前时间之前的消息 + 推送数量
                     String.valueOf(System.currentTimeMillis()), String.valueOf(MAX_PUSH_COUNT));
@@ -106,8 +106,8 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
 
     @Override
     protected List<RedisSubscriber> getSubscribers() {
-        RedisSubscriber subscriber = new RedisSubscriber(
-                new Subscriber(busProperties.getServiceId(), null, MsgType.DELAY), RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX);
+        RedisSubscriber subscriber = new RedisSubscriber(new Subscriber(
+                busProperties.getServiceId(), null, MsgType.DELAY), RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX);
         return Collections.singletonList(subscriber);
     }
 
