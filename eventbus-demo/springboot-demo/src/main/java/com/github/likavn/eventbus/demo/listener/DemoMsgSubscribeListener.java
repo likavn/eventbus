@@ -24,7 +24,7 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<TMsg> {
     public void onMessage(Message<TMsg> message) {
         TMsg body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
-        throw new RuntimeException("DemoMsgSubscribeListener test");
+       // throw new RuntimeException("DemoMsgSubscribeListener test");
     }
 
     /**

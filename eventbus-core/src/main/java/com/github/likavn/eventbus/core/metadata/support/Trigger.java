@@ -3,10 +3,12 @@ package com.github.likavn.eventbus.core.metadata.support;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.Data;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 
 /**
@@ -118,6 +120,9 @@ public class Trigger {
      */
     private void buildParams(Method method) {
         try {
+            int modifiers = method.getModifiers();
+            Assert.isTrue(Modifier.isPublic(modifiers),
+                    String.format("Method %s of %s must be public", method.getName(), method.getDeclaringClass().getName()));
             Type[] parameterTypes = method.getGenericParameterTypes();
             this.paramsCount = parameterTypes.length;
             this.messageIndex = -1;

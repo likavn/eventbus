@@ -6,6 +6,7 @@ import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
+import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
@@ -86,6 +87,21 @@ public class DeliveryBus {
             log.error("delay msg handler not found class={}", request.getDelayListener().getName());
             return;
         }
+
+        // 默认延时消息，不走延时处理器
+        if (subscriber.getTrigger()
+                .getInvokeBean() instanceof DefaultMsgDelayListener) {
+            // 延时消息
+            if (MsgType.DELAY == request.getType()) {
+                subscriber = registry.getSubscriberDelay(request.getCode());
+            } else {
+                subscriber = registry.getSubscriber(request.getDeliverId());
+            }
+            if (null == subscriber) {
+                log.error("deliver code={} msg Missing subscriber!", request.getCode());
+                return;
+            }
+        }
         deliver(subscriber, request);
     }
 
@@ -122,9 +138,6 @@ public class DeliveryBus {
         }
         // 获取异常的真正原因
         throwable = throwable.getCause().getCause();
-        if (subscriber.getTrigger().getInvokeBean() instanceof DefaultMsgDelayListener) {
-            throwable = throwable.getCause().getCause();
-        }
         // 发生异常时记录错误日志
         log.error("deliver error", throwable);
         // 获取订阅器的FailTrigger

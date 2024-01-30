@@ -61,7 +61,7 @@ public class SubscriberRegistry {
     /**
      * 注册默认延时消息处理器
      */
-    private final DefaultMsgDelayListener defaultDelayMsgListener = new DefaultMsgDelayListener(this);
+    private final DefaultMsgDelayListener defaultDelayMsgListener = new DefaultMsgDelayListener();
 
     private final BusConfig config;
 
@@ -140,7 +140,7 @@ public class SubscriberRegistry {
     private void registerAnnotationListeners(Object obj) {
         boolean isCreated = false;
         // 遍历对象的类方法集合
-        for (Method method : obj.getClass().getMethods()) {
+        for (Method method : obj.getClass().getDeclaredMethods()) {
             // 获取方法上的Subscribe注解和SubscribeDelay注解
             Subscribe subscribe = method.getAnnotation(Subscribe.class);
             SubscribeDelay subscribeDelay = method.getAnnotation(SubscribeDelay.class);
