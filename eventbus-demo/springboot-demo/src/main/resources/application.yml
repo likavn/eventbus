@@ -25,7 +25,7 @@ spring:
     virtual-host: /
 
 eventbus:
-  #type: redis
-  type: rabbitmq
+  type: redis
+  #type: rabbitmq
   test-connect:
     loseConnectMaxMilliSecond: 40

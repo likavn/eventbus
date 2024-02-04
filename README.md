@@ -143,7 +143,7 @@ private MsgSender msgSender;
 // 第一个参数 【DemoMsgDelayListener.class】为当前延时消息的处理实现类
 // 第二个参数为延时消息体Object对象
 // 第三个参数为延时时间，单位：秒
-        msgSender.sendDelayMessage(DemoMsgDelayListener.class,"922321333",5);
+msgSender.sendDelayMessage(DemoMsgDelayListener.class,"922321333",5);
 ```
 
 延时消息监听器实现类DemoMsgDelayListener.java
@@ -209,7 +209,7 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
 | 接口                                                         | 说明                                                         | 示例                                                         |
 | ------------------------------------------------------------ | :----------------------------------------------------------- | ------------------------------------------------------------ |
 | [MsgSender](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgSender.java) | 消息的sender,用于消息的发送                                  | [DemoController ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/controller/DemoController.java) |
-| [MsgSubscribeListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgSubscribeListener.java) | 接收广播消息的处理器接口类                                   | [DemoMsgSubscribeListener ](./DemoMsgSubscribeListener)<br/>[Demo2MsgSubscribeListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2MsgSubscribeListener.java) |
+| [MsgSubscribeListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgSubscribeListener.java) | 接收广播消息的处理器接口类                                   | [DemoMsgSubscribeListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgSubscribeListener.java)<br/>[Demo2MsgSubscribeListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2MsgSubscribeListener.java) |
 | [Subscribe ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Subscribe.java) | 接收广播消息处理器注解                                       | [DemoSubscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoSubscribe.java)<br/>[Demo2Subscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2Subscribe.java) |
 | [MsgDelayListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgDelayListener.java) | 接收延时消息的处理器接口类                                   | [DemoMsgDelayListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgDelayListener.java) |
 | [SubscribeDelay ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/SubscribeDelay.java) | 接收延时消息的处理器注解                                     | [DemoSubscribeDelay](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoSubscribeDelay.java) |
@@ -220,6 +220,12 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
 | [DeliverThrowableInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableInterceptor.java) | 投递异常全局拦截器<br/> * 注：消息重复投递都失败时，最后一次消息投递失败时会调用该拦截器 | [DemoDeliverThrowableInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverThrowableInterceptor.java) |
 
 更多信息请查阅相关接口类...
+
+### 示例
+
+启动springboot-demo访问http://localhost:8080/index.html
+
+<img src="./doc/picture/event_send.jpg" alt="event_send" style="zoom:50%;margin-left: 0px;" />
 
 ## 注意事项
 
