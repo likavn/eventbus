@@ -46,7 +46,6 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 ### 引入依赖
 
 ```xml
-
 <dependency>
     <groupId>com.github.likavn</groupId>
     <artifactId>eventbus-spring-boot-starter</artifactId>
@@ -72,8 +71,8 @@ eventbus:
 ```xml
 
 <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-redis</artifactId>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-data-redis</artifactId>
 </dependency>
 <dependency>
 <groupId>org.apache.commons</groupId>
@@ -159,8 +158,8 @@ public class DemoMsgDelayListener implements MsgDelayListener<String> {
     @Override
     public void onMessage(Message<String> message) {
         String body = message.getBody();
-        log.info("接收消息: {}", message.getRequestId());
-        //  throw new RuntimeException("DemoMsgDelayListener test");
+      log.info("接收消息: {}", message.getRequestId());
+      // throw new RuntimeException("DemoMsgDelayListener test");
     }
 }
 ```
@@ -225,7 +224,7 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
 
 启动springboot-demo访问http://localhost:8080/index.html
 
-<img src="./doc/picture/event_send.jpg" alt="event_send" style="zoom:50%;margin-left: 0px;" />
+<img src="./doc/picture/event_send.jpg" alt="event_send" style="zoom: 33%; margin-left: 0px;" />
 
 ## 注意事项
 
