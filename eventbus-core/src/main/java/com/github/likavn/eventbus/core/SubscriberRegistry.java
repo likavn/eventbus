@@ -1,3 +1,18 @@
+/**
+ * Copyright 2023-2033, likavn (likavn@163.com).
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
@@ -18,11 +33,9 @@ import com.github.likavn.eventbus.core.utils.Func;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -96,7 +109,8 @@ public class SubscriberRegistry {
         }
 
         // 注解实现的消息订阅器
-        registerAnnotationListeners(obj);
+        Method[] methods = obj.getClass().getDeclaredMethods();
+        registerAnnotationListeners(obj, Arrays.asList(methods));
     }
 
     /**
@@ -135,63 +149,68 @@ public class SubscriberRegistry {
     /**
      * 注册注解实现的消息订阅器
      *
-     * @param obj 实例
+     * @param obj     实例对象
+     * @param methods 方法列表
      **/
-    private void registerAnnotationListeners(Object obj) {
-        boolean isCreated = false;
-        // 遍历对象的类方法集合
-        for (Method method : obj.getClass().getDeclaredMethods()) {
-            // 获取方法上的Subscribe注解和SubscribeDelay注解
+    private void registerAnnotationListeners(Object obj, List<Method> methods) {
+        AtomicBoolean isCreated = new AtomicBoolean(false);
+        // 遍历方法列表
+        methods.stream().filter(method -> {
+            // 获取注解
             Subscribe subscribe = method.getAnnotation(Subscribe.class);
             SubscribeDelay subscribeDelay = method.getAnnotation(SubscribeDelay.class);
 
-            // 如果注解都为空，则继续下一个方法
+            // 判断注解是否存在
             if (null == subscribe && null == subscribeDelay) {
-                continue;
+                return false;
             }
 
-            // 确保一个订阅器类只有一个订阅器
-            Assert.isTrue(!isCreated, String.format("存在重复的订阅器，一个订阅器类只能存在一个，class：%s", obj.getClass()));
-            isCreated = true;
-
-            // 创建触发器对象
+            // 判断是否已经创建过订阅器
+            Assert.isTrue(!isCreated.get(), String.format("存在重复的订阅器，一个订阅器类只能存在一个，class：%s", obj.getClass()));
+            isCreated.set(true);
+            return true;
+        }).forEach(method -> {
+            // 创建触发器
             Trigger trigger = Trigger.of(obj, method);
 
-            // 订阅器类型
             MsgType msgType = MsgType.DELAY;
             String serviceId = config.getServiceId();
             Fail fail;
-            String[] codes;
-            // 判断是否有Subscribe注解
+            List<String> codes;
+            // 获取注解
+            Subscribe subscribe = method.getAnnotation(Subscribe.class);
             if (null != subscribe) {
                 msgType = MsgType.TIMELY;
 
-                // 从注解中获取serviceId
+                // 如果注解中指定了serviceId，则使用注解中的值
                 if (!Func.isEmpty(subscribe.serviceId())) {
                     serviceId = subscribe.serviceId();
                 }
 
                 fail = subscribe.fail();
-                codes = subscribe.codes();
+                codes = Arrays.asList(subscribe.codes());
             } else {
-                // 从注解SubscribeDelay中获取投递异常处理
+                // 获取注解
+                SubscribeDelay subscribeDelay = method.getAnnotation(SubscribeDelay.class);
                 fail = subscribeDelay.fail();
-                codes = subscribeDelay.codes();
+                codes = Arrays.asList(subscribeDelay.codes());
             }
 
-            // 判断是否需要失败触发器
             FailTrigger failTrigger = Func.isEmpty(fail.callMethod()) ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
 
-            // 遍历code数组，创建Subscriber对象并存入相应的Map中
+            // 遍历代码列表
             for (String code : codes) {
+                // 创建订阅者
                 Subscriber subscriber = new Subscriber(serviceId, code, msgType, trigger, failTrigger);
                 if (msgType.isTimely()) {
+                    // 添加到定时触发器订阅者映射表中
                     putSubscriberMap(subscriber);
                 } else {
+                    // 添加到延迟触发器订阅者映射表中
                     putSubscriberDelayMap(subscriber);
                 }
             }
-        }
+        });
     }
 
 

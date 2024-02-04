@@ -1,3 +1,18 @@
+/**
+ * Copyright 2023-2033, likavn (likavn@163.com).
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.base.Lifecycle;
@@ -8,6 +23,7 @@ import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 import com.github.likavn.eventbus.provider.redis.support.RedisSubscriber;
+import com.github.likavn.eventbus.schedule.CronTask;
 import com.github.likavn.eventbus.schedule.ScheduledTaskRegistry;
 import com.github.likavn.eventbus.schedule.Task;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +47,7 @@ import java.util.stream.Collectors;
  * @date 2024/1/4
  **/
 @Slf4j
-public class RedisPendingMsgResendTask implements Lifecycle {
+public class RedisPendingMsgResendTask extends CronTask implements Lifecycle {
     private static final long POLLING_INTERVAL = 35L;
     private static final String CRON = POLLING_INTERVAL + " * * * * ?";
     private final BusProperties busProperties;
@@ -51,6 +67,7 @@ public class RedisPendingMsgResendTask implements Lifecycle {
                                      BusProperties busProperties, List<Subscriber> subscribers,
                                      RLock rLock,
                                      RedisMsgSender msgSender) {
+        super(RedisPendingMsgResendTask.class.getName(), CRON);
         // 一分钟执行一次,这里选择每分钟的35秒执行，是为了避免整点任务过多的问题
         this.stringRedisTemplate = stringRedisTemplate;
         this.scheduledTaskRegistry = scheduledTaskRegistry;
@@ -69,12 +86,16 @@ public class RedisPendingMsgResendTask implements Lifecycle {
 
     @Override
     public void register() {
-        if (null == this.task) {
-            this.task = new Task(this.getClass().getName(), CRON, () -> pendingMessagesResendExecute(this.redisSubscribers));
-            scheduledTaskRegistry.createTask(this.task);
+        if (!scheduledTaskRegistry.containsTask(this)) {
+            scheduledTaskRegistry.createTask(this);
             return;
         }
-        this.scheduledTaskRegistry.restart(task);
+        this.scheduledTaskRegistry.restart(this);
+    }
+
+    @Override
+    public void run() {
+        pendingMessagesResendExecute(this.redisSubscribers);
     }
 
     /**
@@ -158,6 +179,6 @@ public class RedisPendingMsgResendTask implements Lifecycle {
 
     @Override
     public void destroy() {
-        this.scheduledTaskRegistry.pause(task);
+        this.scheduledTaskRegistry.pause(this);
     }
 }

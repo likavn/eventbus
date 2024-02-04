@@ -39,8 +39,8 @@ while pollCount >= 0 do
 end
 
 --- 下个消息的过期时间
-local v = redis.call('zrange', delayKey, 0, 0, 'WITHSCORES');
+local v = redis.call('zrange', delayKey, 0, 0, 'withscores');
 if v[1] ~= nil then
-    return v[2];
+    return tonumber(v[2]);
 end
 return nil;

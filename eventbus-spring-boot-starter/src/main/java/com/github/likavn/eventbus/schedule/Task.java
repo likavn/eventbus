@@ -1,9 +1,21 @@
+/**
+ * Copyright 2023-2033, likavn (likavn@163.com).
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.likavn.eventbus.schedule;
 
 import lombok.Data;
-
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 任务类，实现了Runnable接口
@@ -12,65 +24,25 @@ import java.util.concurrent.TimeUnit;
  * @date 2024/1/11
  **/
 @Data
-public class Task implements Runnable {
+public abstract class Task implements Runnable {
     /**
      * 任务名称
      */
-    private String name;
-    /**
-     * 任务的cron表达式
-     */
-    private String cron;
-    /**
-     * 任务的周期
-     */
-    private long period;
-    /**
-     * 任务的时间单位
-     */
-    private TimeUnit timeUnit;
+    protected String name;
     /**
      * 任务的结果回调
      */
-    private Runnable result;
+    protected Runnable execute;
 
     /**
      * 构造方法一：通过任务名称、cron表达式和结果回调创建任务
      *
-     * @param name   任务名称
-     * @param cron   任务的cron表达式
-     * @param result 任务的结果回调
+     * @param name    任务名称
+     * @param execute 任务的结果回调
      */
-    public Task(String name, String cron, Runnable result) {
+    public Task(String name, Runnable execute) {
         this.name = name;
-        this.cron = cron;
-        this.result = result;
-    }
-
-    /**
-     * 构造方法二：通过任务名称、周期和结果回调创建任务
-     *
-     * @param name   任务名称
-     * @param period 任务的周期
-     * @param result 任务的结果回调
-     */
-    public Task(String name, long period, Runnable result) {
-        this(name, period, TimeUnit.MILLISECONDS, result);
-    }
-
-    /**
-     * 构造方法三：通过任务名称、周期和时间单位创建任务
-     *
-     * @param name     任务名称
-     * @param period   任务的周期
-     * @param timeUnit 任务的时间单位
-     * @param result   任务的结果回调
-     */
-    public Task(String name, long period, TimeUnit timeUnit, Runnable result) {
-        this.name = name;
-        this.period = period;
-        this.timeUnit = timeUnit;
-        this.result = result;
+        this.execute = execute;
     }
 
     /**
@@ -78,34 +50,8 @@ public class Task implements Runnable {
      */
     @Override
     public void run() {
-        result.run();
-    }
-
-    /**
-     * 重写equals方法，用于判断两个任务是否相等
-     *
-     * @param o 待比较的对象
-     * @return 若对象相等，则返回true，否则返回false
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
+        if (null != execute) {
+            execute.run();
         }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Task task = (Task) o;
-        return name.equals(task.name);
-    }
-
-    /**
-     * 重写hashCode方法，用于计算任务的哈希值
-     *
-     * @return 任务的哈希值
-     */
-    @Override
-    public int hashCode() {
-        return Objects.hash(name);
     }
 }

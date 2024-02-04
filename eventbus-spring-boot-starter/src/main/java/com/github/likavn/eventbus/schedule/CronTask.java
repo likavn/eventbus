@@ -13,22 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.api.interceptor;
+package com.github.likavn.eventbus.schedule;
 
-import com.github.likavn.eventbus.core.metadata.data.Request;
+import lombok.Getter;
 
 /**
- * 发送后全局拦截器
+ * 定时任务
  *
  * @author likavn
- * @date 2024/01/01
+ * @date 2024/2/4
  **/
-public interface SendAfterInterceptor {
-
+@Getter
+public class CronTask extends Task {
     /**
-     * 拦截器执行
-     *
-     * @param request request
+     * 任务的cron表达式
      */
-    void execute(Request<String> request);
+    private String cron;
+
+    public CronTask(String name, String cron) {
+        super(name, null);
+        this.cron = cron;
+    }
+
+    public CronTask(String name, String cron, Runnable execute) {
+        super(name, execute);
+        this.cron = cron;
+    }
+
 }

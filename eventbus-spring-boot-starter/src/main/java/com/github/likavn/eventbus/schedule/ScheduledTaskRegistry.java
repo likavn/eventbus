@@ -1,3 +1,18 @@
+/**
+ * Copyright 2023-2033, likavn (likavn@163.com).
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.likavn.eventbus.schedule;
 
 import com.github.likavn.eventbus.core.utils.Assert;
@@ -6,7 +21,6 @@ import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.PeriodicTrigger;
-import org.springframework.util.StringUtils;
 
 import java.util.Collection;
 import java.util.Map;
@@ -48,6 +62,20 @@ public class ScheduledTaskRegistry {
         register.put(task.getName(), holder);
     }
 
+    /**
+     * 判断任务是否存在
+     */
+    public boolean containsTask(Task task) {
+        return register.containsKey(task.getName());
+    }
+
+    /**
+     * 获取任务
+     */
+    public Task getTask(String taskName) {
+        ScheduledTaskHolder holder = register.get(taskName);
+        return null == holder ? null : holder.getTask();
+    }
 
     /**
      * 查询所有任务
@@ -89,6 +117,15 @@ public class ScheduledTaskRegistry {
      */
     private Trigger createTrigger(Task task) {
         Assert.notNull(task, "任务不能为空");
-        return StringUtils.hasText(task.getCron()) ? new CronTrigger(task.getCron()) : new PeriodicTrigger(task.getPeriod(), task.getTimeUnit());
+        // cron任务
+        if (task instanceof CronTask) {
+            return new CronTrigger(((CronTask) task).getCron());
+        }
+        // 周期任务
+        else if (task instanceof PeriodTask) {
+            PeriodTask periodTask = (PeriodTask) task;
+            return new PeriodicTrigger(periodTask.getPeriod(), periodTask.getTimeUnit());
+        }
+        throw new IllegalArgumentException("任务类型不支持");
     }
 }

@@ -1,3 +1,18 @@
+/**
+ * Copyright 2023-2033, likavn (likavn@163.com).
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.likavn.eventbus.provider.redis.config;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
@@ -38,11 +53,6 @@ public class BusBootRedisConfig {
         return new StringRedisTemplate(connectionFactory);
     }
 
-    @Bean
-    public RedisMsgSender msgSender(StringRedisTemplate busStringRedisTemplate, BusConfig config, InterceptorConfig interceptorConfig) {
-        return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig);
-    }
-
     /**
      * redis锁脚本
      */
@@ -51,6 +61,17 @@ public class BusBootRedisConfig {
         DefaultRedisScript<Boolean> redisScript = new DefaultRedisScript<>();
         redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("script/lock.lua")));
         redisScript.setResultType(Boolean.class);
+        return redisScript;
+    }
+
+    /**
+     * redis 延时消息添加脚本
+     */
+    @Bean
+    public DefaultRedisScript<Long> zsetAddRedisScript() {
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("script/zsetAdd.lua")));
+        redisScript.setResultType(Long.class);
         return redisScript;
     }
 
@@ -77,7 +98,6 @@ public class BusBootRedisConfig {
         return new RedisMsgSubscribeListener(busStringRedisTemplate, busProperties, registry.getSubscribers(), deliveryBus);
     }
 
-
     @Bean
     public ThreadPoolTaskScheduler busThreadPoolTaskScheduler() {
         ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
@@ -97,6 +117,15 @@ public class BusBootRedisConfig {
             StringRedisTemplate stringRedisTemplate, ScheduledTaskRegistry taskRegistry,
             BusProperties busProperties, DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
         return new RedisMsgDelayListener(stringRedisTemplate, taskRegistry, busProperties, pushMsgStreamRedisScript, rLock, deliveryBus);
+    }
+
+    @Bean
+    public RedisMsgSender msgSender(StringRedisTemplate busStringRedisTemplate,
+                                    BusConfig config,
+                                    InterceptorConfig interceptorConfig,
+                                    DefaultRedisScript<Long> zsetAddRedisScript,
+                                    ScheduledTaskRegistry taskRegistry) {
+        return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig, zsetAddRedisScript, taskRegistry);
     }
 
     @Bean

@@ -1,3 +1,18 @@
+/**
+ * Copyright 2023-2033, likavn (likavn@163.com).
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
@@ -82,26 +97,28 @@ public class DeliveryBus {
      */
     @SuppressWarnings("all")
     public void deliverDelay(Request request) {
+        // 获取延时订阅者
         Subscriber subscriber = registry.getSubscriberDelay(request);
+        if (null != subscriber) {
+            // 如果触发器的调用对象是DefaultMsgDelayListener
+            if (subscriber.getTrigger()
+                    .getInvokeBean() instanceof DefaultMsgDelayListener) {
+                // 如果消息类型是延时消息，则获取对应的延时订阅者
+                if (MsgType.DELAY == request.getType()) {
+                    subscriber = registry.getSubscriberDelay(request.getCode());
+                } else {
+                    // 否则获取对应的订阅者
+                    subscriber = registry.getSubscriber(request.getDeliverId());
+                }
+            }
+        }
+
+        // 如果订阅者为空，则打印错误日志并返回
         if (null == subscriber) {
             log.error("delay msg handler not found class={}", request.getDelayListener().getName());
             return;
         }
-
-        // 默认延时消息，不走延时处理器
-        if (subscriber.getTrigger()
-                .getInvokeBean() instanceof DefaultMsgDelayListener) {
-            // 延时消息
-            if (MsgType.DELAY == request.getType()) {
-                subscriber = registry.getSubscriberDelay(request.getCode());
-            } else {
-                subscriber = registry.getSubscriber(request.getDeliverId());
-            }
-            if (null == subscriber) {
-                log.error("deliver code={} msg Missing subscriber!", request.getCode());
-                return;
-            }
-        }
+        // 交付消息给订阅者
         deliver(subscriber, request);
     }
 
@@ -118,10 +135,9 @@ public class DeliveryBus {
         }
         try {
             trigger.invoke(request);
-            // 投递成功 拦截器
             interceptorConfig.deliverSuccessExecute(request);
-        } catch (Throwable throwable) {
-            failHandle(subscriber, request, throwable);
+        } catch (Exception exception) {
+            failHandle(subscriber, request, exception);
         }
     }
 
@@ -163,7 +179,7 @@ public class DeliveryBus {
 
             // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
             interceptorConfig.deliverThrowableExecute(request, throwable);
-        } catch (Throwable var2) {
+        } catch (Exception var2) {
             // 捕获异常并记录错误日志
             log.error("deliveryBus.failHandle error", var2);
         }
