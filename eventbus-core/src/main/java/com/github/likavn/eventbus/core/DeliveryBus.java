@@ -55,21 +55,40 @@ public class DeliveryBus {
     }
 
     /**
-     * 接收
+     * 发送及时消息给订阅者
      *
-     * @param body body
+     * @param subscriber 订阅者
+     * @param body       内容的主体
      */
-    public void deliver(Subscriber subscriber, byte[] body) {
-        deliver(subscriber, Func.convertByBytes(body));
+    public void deliverTimely(Subscriber subscriber, byte[] body) {
+        deliverTimely(subscriber, Func.convertByBytes(body));
     }
 
     /**
-     * 接收
+     * 发送及时消息给订阅者
      *
-     * @param body body
+     * @param subscriber 订阅者
+     * @param body       内容的主体
      */
-    public void deliver(Subscriber subscriber, String body) {
-        deliver(subscriber, Func.convertByJson(body));
+    public void deliverTimely(Subscriber subscriber, String body) {
+        deliverTimely(subscriber, Func.convertByJson(body));
+    }
+
+    /**
+     * 发送及时消息给订阅者
+     *
+     * @param subscriber 订阅者
+     * @param request    请求对象
+     */
+    public void deliverTimely(Subscriber subscriber, Request<?> request) {
+        if (null != request.getDeliverId()) {
+            // 判断当前订阅者是否等于消息投递ID
+            if (!subscriber.getTrigger().getDeliverId().equals(request.getDeliverId())) {
+                return;
+            }
+        }
+        // 发送消息给订阅者
+        deliver(subscriber, request);
     }
 
     /**
@@ -125,7 +144,7 @@ public class DeliveryBus {
     /**
      * 投递消息
      */
-    public void deliver(Subscriber subscriber, Request<?> request) {
+    private void deliver(Subscriber subscriber, Request<?> request) {
         Trigger trigger = subscriber.getTrigger();
         if (null == request.getDeliverId()) {
             request.setDeliverId(trigger.getDeliverId());

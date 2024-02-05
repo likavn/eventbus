@@ -29,3 +29,5 @@ eventbus:
   #type: rabbitmq
   test-connect:
     loseConnectMaxMilliSecond: 40
+  redis:
+    deliver-timeout: 70

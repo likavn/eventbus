@@ -45,9 +45,9 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     /**
      * 轮询时间间隔，单位：毫秒
      */
-    private static final long POLL_MILLIS = 500L;
+    private static final long POLL_MILLIS = 200L;
     /**
-     * 轮询时间间隔，单位：毫秒
+     * 最大轮询时间间隔，单位：毫秒
      */
     private static final long MAX_POLL_MILLIS = 1000L * 5;
     /**
@@ -151,6 +151,8 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     public void destroy() {
         super.destroy();
         // 任务重启
-        scheduledTaskRegistry.pause(task);
+        if (null != task) {
+            scheduledTaskRegistry.pause(task);
+        }
     }
 }

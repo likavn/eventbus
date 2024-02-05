@@ -125,6 +125,9 @@ public final class Func {
 
     @SuppressWarnings("all")
     public void resetPool(ThreadPoolExecutor poolExecutor) {
+        if (null == poolExecutor) {
+            return;
+        }
         for (Future f : poolExecutor.getQueue().toArray(new Future[0])) {
             f.cancel(true);
         }

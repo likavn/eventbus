@@ -57,7 +57,7 @@ public class RedisMsgSubscribeListener extends AbstractStreamListenerContainer {
 
     @Override
     protected void deliver(RedisSubscriber subscriber, Record<String, String> msg) {
-        deliveryBus.deliver(subscriber, msg.getValue());
+        deliveryBus.deliverTimely(subscriber, msg.getValue());
         stringRedisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), msg.getId());
     }
 }

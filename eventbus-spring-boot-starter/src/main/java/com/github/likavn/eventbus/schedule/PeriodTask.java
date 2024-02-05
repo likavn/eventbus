@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 @Getter
 public class PeriodTask extends Task {
     /**
-     * 轮询时间间隔，单位：毫秒
+     * 最大轮询时间间隔，单位：毫秒
      */
     private static final long MAX_POLL_MILLIS = 1000L * 5;
     /**

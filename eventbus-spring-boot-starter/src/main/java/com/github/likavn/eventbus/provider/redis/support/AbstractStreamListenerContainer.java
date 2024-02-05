@@ -129,7 +129,9 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
 
     @Override
     public void destroy() {
-        listenerContainer.stop();
+        if (null != listenerContainer) {
+            listenerContainer.stop();
+        }
         Func.resetPool(listenerExecutor);
     }
 

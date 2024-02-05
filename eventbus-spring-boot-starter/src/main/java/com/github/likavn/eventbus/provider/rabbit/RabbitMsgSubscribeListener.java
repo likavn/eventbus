@@ -94,7 +94,7 @@ public class RabbitMsgSubscribeListener extends AbstractCachingConnectionContain
                                        byte[] body) throws IOException {
                 String oldName = Func.reThreadName(BusConstant.SUBSCRIBE_MSG_THREAD_NAME);
                 try {
-                    deliveryBus.deliver(subscriber, body);
+                    deliveryBus.deliverTimely(subscriber, body);
                     channel.basicAck(envelope.getDeliveryTag(), false);
                 } catch (Exception ex) {
                     logger.error("createConsumer", ex);
