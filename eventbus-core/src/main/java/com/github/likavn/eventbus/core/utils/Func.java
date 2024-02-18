@@ -25,7 +25,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -39,7 +41,20 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Slf4j
 @UtilityClass
 public final class Func {
-    private String HOST_NAME = null;
+    /**
+     * 代理 class 的名称
+     */
+    private static final List<String> PROXY_CLASS_NAMES = new ArrayList<>(4);
+    private static String HOST_NAME = null;
+
+    static {
+        // cglib
+        PROXY_CLASS_NAMES.add("CGLIB$$");
+        PROXY_CLASS_NAMES.add("cglib$$");
+        // javassist
+        PROXY_CLASS_NAMES.add("$$_JAVASSIST");
+        PROXY_CLASS_NAMES.add("$$_javassist");
+    }
 
     /**
      * toJson
@@ -132,6 +147,31 @@ public final class Func {
             f.cancel(true);
         }
         poolExecutor.purge();
+    }
+
+    /**
+     * 获取原始类型
+     *
+     * @param obj 传入对象
+     * @return 原始类型
+     */
+    public static Class<?> primitiveClass(Object obj) {
+        return isProxy(obj.getClass()) ? obj.getClass().getSuperclass() : obj.getClass();
+    }
+
+    /**
+     * 判断是否为代理对象
+     *
+     * @param clazz 传入 class 对象
+     * @return 如果对象class是代理 class，返回 true
+     */
+    private static boolean isProxy(Class<?> clazz) {
+        for (String proxyClassName : PROXY_CLASS_NAMES) {
+            if (clazz.getName().contains(proxyClassName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

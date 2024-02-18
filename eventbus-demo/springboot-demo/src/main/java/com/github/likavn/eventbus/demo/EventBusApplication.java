@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 /**
  * EventBusDemo
@@ -12,6 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @Slf4j
 @SpringBootApplication
+@EnableAspectJAutoProxy(exposeProxy = true)
 @SuppressWarnings("all")
 public class EventBusApplication extends SpringApplication {
     private static final EventBusApplication that = new EventBusApplication(EventBusApplication.class);

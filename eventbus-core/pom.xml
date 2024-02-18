@@ -9,6 +9,33 @@
         <version>2.0</version>
     </parent>
     <artifactId>eventbus-core</artifactId>
-    <description>eventbus核心包</description>
     <packaging>jar</packaging>
+    <description>eventbus核心包</description>
+    <properties>
+        <slf4j.version>1.7.30</slf4j.version>
+        <jackson.version>2.0.43</jackson.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-pool2</artifactId>
+                <version>2.8.1</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

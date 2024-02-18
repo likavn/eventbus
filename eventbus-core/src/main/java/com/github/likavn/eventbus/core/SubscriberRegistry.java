@@ -118,13 +118,21 @@ public class SubscriberRegistry {
      *
      * @param obj 实例
      */
+    @SuppressWarnings("all")
     private void registerInterfaceListeners(Object obj) {
-        Trigger trigger = getTrigger(obj, BusConstant.ON_MESSAGE);
-        Fail fail = trigger.getMethod().getAnnotation(Fail.class);
+        // 获取对象的原始类型（存在代理类的情况）
+        Class<?> primitiveClass = Func.primitiveClass(obj);
+        Method primitiveMethod = getMethod(primitiveClass, BusConstant.ON_MESSAGE);
+        if (null == primitiveMethod) {
+            return;
+        }
+        Fail fail = primitiveMethod.getAnnotation(Fail.class);
         if (null == fail) {
-            fail = obj.getClass().getAnnotation(Fail.class);
+            fail = primitiveClass.getAnnotation(Fail.class);
         }
         FailTrigger failTrigger = null == fail ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
+        // 获取触发器
+        Trigger trigger = getTrigger(obj, BusConstant.ON_MESSAGE);
         // 接口实现的及时消息订阅器
         if (obj instanceof MsgSubscribeListener) {
             MsgSubscribeListener<?> listener = (MsgSubscribeListener<?>) obj;
@@ -136,13 +144,12 @@ public class SubscriberRegistry {
         }
         // 接口实现的延时消息处理器
         else {
-            MsgDelayListener<?> listener = (MsgDelayListener<?>) obj;
             Subscriber subscriber = new Subscriber();
             subscriber.setServiceId(config.getServiceId());
             subscriber.setType(MsgType.DELAY);
             subscriber.setTrigger(trigger);
             subscriber.setFailTrigger(failTrigger);
-            msgDelayListenerMap.put(listener.getClass(), subscriber);
+            msgDelayListenerMap.put((Class<? extends MsgDelayListener>) primitiveClass, subscriber);
         }
     }
 
@@ -153,12 +160,17 @@ public class SubscriberRegistry {
      * @param methods 方法列表
      **/
     private void registerAnnotationListeners(Object obj, List<Method> methods) {
+        Class<?> primitiveClass = Func.primitiveClass(obj);
         AtomicBoolean isCreated = new AtomicBoolean(false);
         // 遍历方法列表
         methods.stream().filter(method -> {
+            Method primitiveMethod = getMethod(primitiveClass, method.getName());
+            if (null == primitiveMethod) {
+                return false;
+            }
             // 获取注解
-            Subscribe subscribe = method.getAnnotation(Subscribe.class);
-            SubscribeDelay subscribeDelay = method.getAnnotation(SubscribeDelay.class);
+            Subscribe subscribe = primitiveMethod.getAnnotation(Subscribe.class);
+            SubscribeDelay subscribeDelay = primitiveMethod.getAnnotation(SubscribeDelay.class);
 
             // 判断注解是否存在
             if (null == subscribe && null == subscribeDelay) {
@@ -170,6 +182,7 @@ public class SubscriberRegistry {
             isCreated.set(true);
             return true;
         }).forEach(method -> {
+            Method primitiveMethod = getMethod(primitiveClass, method.getName());
             // 创建触发器
             Trigger trigger = Trigger.of(obj, method);
 
@@ -178,7 +191,7 @@ public class SubscriberRegistry {
             Fail fail;
             List<String> codes;
             // 获取注解
-            Subscribe subscribe = method.getAnnotation(Subscribe.class);
+            Subscribe subscribe = primitiveMethod.getAnnotation(Subscribe.class);
             if (null != subscribe) {
                 msgType = MsgType.TIMELY;
 
@@ -191,7 +204,7 @@ public class SubscriberRegistry {
                 codes = Arrays.asList(subscribe.codes());
             } else {
                 // 获取注解
-                SubscribeDelay subscribeDelay = method.getAnnotation(SubscribeDelay.class);
+                SubscribeDelay subscribeDelay = primitiveMethod.getAnnotation(SubscribeDelay.class);
                 fail = subscribeDelay.fail();
                 codes = Arrays.asList(subscribeDelay.codes());
             }
@@ -249,7 +262,17 @@ public class SubscriberRegistry {
      * @return tg
      */
     private Trigger getTrigger(Object obj, String methodName) {
-        Class<?> cla = obj.getClass();
+        return Trigger.of(obj, getMethod(obj.getClass(), methodName));
+    }
+
+    /**
+     * 获取触发器
+     *
+     * @param cla        cla
+     * @param methodName method name
+     * @return mt
+     */
+    private Method getMethod(Class<?> cla, String methodName) {
         Method method = null;
         for (Method mt : cla.getMethods()) {
             if (mt.getName().equals(methodName)) {
@@ -257,8 +280,7 @@ public class SubscriberRegistry {
                 break;
             }
         }
-        Assert.notNull(method, cla.getName() + " Miss method " + methodName);
-        return Trigger.of(obj, method);
+        return method;
     }
 
     /**

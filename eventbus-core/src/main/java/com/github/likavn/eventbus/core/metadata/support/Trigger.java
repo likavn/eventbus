@@ -86,7 +86,7 @@ public class Trigger {
      * 投递ID
      */
     public String getDeliverId() {
-        return String.format("%s#%s", invokeBean.getClass().getName(), method.getName());
+        return String.format("%s#%s", (Func.primitiveClass(invokeBean)).getName(), method.getName());
     }
 
     /**

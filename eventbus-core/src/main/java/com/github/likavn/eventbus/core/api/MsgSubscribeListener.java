@@ -17,7 +17,7 @@ package com.github.likavn.eventbus.core.api;
 
 import com.github.likavn.eventbus.core.metadata.data.Message;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -40,10 +40,10 @@ public abstract class MsgSubscribeListener<T> {
     /**
      * 构造器
      *
-     * @param codes 消息编码
+     * @param code 消息编码
      */
-    protected MsgSubscribeListener(String... codes) {
-        this(Arrays.asList(codes));
+    protected MsgSubscribeListener(String code) {
+        this(Collections.singletonList(code));
     }
 
     /**
