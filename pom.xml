@@ -4,16 +4,21 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.likavn</groupId>
-    <artifactId>notify-spring-boot-starter</artifactId>
-    <version>1.6.2</version>
-    <name>notify-spring-boot-starter</name>
-    <url>https://github.com/likavn/notify-spring-boot-starter</url>
+    <artifactId>eventbus</artifactId>
+    <packaging>pom</packaging>
+    <version>2.0</version>
+    <modules>
+        <module>eventbus-core</module>
+        <module>eventbus-spring-boot-starter</module>
+    </modules>
+    <name>eventbus</name>
+    <url>https://github.com/likavn/eventbus</url>
     <description>
-        notify-spring-boot-starter消息组件是用来将分布式系统的节点与轻量级消息系统连接起来的框架，
-        支持分布式业务消息总线、延时消息等，屏蔽底层消息引擎种类，提供线上统一的接口，
-        可发送异步消息及延时消息，同时可订阅异步消息或延时消息。目前可选择基于redis、rabbitmq等任一一种做消息引擎，其他消息中间件将陆续支持。
+        notify-spring-boot-starter消息组件，支持分布式业务消息总线、消息广播、延时消息等，屏蔽底层不同种类的消息引擎，
+        提供统一调用接口，可发送异步消息及延时消息，同时可订阅异步消息或延时消息，降低系统耦合度。
+        目前可选择基于redis、rabbitmq等任一一种做消息引擎，其他消息中间件将被陆续支持。
 
-        注意：它不属于`消息中间件`，他是通过和消息中间件整合，来完成服务之间消息通讯，类似于消息代理。
+        注意：它不属于消息中间件，他是通过和消息中间件整合，来完成服务之间消息通讯，类似于消息代理。
     </description>
 
     <developers>
@@ -33,65 +38,28 @@
     </licenses>
 
     <scm>
-        <connection>https://github.com/likavn/notify-spring-boot-starter.git</connection>
-        <developerConnection>https://github.com/likavn/notify-spring-boot-starter.git</developerConnection>
-        <url>https://github.com/likavn/notify-spring-boot-starter</url>
+        <connection>https://github.com/likavn/eventbus.git</connection>
+        <developerConnection>https://github.com/likavn/eventbus.git</developerConnection>
+        <url>https://github.com/likavn/eventbus</url>
     </scm>
 
     <properties>
+        <revision>2.1</revision>
         <!--maven配置信息-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <!--SpringBoot版本-->
-        <spring-boot.version>2.5.15</spring-boot.version>
-        <jackson.version>2.11.4</jackson.version>
+        <lombok.version>1.18.26</lombok.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-            <version>1.2.83</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
     </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <!-- spring boot 版本控制 -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <repositories>
         <!--阿里云私服-->
@@ -143,19 +111,6 @@
     </profiles>
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <encoding>utf-8</encoding>
-                    <source>8</source>
-                    <target>8</target>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
