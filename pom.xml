@@ -10,6 +10,7 @@
     <modules>
         <module>eventbus-core</module>
         <module>eventbus-spring-boot-starter</module>
+        <module>eventbus-demo</module>
     </modules>
     <name>eventbus</name>
     <url>https://github.com/likavn/eventbus</url>
@@ -44,7 +45,7 @@
     </scm>
 
     <properties>
-        <revision>2.1</revision>
+        <revision>2.0</revision>
         <!--maven配置信息-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
