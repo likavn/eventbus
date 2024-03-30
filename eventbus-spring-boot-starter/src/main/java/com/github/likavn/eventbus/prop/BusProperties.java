@@ -81,8 +81,12 @@ public class BusProperties {
          */
         private Integer batchSize = 100;
         /**
-         * 待确认消息一次性最多拉取多少条消息数据
+         * 每次最多拉取多少条待确认消息数据
          */
-        private Integer pendingMessagesBatchSize = 10000;
+        private Integer pendingMessagesBatchSize = 100;
+        /**
+         * stream 过期时间，单位：小时，默认 7 天
+         */
+        private Long streamExpiredHours = 24 * 7L;
     }
 }

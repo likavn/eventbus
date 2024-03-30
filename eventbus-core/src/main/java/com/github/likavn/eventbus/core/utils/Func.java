@@ -18,13 +18,11 @@ package com.github.likavn.eventbus.core.utils;
 import com.alibaba.fastjson.JSONValidator;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONReader;
-import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -45,7 +43,6 @@ public final class Func {
      * 代理 class 的名称
      */
     private static final List<String> PROXY_CLASS_NAMES = new ArrayList<>(4);
-    private static String HOST_NAME = null;
 
     static {
         // cglib
@@ -180,14 +177,17 @@ public final class Func {
      * @return 主机名
      */
     public synchronized String getHostName() {
-        if (null == HOST_NAME) {
-            try {
-                HOST_NAME = InetAddress.getLocalHost().getHostName();
-            } catch (UnknownHostException e) {
-                throw new EventBusException(e);
-            }
-        }
-        return HOST_NAME;
+        return NetUtil.getHostName();
+    }
+
+    /**
+     * 获取进程号
+     *
+     * @return 进程号
+     */
+    public String getPid() {
+        String pid = ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
+        return isEmpty(pid) ? "" : pid;
     }
 
     public String getTopic(String serviceId, String code) {

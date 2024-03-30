@@ -34,6 +34,7 @@ public class DemoController {
     public R<Boolean> trigger(@PathVariable("type") Integer type,
                               @PathVariable("count") Long count, @PathParam("delayTime") Long delayTime, @RequestBody String msg) {
         try {
+            long l = System.currentTimeMillis();
             log.info("发送消息数量count={}条,msg={}", count, msg);
             Assert.notEmpty(msg, "msg不能为空");
             for (int i = 0; i < count; i++) {
@@ -54,7 +55,7 @@ public class DemoController {
                         log.error("发送失败...");
                 }
             }
-            log.info("发送成功...");
+            log.info("发送成功，耗时{}ms...", System.currentTimeMillis() - l);
             return R.ok(Boolean.TRUE);
         } catch (Exception e) {
             log.error("DemoController.trigger", e);

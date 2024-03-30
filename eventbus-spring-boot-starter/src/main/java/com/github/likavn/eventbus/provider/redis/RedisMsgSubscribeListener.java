@@ -19,7 +19,6 @@ import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.prop.BusProperties;
-import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 import com.github.likavn.eventbus.provider.redis.support.AbstractStreamListenerContainer;
 import com.github.likavn.eventbus.provider.redis.support.RedisSubscriber;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +26,6 @@ import org.springframework.data.redis.connection.stream.Record;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * redis消息监听器
@@ -46,8 +44,7 @@ public class RedisMsgSubscribeListener extends AbstractStreamListenerContainer {
                                      DeliveryBus deliveryBus) {
         super(stringRedisTemplate, busProperties, BusConstant.SUBSCRIBE_MSG_THREAD_NAME);
         this.deliveryBus = deliveryBus;
-        this.subscribers = subscribers.stream().map(t
-                -> new RedisSubscriber(t, RedisConstant.BUS_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
+        this.subscribers = RedisSubscriber.redisSubscriber(subscribers);
     }
 
     @Override
@@ -58,6 +55,6 @@ public class RedisMsgSubscribeListener extends AbstractStreamListenerContainer {
     @Override
     protected void deliver(RedisSubscriber subscriber, Record<String, String> msg) {
         deliveryBus.deliverTimely(subscriber, msg.getValue());
-        stringRedisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), msg.getId());
+        redisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), msg.getId());
     }
 }

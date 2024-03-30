@@ -42,6 +42,7 @@ nbdist/
 *.log
 *.xml.versionsBackup
 *.swp
+*.flattened-pom.xml
 
 !*/build/*.java
 !*/build/*.html

@@ -15,7 +15,13 @@
  */
 package com.github.likavn.eventbus.provider.redis.support;
 
+import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
+import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * redis消息订阅监听器消费者实体数据
@@ -47,5 +53,22 @@ public final class RedisSubscriber extends Subscriber {
 
     public String getGroup() {
         return group;
+    }
+
+    public static List<RedisSubscriber> fullRedisSubscriber(List<Subscriber> subscribers, String serviceId) {
+        List<RedisSubscriber> redisSubscribers = redisSubscriber(subscribers);
+
+        // 延时的消息订阅
+        redisSubscribers.addAll(redisDelaySubscriber(serviceId));
+        return redisSubscribers;
+    }
+
+    public static List<RedisSubscriber> redisSubscriber(List<Subscriber> subscribers) {
+        return subscribers.stream().map(t -> new RedisSubscriber(t, RedisConstant.BUS_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
+    }
+
+    public static List<RedisSubscriber> redisDelaySubscriber(String serviceId) {
+        Subscriber subscriberDelay = new Subscriber(serviceId, null, MsgType.DELAY);
+        return Collections.singletonList(new RedisSubscriber(subscriberDelay, RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX));
     }
 }

@@ -37,7 +37,7 @@ public abstract class AbstractCachingConnectionContainer implements Lifecycle {
     private Connection connection = null;
     private final List<Channel> channels = Collections.synchronizedList(new ArrayList<>());
 
-    public AbstractCachingConnectionContainer(CachingConnectionFactory connectionFactory) {
+    protected AbstractCachingConnectionContainer(CachingConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
     }
 

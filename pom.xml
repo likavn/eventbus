@@ -6,7 +6,7 @@
     <groupId>com.github.likavn</groupId>
     <artifactId>eventbus</artifactId>
     <packaging>pom</packaging>
-    <version>2.0</version>
+    <version>${revision}</version>
     <modules>
         <module>eventbus-core</module>
         <module>eventbus-spring-boot-starter</module>
@@ -15,10 +15,9 @@
     <name>eventbus</name>
     <url>https://github.com/likavn/eventbus</url>
     <description>
-        notify-spring-boot-starter消息组件，支持分布式业务消息总线、消息广播、延时消息等，屏蔽底层不同种类的消息引擎，
-        提供统一调用接口，可发送异步消息及延时消息，同时可订阅异步消息或延时消息，降低系统耦合度。
-        目前可选择基于redis、rabbitmq等任一一种做消息引擎，其他消息中间件将被陆续支持。
-
+        eventbus是分布式业务消息分发总线组件，支持广播及时消息、延时消息等。
+        通过屏蔽底层不同种类的消息引擎，提供统一的调用接口，可发送广播消息及延时消息，同时可订阅异步消息或延时消息，
+        有利于降低系统耦合度。目前可选择基于Redis、RabbitMQ等任一 一种做消息引擎，其他消息中间件将被陆续支持。
         注意：它不属于消息中间件，他是通过和消息中间件整合，来完成服务之间消息通讯，类似于消息代理。
     </description>
 
@@ -45,12 +44,16 @@
     </scm>
 
     <properties>
-        <revision>2.0</revision>
+        <revision>2.1.0-SNAPSHOT</revision>
         <!--maven配置信息-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.test.skip>true</maven.test.skip>
         <lombok.version>1.18.26</lombok.version>
+        <slf4j.version>1.7.30</slf4j.version>
+        <jackson.version>2.0.43</jackson.version>
+        <commons-pool2.version>2.8.1</commons-pool2.version>
     </properties>
 
     <dependencies>
@@ -61,55 +64,26 @@
             <optional>true</optional>
         </dependency>
     </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-pool2</artifactId>
+                <version>${commons-pool2.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
-    <repositories>
-        <!--阿里云私服-->
-        <repository>
-            <id>aliyun</id>
-            <name>aliyun</name>
-            <url>http://maven.aliyun.com/nexus/content/groups/public</url>
-        </repository>
-        <repository>
-            <id>central</id>
-            <name>Central Repository</name>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-    </repositories>
-
-    <profiles>
-        <profile>
-            <id>release</id>
-            <build>
-                <plugins>
-                    <!-- GPG -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.5</version>
-                        <executions>
-                            <execution>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-            <!-- 发布项目到 sonatype -->
-            <distributionManagement>
-                <snapshotRepository>
-                    <id>ossrh</id>
-                    <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-                </snapshotRepository>
-                <repository>
-                    <id>ossrh</id>
-                    <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-                </repository>
-            </distributionManagement>
-        </profile>
-    </profiles>
     <build>
         <plugins>
             <plugin>
@@ -172,6 +146,56 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.2.7</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten-clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+    <!-- 发布项目到 sonatype -->
+    <distributionManagement>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>releases</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
+
+    <repositories>
+        <!--阿里云私服-->
+        <repository>
+            <id>aliyun</id>
+            <name>aliyun</name>
+            <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+    </repositories>
 </project>

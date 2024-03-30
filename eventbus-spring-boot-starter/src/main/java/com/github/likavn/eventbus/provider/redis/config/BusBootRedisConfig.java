@@ -136,6 +136,13 @@ public class BusBootRedisConfig {
     }
 
     @Bean
+    public RedisStreamExpiredTask redisStreamExpiredTask(
+            StringRedisTemplate stringRedisTemplate, ScheduledTaskRegistry
+            scheduledTaskRegistry, BusProperties busProperties, SubscriberRegistry registry, RLock rLock) {
+        return new RedisStreamExpiredTask(stringRedisTemplate, scheduledTaskRegistry, busProperties, registry.getSubscribers(), rLock);
+    }
+
+    @Bean
     public RedisNodeTestConnect redisNodeTestConnect(StringRedisTemplate stringRedisTemplate, BusConfig config) {
         return new RedisNodeTestConnect(stringRedisTemplate, config);
     }

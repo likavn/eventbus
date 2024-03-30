@@ -64,7 +64,7 @@ public class PeriodTask extends Task {
      * @param execute  任务的结果回调
      */
     public PeriodTask(String name, long period, TimeUnit timeUnit, Runnable execute) {
-        super(name, execute);
+        super(null, name, execute);
         this.period = period;
         this.timeUnit = timeUnit;
     }

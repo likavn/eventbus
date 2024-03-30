@@ -30,13 +30,8 @@ public class CronTask extends Task {
      */
     private String cron;
 
-    public CronTask(String name, String cron) {
-        super(name, null);
-        this.cron = cron;
-    }
-
-    public CronTask(String name, String cron, Runnable execute) {
-        super(name, execute);
+    public CronTask(ScheduledTaskRegistry taskRegistry, String name, String cron) {
+        super(taskRegistry, name, null);
         this.cron = cron;
     }
 

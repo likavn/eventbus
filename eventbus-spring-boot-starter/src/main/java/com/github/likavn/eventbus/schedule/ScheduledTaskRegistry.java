@@ -93,8 +93,6 @@ public class ScheduledTaskRegistry {
             if (!holder.terminate()) {
                 holder.getScheduledFuture().cancel(true);
             }
-        } else {
-            log.warn("尝试取消不存在的任务: {}", task.getName());
         }
     }
 

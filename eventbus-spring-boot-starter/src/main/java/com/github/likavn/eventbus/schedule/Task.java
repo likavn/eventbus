@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.schedule;
 
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import lombok.Data;
 
 /**
@@ -24,7 +25,7 @@ import lombok.Data;
  * @date 2024/1/11
  **/
 @Data
-public abstract class Task implements Runnable {
+public abstract class Task implements Runnable, Lifecycle {
     /**
      * 任务名称
      */
@@ -33,6 +34,10 @@ public abstract class Task implements Runnable {
      * 任务的结果回调
      */
     protected Runnable execute;
+    /**
+     * 调度任务注册器
+     */
+    private ScheduledTaskRegistry taskRegistry;
 
     /**
      * 构造方法一：通过任务名称、cron表达式和结果回调创建任务
@@ -40,7 +45,8 @@ public abstract class Task implements Runnable {
      * @param name    任务名称
      * @param execute 任务的结果回调
      */
-    public Task(String name, Runnable execute) {
+    public Task(ScheduledTaskRegistry taskRegistry, String name, Runnable execute) {
+        this.taskRegistry = taskRegistry;
         this.name = name;
         this.execute = execute;
     }
@@ -53,5 +59,19 @@ public abstract class Task implements Runnable {
         if (null != execute) {
             execute.run();
         }
+    }
+
+    @Override
+    public void register() {
+        if (!taskRegistry.containsTask(this)) {
+            taskRegistry.createTask(this);
+            return;
+        }
+        this.taskRegistry.restart(this);
+    }
+
+    @Override
+    public void destroy() {
+        this.taskRegistry.pause(this);
     }
 }

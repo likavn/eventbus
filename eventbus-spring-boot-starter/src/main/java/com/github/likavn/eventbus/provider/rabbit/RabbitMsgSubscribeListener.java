@@ -97,7 +97,7 @@ public class RabbitMsgSubscribeListener extends AbstractCachingConnectionContain
                     deliveryBus.deliverTimely(subscriber, body);
                     channel.basicAck(envelope.getDeliveryTag(), false);
                 } catch (Exception ex) {
-                    logger.error("createConsumer", ex);
+                    logger.error("RabbitMsgSubscribeListener", ex);
                     channel.basicNack(envelope.getDeliveryTag(), false, true);
                 } finally {
                     Thread.currentThread().setName(oldName);

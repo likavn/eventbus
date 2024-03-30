@@ -17,8 +17,6 @@ package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.constant.BusConstant;
-import com.github.likavn.eventbus.core.metadata.MsgType;
-import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 import com.github.likavn.eventbus.provider.redis.support.AbstractStreamListenerContainer;
@@ -31,7 +29,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -91,9 +88,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
 
     @Override
     protected List<RedisSubscriber> getSubscribers() {
-        RedisSubscriber subscriber = new RedisSubscriber(new Subscriber(
-                busProperties.getServiceId(), null, MsgType.DELAY), RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX);
-        return Collections.singletonList(subscriber);
+        return RedisSubscriber.redisDelaySubscriber(config.getServiceId());
     }
 
     @Override

@@ -84,7 +84,7 @@ public class RabbitMsgDelayListener extends AbstractCachingConnectionContainer {
                             deliveryBus.deliverDelay(body);
                             channel.basicAck(envelope.getDeliveryTag(), false);
                         } catch (Exception ex) {
-                            logger.error("RabbitMqDelayMsgListener", ex);
+                            logger.error("RabbitMsgDelayListener", ex);
                             channel.basicNack(envelope.getDeliveryTag(), false, true);
                         } finally {
                             Thread.currentThread().setName(oldName);
