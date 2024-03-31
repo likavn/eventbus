@@ -192,7 +192,7 @@ public class DeliveryBus {
         }
         try {
             // 如果FailTrigger不为空，则执行订阅器的异常处理
-            if (null != failTrigger) {
+            if (null != failTrigger && null != failTrigger.getMethod()) {
                 failTrigger.invoke(request, throwable);
             }
 

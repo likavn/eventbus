@@ -183,6 +183,9 @@ public class SubscriberRegistry {
             return true;
         }).forEach(method -> {
             Method primitiveMethod = getMethod(primitiveClass, method.getName());
+            if (null == primitiveMethod) {
+                return;
+            }
             // 创建触发器
             Trigger trigger = Trigger.of(obj, method);
 
@@ -208,8 +211,7 @@ public class SubscriberRegistry {
                 fail = subscribeDelay.fail();
                 codes = Arrays.asList(subscribeDelay.codes());
             }
-
-            FailTrigger failTrigger = Func.isEmpty(fail.callMethod()) ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
+            FailTrigger failTrigger = new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
 
             // 遍历代码列表
             for (String code : codes) {
@@ -273,6 +275,9 @@ public class SubscriberRegistry {
      * @return mt
      */
     private Method getMethod(Class<?> cla, String methodName) {
+        if (Func.isEmpty(methodName)) {
+            return null;
+        }
         Method method = null;
         for (Method mt : cla.getMethods()) {
             if (mt.getName().equals(methodName)) {

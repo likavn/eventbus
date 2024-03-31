@@ -135,6 +135,9 @@ public class Trigger {
      */
     private void buildParams(Method method) {
         try {
+            if (null == method) {
+                return;
+            }
             int modifiers = method.getModifiers();
             Assert.isTrue(Modifier.isPublic(modifiers),
                     String.format("Method %s of %s must be public", method.getName(), method.getDeclaringClass().getName()));

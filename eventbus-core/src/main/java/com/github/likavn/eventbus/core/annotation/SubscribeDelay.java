@@ -38,5 +38,5 @@ public @interface SubscribeDelay {
     /**
      * 消息投递失败异常处理注解
      */
-    Fail fail() default @Fail(callMethod = "");
+    Fail fail() default @Fail();
 }

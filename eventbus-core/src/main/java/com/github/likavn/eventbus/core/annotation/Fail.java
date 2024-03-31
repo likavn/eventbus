@@ -37,7 +37,7 @@ public @interface Fail {
      * 1：消息体{@link com.github.likavn.eventbus.core.metadata.data.Message}
      * 1：重复投递失败异常，为原始异常{@link java.lang.Exception}
      */
-    String callMethod();
+    String callMethod() default "";
 
     /**
      * 消息投递失败时，一定时间内再次进行投递的次数
