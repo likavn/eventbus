@@ -21,7 +21,6 @@ import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
-import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
@@ -117,26 +116,33 @@ public class DeliveryBus {
     @SuppressWarnings("all")
     public void deliverDelay(Request request) {
         // 获取延时订阅者
-        Subscriber subscriber = registry.getSubscriberDelay(request);
-        if (null != subscriber) {
-            // 如果触发器的调用对象是DefaultMsgDelayListener
-            if (subscriber.getTrigger()
-                    .getInvokeBean() instanceof DefaultMsgDelayListener) {
-                // 如果消息类型是延时消息，则获取对应的延时订阅者
-                if (MsgType.DELAY == request.getType()) {
-                    subscriber = registry.getSubscriberDelay(request.getCode());
-                } else {
-                    // 否则获取对应的订阅者
-                    subscriber = registry.getSubscriber(request.getDeliverId());
-                }
+        String realDeliverId = null;
+        String deliverId = request.getDeliverId();
+        if (!Func.isEmpty(deliverId)) {
+            String[] deliverIds = Func.toDeliverIds(deliverId);
+            realDeliverId = deliverIds[deliverIds.length - 1];
+            if (request.getType().isDelay() && DefaultMsgDelayListener.DELIVER_ID.equals(realDeliverId)) {
+                realDeliverId = request.getCode();
             }
+        }
+
+        Subscriber subscriber = null;
+        if (request.getType().isDelay()) {
+            subscriber = registry.getSubscriberDelay(realDeliverId);
+            // 注解订阅延时消息，接收处理异常时，重新投递消息会走下面的逻辑
+            if (null == subscriber) {
+                subscriber = registry.getSubscriberDelay(request.getCode());
+            }
+        } else {
+            subscriber = registry.getSubscriber(realDeliverId);
         }
 
         // 如果订阅者为空，则打印错误日志并返回
         if (null == subscriber) {
-            log.error("delay msg handler not found class={}", request.getDelayListener().getName());
+            log.error("delay msg handler not found deliverId={}", realDeliverId);
             return;
         }
+        request.setDeliverId(null);
         // 交付消息给订阅者
         deliver(subscriber, request);
     }
@@ -184,8 +190,8 @@ public class DeliveryBus {
         }
 
         // 获取有效的投递次数
-        int deliverNum = (null != fail && fail.retry() >= 0) ? fail.retry() : config.getFail().getRetryNum();
-        if (request.getDeliverNum() <= deliverNum) {
+        int deliverCount = (null != fail && fail.retryCount() >= 0) ? fail.retryCount() : config.getFail().getRetryCount();
+        if (request.getDeliverCount() <= deliverCount) {
             // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
             failReTry(request, fail);
             return;
@@ -214,13 +220,11 @@ public class DeliveryBus {
         // 获取下次投递失败时间
         long delayTime = (null != fail && fail.nextTime() > 0) ? fail.nextTime() : config.getFail().getNextTime();
         request.setDelayTime(delayTime);
-        // 如果没有设置延时监听器，则设置默认的延时监听器
-        if (null == request.getDelayListener()) {
-            request.setDelayListener(DefaultMsgDelayListener.class);
-        }
+        // 设置默认的延时监听器
+        request.setDeliverId(Func.mergeDeliverIds(DefaultMsgDelayListener.DELIVER_ID, request.getDeliverId()));
 
         // 投递次数加一
-        request.setDeliverNum(request.getDeliverNum() + 1);
+        request.setDeliverCount(request.getDeliverCount() + 1);
         msgSender.sendDelayMessage(request);
     }
 }

@@ -16,6 +16,7 @@
 package com.github.likavn.eventbus.core.base;
 
 import com.github.likavn.eventbus.core.api.MsgSender;
+import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
@@ -24,7 +25,6 @@ import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
 
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 发送消息体包装处理类
@@ -35,16 +35,20 @@ import java.util.UUID;
 public abstract class AbstractSenderAdapter implements MsgSender {
     private final BusConfig config;
     private final InterceptorConfig interceptorConfig;
+    private final RequestIdGenerator requestIdGenerator;
 
-    protected AbstractSenderAdapter(BusConfig config, InterceptorConfig interceptorConfig) {
+    protected AbstractSenderAdapter(BusConfig config,
+                                    InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator) {
         this.config = config;
         this.interceptorConfig = interceptorConfig;
+        this.requestIdGenerator = requestIdGenerator;
     }
 
     @Override
     public void send(Request<?> request) {
         request.setType(MsgType.TIMELY);
         checkBuild(request);
+        Assert.isTrue(!Func.isEmpty(request.getCode()), "及时消息code不能为空");
         interceptorConfig.sendBeforeExecute(request);
         toSend(request);
         interceptorConfig.sendAfterExecute(request);
@@ -61,6 +65,7 @@ public abstract class AbstractSenderAdapter implements MsgSender {
     public void sendDelayMessage(Request<?> request) {
         request.setType(null == request.getType() ? MsgType.DELAY : request.getType());
         checkBuild(request);
+        Assert.isTrue(null != request.getDelayTime() && request.getDelayTime() > 0, "延时时间不能小于0");
         interceptorConfig.sendBeforeExecute(request);
         toSendDelayMessage(request);
         interceptorConfig.sendAfterExecute(request);
@@ -86,14 +91,9 @@ public abstract class AbstractSenderAdapter implements MsgSender {
         request.setServiceId(Func.isEmpty(request.getServiceId()) ? config.getServiceId() : request.getServiceId());
 
         // 设置请求ID为默认值，如果为空的话
-        request.setRequestId(Func.isEmpty(request.getRequestId()) ? UUID.randomUUID().toString().replace("-", "") : request.getRequestId());
+        request.setRequestId(Func.isEmpty(request.getRequestId()) ? requestIdGenerator.nextId() : request.getRequestId());
 
         // 设置递送数量为默认值，如果为空的话
-        request.setDeliverNum(request.getDeliverNum() != null ? request.getDeliverNum() : 1);
-
-        // 如果延迟监听器不为空，则进行延迟时间的校验
-        if (request.getDelayListener() != null) {
-            Assert.isTrue(request.getDelayTime() != null && request.getDelayTime() > 0, "delayTime is null or zero");
-        }
+        request.setDeliverCount(request.getDeliverCount() != null ? request.getDeliverCount() : 1);
     }
 }

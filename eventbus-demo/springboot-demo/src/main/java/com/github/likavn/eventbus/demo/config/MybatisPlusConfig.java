@@ -13,22 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.api.interceptor;
+package com.github.likavn.eventbus.demo.config;
 
-import com.github.likavn.eventbus.core.metadata.data.Request;
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.context.annotation.Configuration;
 
 /**
- * 发送后，全局拦截器
+ * mybatis plus配置
  *
  * @author likavn
- * @date 2024/01/01
+ * @date 2024/3/31
  **/
-public interface SendAfterInterceptor {
+@Configuration
+@MapperScan("com.github.likavn.eventbus.demo.mapper.**")
+public class MybatisPlusConfig {
 
-    /**
-     * 拦截器执行
-     *
-     * @param request request
-     */
-    void execute(Request<String> request);
 }

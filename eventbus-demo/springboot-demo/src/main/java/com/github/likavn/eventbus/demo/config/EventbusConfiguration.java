@@ -13,22 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.provider.pulsar;
+package com.github.likavn.eventbus.demo.config;
 
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import com.baomidou.mybatisplus.core.toolkit.Sequence;
+import com.github.likavn.eventbus.core.api.RequestIdGenerator;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * rocket实现配置
- *
- * @author likavn
- * @date 2024/01/01
- */
-@Configuration
-@ConditionalOnClass(RabbitTemplate.class)
-@ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rocket")
-public class BusBootPulsarConfig {
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
+/**
+ * @author likavn
+ * @date 2024/4/2
+ **/
+@Configuration
+public class EventbusConfiguration {
+
+    @Bean
+    public RequestIdGenerator requestIdGenerator() throws UnknownHostException {
+        Sequence sequence = new Sequence(InetAddress.getLocalHost());
+        return () -> String.valueOf(sequence.nextId());
+    }
 }

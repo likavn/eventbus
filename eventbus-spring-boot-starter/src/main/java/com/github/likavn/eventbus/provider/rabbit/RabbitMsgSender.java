@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.provider.rabbit;
 
+import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
@@ -33,8 +34,9 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 public class RabbitMsgSender extends AbstractSenderAdapter {
     private final RabbitTemplate rabbitTemplate;
 
-    public RabbitMsgSender(RabbitTemplate rabbitTemplate, BusConfig config, InterceptorConfig interceptorConfig) {
-        super(config, interceptorConfig);
+    public RabbitMsgSender(RabbitTemplate rabbitTemplate, BusConfig config,
+                           InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator) {
+        super(config, interceptorConfig, requestIdGenerator);
         this.rabbitTemplate = rabbitTemplate;
     }
 

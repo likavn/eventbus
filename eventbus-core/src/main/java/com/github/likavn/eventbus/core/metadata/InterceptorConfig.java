@@ -54,7 +54,7 @@ public class InterceptorConfig {
      */
     public void sendBeforeExecute(Request<?> request) {
         // 只有第一次发送才执行拦截器
-        if (sendBeforeInterceptor != null && request.getDeliverNum() <= 1) {
+        if (sendBeforeInterceptor != null && request.getDeliverCount() <= 1) {
             convertRequest(request);
             sendBeforeInterceptor.execute((Request<String>) request);
         }
@@ -67,7 +67,7 @@ public class InterceptorConfig {
      */
     public void sendAfterExecute(Request<?> request) {
         // 只有第一次发送才执行拦截器
-        if (sendAfterInterceptor != null && request.getDeliverNum() <= 1) {
+        if (sendAfterInterceptor != null && request.getDeliverCount() <= 1) {
             convertRequest(request);
             sendAfterInterceptor.execute((Request<String>) request);
         }

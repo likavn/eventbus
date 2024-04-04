@@ -24,7 +24,6 @@ import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
-import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
@@ -36,7 +35,6 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 /**
  * 订阅器注册中心
@@ -55,21 +53,17 @@ public class SubscriberRegistry {
      * 接口：
      * @see MsgSubscribeListener
      */
-    private final Map<String, List<Subscriber>> subscriberMap = new ConcurrentHashMap<>();
+    private final Map<String, Subscriber> subscriberMap = new ConcurrentHashMap<>();
     /**
      * 订阅延时消息处理器
-     * key=code
+     * key=code或订阅类全类名
      * 注解:
      *
      * @see SubscribeDelay
+     * 接口：
+     * @see MsgDelayListener
      */
     private final Map<String, Subscriber> subscriberDelayMap = new ConcurrentHashMap<>();
-
-    /**
-     * 延时消息处理器
-     */
-    @SuppressWarnings("all")
-    private final Map<Class<? extends MsgDelayListener>, Subscriber> msgDelayListenerMap = new ConcurrentHashMap<>();
 
     /**
      * 注册默认延时消息处理器
@@ -149,7 +143,9 @@ public class SubscriberRegistry {
             subscriber.setType(MsgType.DELAY);
             subscriber.setTrigger(trigger);
             subscriber.setFailTrigger(failTrigger);
-            msgDelayListenerMap.put((Class<? extends MsgDelayListener>) primitiveClass, subscriber);
+
+            // 添加到延迟触发器订阅者映射表中
+            putSubscriberDelayMap(Func.getDeliverId(primitiveClass, BusConstant.ON_MESSAGE), subscriber);
         }
     }
 
@@ -222,7 +218,7 @@ public class SubscriberRegistry {
                     putSubscriberMap(subscriber);
                 } else {
                     // 添加到延迟触发器订阅者映射表中
-                    putSubscriberDelayMap(subscriber);
+                    putSubscriberDelayMap(subscriber.getCode(), subscriber);
                 }
             }
         });
@@ -236,24 +232,19 @@ public class SubscriberRegistry {
      */
     private void putSubscriberMap(Subscriber subscriber) {
         String deliverId = subscriber.getTrigger().getDeliverId();
-
-        List<Subscriber> subscribers = subscriberMap.get(deliverId);
-        if (Func.isEmpty(subscribers)) {
-            subscribers = new ArrayList<>(1);
-        }
-        subscribers.add(subscriber);
-        subscriberMap.put(deliverId, subscribers);
+        Assert.isTrue(!subscriberMap.containsKey(deliverId), "subscriberMap deliverId=" + deliverId + "存在相同的消息处理器");
+        subscriberMap.put(deliverId, subscriber);
     }
 
     /**
      * 新增订阅器
      *
+     * @param key        code或全类名
      * @param subscriber subscriber
      */
-    private void putSubscriberDelayMap(Subscriber subscriber) {
-        Assert.isTrue(!subscriberDelayMap.containsKey(subscriber.getCode()),
-                "subscribeDelay code=" + subscriber.getCode() + "存在相同的延时消息处理器");
-        subscriberDelayMap.put(subscriber.getCode(), subscriber);
+    private void putSubscriberDelayMap(String key, Subscriber subscriber) {
+        Assert.isTrue(!subscriberDelayMap.containsKey(key), "subscribeDelay code=" + key + "存在相同的延时消息处理器");
+        subscriberDelayMap.put(key, subscriber);
     }
 
     /**
@@ -295,58 +286,34 @@ public class SubscriberRegistry {
      * @return subscriber
      */
     public Subscriber getSubscriber(String deliverId) {
-        List<Subscriber> subscribers = subscriberMap.get(deliverId);
-        if (Func.isEmpty(subscribers)) {
-            return null;
-        }
-        return subscribers.get(0);
+        return subscriberMap.get(deliverId);
     }
 
     /**
      * 获取延时消息处理器
      *
-     * @param code code
+     * @param deliverId deliverId
      * @return subscriber
      */
-    public Subscriber getSubscriberDelay(String code) {
-        return subscriberDelayMap.get(code);
+    public Subscriber getSubscriberDelay(String deliverId) {
+        return subscriberDelayMap.get(deliverId);
     }
 
     /**
-     * 获取延时消息处理器
-     *
-     * @param cla class
-     * @return subscriber
-     */
-    @SuppressWarnings("all")
-    public Subscriber getMsgDelayListener(Class<? extends MsgDelayListener> cla) {
-        return msgDelayListenerMap.get(cla);
-    }
-
-    /**
-     * 获取延时消息处理器
-     *
-     * @param request request
-     * @return subscriber
-     */
-    @SuppressWarnings("all")
-    public Subscriber getSubscriberDelay(Request request) {
-        Subscriber subscriber = null;
-        if (null != request.getDelayListener()) {
-            subscriber = getMsgDelayListener(request.getDelayListener());
-        }
-        if (null == subscriber) {
-            subscriber = getSubscriberDelay(request.getCode());
-        }
-        return subscriber;
-    }
-
-    /**
-     * 获取所有订阅器
+     * 获取所有及时消息订阅器
      *
      * @return subscribers
      */
     public List<Subscriber> getSubscribers() {
-        return subscriberMap.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+        return new ArrayList<>(subscriberMap.values());
+    }
+
+    /**
+     * 获取所有延时消息订阅器
+     *
+     * @return subscribers
+     */
+    public List<Subscriber> getSubscriberDelays() {
+        return new ArrayList<>(subscriberDelayMap.values());
     }
 }

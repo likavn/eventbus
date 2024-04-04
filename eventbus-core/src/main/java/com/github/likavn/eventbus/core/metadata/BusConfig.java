@@ -42,7 +42,7 @@ public class BusConfig {
     /**
      * 消费者数量
      */
-    private Integer consumerCount = 2;
+    private Integer consumerCount = 1;
 
     /**
      * 节点联通性配置
@@ -80,7 +80,7 @@ public class BusConfig {
         /**
          * 消息投递失败时，一定时间内再次进行投递的次数，默认3次
          */
-        private Integer retryNum = 3;
+        private Integer retryCount = 3;
 
         /**
          * 下次触发时间，单位：秒，默认10秒

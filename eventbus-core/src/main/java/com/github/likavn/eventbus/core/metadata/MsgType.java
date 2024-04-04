@@ -78,4 +78,19 @@ public enum MsgType {
     public boolean isDelay() {
         return false;
     }
+
+    /**
+     * 根据消息类型的值获取消息类型
+     *
+     * @param value 消息类型的值
+     * @return 消息类型
+     */
+    public static MsgType of(Integer value) {
+        for (MsgType msgType : MsgType.values()) {
+            if (msgType.value.equals(value)) {
+                return msgType;
+            }
+        }
+        return null;
+    }
 }

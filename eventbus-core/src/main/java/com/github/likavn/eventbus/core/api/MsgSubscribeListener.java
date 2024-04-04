@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 消息订阅超类
+ * 及时消息订阅超类
  *
  * @author likavn
  * @date 2024/01/01

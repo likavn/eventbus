@@ -20,7 +20,7 @@ public class DemoSubscribeDelay {
     public void action(Message<TMsg> message) {
         TMsg body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
-        //  throw new RuntimeException("DemoSubscribeDelay test");
+       // throw new RuntimeException("DemoSubscribeDelay test");
     }
 
     public void exceptionHandler(Message<TMsg> message, Throwable throwable) {

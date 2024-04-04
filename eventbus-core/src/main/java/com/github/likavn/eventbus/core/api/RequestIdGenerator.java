@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.provider.rocket;
-
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Configuration;
+package com.github.likavn.eventbus.core.api;
 
 /**
- * rocket实现配置
+ * 请求ID生成接口，须保证ID的唯一性
  *
  * @author likavn
- * @date 2024/01/01
- */
-@Configuration
-@ConditionalOnClass(RabbitTemplate.class)
-@ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rocketmq")
-public class BusBootRocketConfig {
+ * @date 2024/4/2
+ **/
+public interface RequestIdGenerator {
 
+    /**
+     * 获取请求ID
+     *
+     * @return 请求ID
+     */
+    String nextId();
 }

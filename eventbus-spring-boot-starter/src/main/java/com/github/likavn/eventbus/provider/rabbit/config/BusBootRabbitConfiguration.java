@@ -18,6 +18,7 @@ package com.github.likavn.eventbus.provider.rabbit.config;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
+import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.provider.rabbit.RabbitMsgDelayListener;
@@ -40,11 +41,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConditionalOnClass(RabbitTemplate.class)
 @ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rabbitmq")
-public class BusBootRabbitConfig {
+public class BusBootRabbitConfiguration {
 
     @Bean
-    public MsgSender msgSender(RabbitTemplate rabbitTemplate, BusConfig config, InterceptorConfig interceptorConfig) {
-        return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig);
+    public MsgSender msgSender(RabbitTemplate rabbitTemplate, BusConfig config,
+                               InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator) {
+        return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig, requestIdGenerator);
     }
 
     @Bean

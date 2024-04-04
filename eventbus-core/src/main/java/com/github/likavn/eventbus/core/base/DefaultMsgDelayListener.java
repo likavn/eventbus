@@ -17,7 +17,9 @@ package com.github.likavn.eventbus.core.base;
 
 import com.github.likavn.eventbus.core.annotation.SubscribeDelay;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.data.Message;
+import com.github.likavn.eventbus.core.utils.Func;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -29,6 +31,11 @@ import lombok.extern.slf4j.Slf4j;
  **/
 @Slf4j
 public class DefaultMsgDelayListener implements MsgDelayListener<Object> {
+    /**
+     * 默认订阅消息的deliverId
+     */
+    public static final String DELIVER_ID =
+            Func.getDeliverId(DefaultMsgDelayListener.class, BusConstant.ON_MESSAGE);
 
     @Override
     public void onMessage(Message<Object> message) {

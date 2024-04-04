@@ -29,10 +29,10 @@ import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.prop.BusProperties;
-import com.github.likavn.eventbus.provider.pulsar.BusBootPulsarConfig;
-import com.github.likavn.eventbus.provider.rabbit.config.BusBootRabbitConfig;
-import com.github.likavn.eventbus.provider.redis.config.BusBootRedisConfig;
-import com.github.likavn.eventbus.provider.rocket.BusBootRocketConfig;
+import com.github.likavn.eventbus.provider.pulsar.BusBootPulsarConfiguration;
+import com.github.likavn.eventbus.provider.rabbit.config.BusBootRabbitConfiguration;
+import com.github.likavn.eventbus.provider.redis.config.BusBootRedisConfiguration;
+import com.github.likavn.eventbus.provider.rocket.BusBootRocketConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -62,14 +62,14 @@ import java.util.*;
 @EnableConfigurationProperties(BusProperties.class)
 @ImportAutoConfiguration({
         // rabbit
-        BusBootRabbitConfig.class,
+        BusBootRabbitConfiguration.class,
         // redis
-        BusBootRedisConfig.class,
+        BusBootRedisConfiguration.class,
         // rocket
-        BusBootRocketConfig.class,
+        BusBootRocketConfiguration.class,
         // pulsar
-        BusBootPulsarConfig.class})
-public class BusBootConfig {
+        BusBootPulsarConfiguration.class})
+public class BusBootConfiguration {
 
     /**
      * 事件总线配置

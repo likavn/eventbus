@@ -17,6 +17,7 @@ package com.github.likavn.eventbus.core.metadata.data;
 
 import com.alibaba.fastjson2.annotation.JSONField;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
 import com.github.likavn.eventbus.core.utils.Func;
@@ -40,6 +41,7 @@ public class Request<T> extends Topic implements Message<T> {
      * 事件ID,默认UUID
      */
     private String requestId;
+
     /**
      * 消息接收处理器（消费者ID）ID=全类名+方法名{@link Trigger#getDeliverId()}
      */
@@ -48,17 +50,12 @@ public class Request<T> extends Topic implements Message<T> {
     /**
      * 消息投递次数
      */
-    private Integer deliverNum;
+    private Integer deliverCount;
 
     /**
      * 消息体，必须包含无参构造函数
      */
     private T body;
-
-    /**
-     * 延时消息处理器
-     */
-    private Class<? extends MsgDelayListener> delayListener;
 
     /**
      * 延时时间，单位：秒
@@ -72,14 +69,22 @@ public class Request<T> extends Topic implements Message<T> {
 
     @Builder
     public Request(Class<? extends MsgDelayListener> delayListener,
-                   String requestId, String serviceId, String code, T body, Integer deliverNum, MsgType type, Long delayTime) {
+                   String requestId, String serviceId, String deliverId, String code, T body, Integer deliverCount, MsgType type, Long delayTime) {
         super(serviceId, code);
-        this.delayListener = delayListener;
         this.requestId = requestId;
+        this.deliverId = deliverId;
+        if (null != delayListener) {
+            deliverId = Func.getDeliverId(delayListener, BusConstant.ON_MESSAGE);
+            if (!Func.isEmpty(this.deliverId)) {
+                this.deliverId = deliverId + "," + this.deliverId;
+            } else {
+                this.deliverId = deliverId;
+            }
+        }
         this.body = body;
-        this.deliverNum = deliverNum;
-        this.delayTime = delayTime;
+        this.deliverCount = deliverCount;
         this.type = type;
+        this.delayTime = delayTime;
     }
 
     @Override
@@ -88,8 +93,8 @@ public class Request<T> extends Topic implements Message<T> {
     }
 
     @Override
-    public Integer getDeliverNum() {
-        return null == this.deliverNum ? 1 : this.deliverNum;
+    public Integer getDeliverCount() {
+        return null == this.deliverCount ? 1 : this.deliverCount;
     }
 
     @Override
@@ -107,15 +112,11 @@ public class Request<T> extends Topic implements Message<T> {
         this.requestId = requestId;
     }
 
-    public void setDeliverNum(Integer deliverNum) {
-        this.deliverNum = deliverNum;
+    public void setDeliverCount(Integer deliverCount) {
+        this.deliverCount = deliverCount;
     }
 
     public void setBody(T body) {
         this.body = body;
-    }
-
-    public Class<? extends MsgDelayListener> getDelayListener() {
-        return delayListener;
     }
 }

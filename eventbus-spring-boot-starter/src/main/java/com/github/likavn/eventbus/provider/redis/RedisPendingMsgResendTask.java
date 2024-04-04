@@ -145,7 +145,7 @@ public class RedisPendingMsgResendTask extends CronTask {
                 return;
             }
             Request<?> request = Func.convertByJson(result.get(0).getValue());
-            request.setDeliverNum(request.getDeliverNum() + 1);
+            request.setDeliverCount(request.getDeliverCount() + 1);
             // 重新投递消息
             if (subscriber.getType().isTimely()) {
                 request.setDeliverId(subscriber.getTrigger().getDeliverId());

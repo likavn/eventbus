@@ -1,10 +1,12 @@
 package com.github.likavn.eventbus.demo.interceptor;
 
-import com.alibaba.fastjson.JSONObject;
 import com.github.likavn.eventbus.core.api.interceptor.DeliverSuccessInterceptor;
 import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.github.likavn.eventbus.demo.service.BsHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
 
 /**
  * @author likavn
@@ -13,8 +15,11 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class DemoDeliverSuccessInterceptor implements DeliverSuccessInterceptor {
+    @Resource
+    private BsHelper bsHelper;
+
     @Override
     public void execute(Request<String> request) {
-        log.debug("投递消息成功,消费者->{},msg->{}", request.getDeliverId(), JSONObject.toJSONString(request));
+        bsHelper.deliverSuccess(request);
     }
 }

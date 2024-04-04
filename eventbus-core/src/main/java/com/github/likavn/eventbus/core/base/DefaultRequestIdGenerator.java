@@ -13,47 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.metadata.data;
+package com.github.likavn.eventbus.core.base;
+
+import com.github.likavn.eventbus.core.api.RequestIdGenerator;
+
+import java.util.UUID;
 
 /**
- * 通知消息体
+ * 默认请求id生成器,使用UUID
  *
  * @author likavn
- * @date 2024/01/01
- */
-public interface Message<T> {
-    /**
-     * 获取消息ID
-     *
-     * @return 消息ID
-     */
-    String getRequestId();
+ * @date 2024/4/2
+ **/
+public class DefaultRequestIdGenerator implements RequestIdGenerator {
 
     /**
-     * 消息所属来源服务ID,服务名
+     * 获取请求id
      *
-     * @return 应用服务ID
+     * @return 请求id
      */
-    String getServiceId();
-
-    /**
-     * 消息类型，用于区分不同的消息类型
-     *
-     * @return 消息类型
-     */
-    String getCode();
-
-    /**
-     * 获取消息投递次数
-     *
-     * @return 消息投递次数
-     */
-    Integer getDeliverCount();
-
-    /**
-     * 获取消息体
-     *
-     * @return 消息体
-     */
-    T getBody();
+    @Override
+    public String nextId() {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
 }

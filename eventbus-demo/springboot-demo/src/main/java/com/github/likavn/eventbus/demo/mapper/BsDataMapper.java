@@ -13,22 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.api.interceptor;
+package com.github.likavn.eventbus.demo.mapper;
 
-import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.github.likavn.eventbus.demo.entity.BsData;
 
 /**
- * 发送后，全局拦截器
- *
  * @author likavn
- * @date 2024/01/01
+ * @date 2024/3/31
  **/
-public interface SendAfterInterceptor {
-
-    /**
-     * 拦截器执行
-     *
-     * @param request request
-     */
-    void execute(Request<String> request);
+public interface BsDataMapper extends BaseMapper<BsData> {
 }

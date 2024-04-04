@@ -20,11 +20,11 @@ public class Demo2MsgSubscribeListener extends MsgSubscribeListener<TMsg> {
     }
 
     @Override
-    @Fail(callMethod = "exceptionHandler", retry = 2, nextTime = 5)
+    @Fail(callMethod = "exceptionHandler", retryCount = 3, nextTime = 7)
     public void onMessage(Message<TMsg> message) {
         TMsg body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
-        //  throw new RuntimeException("DemoMsgSubscribeListener test");
+        // throw new RuntimeException("Demo2MsgSubscribeListener test");
     }
 
     /**

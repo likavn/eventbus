@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.demo.interceptor;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import lombok.extern.slf4j.Slf4j;

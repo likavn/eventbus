@@ -84,9 +84,9 @@ public class RedisStreamExpiredTask extends CronTask {
                 return;
             }
             Long deleteCount = redisTemplate.execute(script, Collections.singletonList(streamKey), minId);
-            log.debug("删除过期消息：streamKey={}, deleteCount={}", streamKey, deleteCount);
+            log.debug("过期消息清理：streamKey={}, deleteCount={}", streamKey, deleteCount);
         } catch (Exception e) {
-            log.error("删除过期消息失败：streamKey={}", streamKey, e);
+            log.error("过期消息清理失败：streamKey={}", streamKey, e);
         } finally {
             if (lock) {
                 rLock.releaseLock(lockKey);

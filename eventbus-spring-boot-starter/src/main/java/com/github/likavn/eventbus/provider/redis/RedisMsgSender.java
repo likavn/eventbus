@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.provider.redis;
 
+import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
@@ -47,8 +48,8 @@ public class RedisMsgSender extends AbstractSenderAdapter {
                           BusConfig config,
                           InterceptorConfig interceptorConfig,
                           DefaultRedisScript<Long> zsetAddRedisScript,
-                          ScheduledTaskRegistry taskRegistry) {
-        super(config, interceptorConfig);
+                          ScheduledTaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator) {
+        super(config, interceptorConfig, requestIdGenerator);
         this.stringRedisTemplate = stringRedisTemplate;
         this.zsetAddRedisScript = zsetAddRedisScript;
         this.taskRegistry = taskRegistry;

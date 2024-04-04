@@ -34,7 +34,7 @@ public interface MsgSender {
      * @param body 消息体
      */
     default void send(String code, Object body) {
-        send(Request.builder().code(code).body(body).build());
+        send(null, code, body);
     }
 
     /**

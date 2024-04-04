@@ -13,47 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.metadata.data;
+package com.github.likavn.eventbus.provider.rocket;
+
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Configuration;
 
 /**
- * 通知消息体
+ * rocket实现配置
  *
  * @author likavn
  * @date 2024/01/01
  */
-public interface Message<T> {
-    /**
-     * 获取消息ID
-     *
-     * @return 消息ID
-     */
-    String getRequestId();
+@Configuration
+@ConditionalOnClass(RabbitTemplate.class)
+@ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rocketmq")
+public class BusBootRocketConfiguration {
 
-    /**
-     * 消息所属来源服务ID,服务名
-     *
-     * @return 应用服务ID
-     */
-    String getServiceId();
-
-    /**
-     * 消息类型，用于区分不同的消息类型
-     *
-     * @return 消息类型
-     */
-    String getCode();
-
-    /**
-     * 获取消息投递次数
-     *
-     * @return 消息投递次数
-     */
-    Integer getDeliverCount();
-
-    /**
-     * 获取消息体
-     *
-     * @return 消息体
-     */
-    T getBody();
 }

@@ -15,9 +15,9 @@
  */
 package com.github.likavn.eventbus.core.utils;
 
-import com.alibaba.fastjson.JSONValidator;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONReader;
+import com.alibaba.fastjson2.JSONValidator;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +71,7 @@ public final class Func {
      */
     @SuppressWarnings("all")
     public Request convertByJson(String js) {
-        return JSON.parseObject(js, Request.class, JSONReader.Feature.SupportClassForName);
+        return JSON.parseObject(js, Request.class);
     }
 
     /**
@@ -196,5 +196,35 @@ public final class Func {
             return serviceId;
         }
         return serviceId + "." + code;
+    }
+
+    /**
+     * 获取投递ID
+     */
+    public String getDeliverId(Class<?> clz, String methodName) {
+        return String.format("%s#%s", clz.getName(), methodName);
+    }
+
+    /**
+     * 获取投递ID
+     */
+    public String mergeDeliverIds(String... deliverIds) {
+        StringBuilder sb = null;
+        for (String deliverId : deliverIds) {
+            if (null == sb) {
+                sb = new StringBuilder();
+                sb.append(deliverId);
+            } else {
+                sb.append(",").append(deliverId);
+            }
+        }
+        return null == sb ? "" : sb.toString();
+    }
+
+    /**
+     * 获取投递ID
+     */
+    public String[] toDeliverIds(String deliverId) {
+        return deliverId.split(",");
     }
 }

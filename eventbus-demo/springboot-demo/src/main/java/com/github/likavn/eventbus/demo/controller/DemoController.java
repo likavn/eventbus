@@ -40,16 +40,16 @@ public class DemoController {
             for (int i = 0; i < count; i++) {
                 switch (type) {
                     case 1:
-                        msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);
-                        break;
-                    case 2:
                         msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, msg);
                         break;
+                    case 2:
+                        msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);
+                        break;
                     case 3:
-                        msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, delayTime);
+                        msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg, delayTime);
                         break;
                     case 4:
-                        msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg, delayTime);
+                        msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, delayTime);
                         break;
                     default:
                         log.error("发送失败...");

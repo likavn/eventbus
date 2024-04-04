@@ -1,10 +1,12 @@
 package com.github.likavn.eventbus.demo.interceptor;
 
-import com.alibaba.fastjson.JSONObject;
 import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
 import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.github.likavn.eventbus.demo.service.BsHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
 
 /**
  * @author likavn
@@ -13,8 +15,11 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class DemoSendBeforeInterceptor implements SendBeforeInterceptor {
+    @Resource
+    private BsHelper bsHelper;
+
     @Override
     public void execute(Request<String> request) {
-        log.debug("发送前拦截器,{}", JSONObject.toJSONString(request));
+        bsHelper.sendMessage(request);
     }
 }

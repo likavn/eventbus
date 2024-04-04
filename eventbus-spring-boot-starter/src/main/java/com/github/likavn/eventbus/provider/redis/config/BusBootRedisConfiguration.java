@@ -17,6 +17,7 @@ package com.github.likavn.eventbus.provider.redis.config;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
+import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
@@ -46,7 +47,7 @@ import org.springframework.scripting.support.ResourceScriptSource;
 @Configuration
 @ConditionalOnClass(RedisConnectionFactory.class)
 @ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "redis")
-public class BusBootRedisConfig {
+public class BusBootRedisConfiguration {
 
     @Bean
     public StringRedisTemplate busStringRedisTemplate(RedisConnectionFactory connectionFactory) {
@@ -124,8 +125,8 @@ public class BusBootRedisConfig {
                                     BusConfig config,
                                     InterceptorConfig interceptorConfig,
                                     DefaultRedisScript<Long> zsetAddRedisScript,
-                                    ScheduledTaskRegistry taskRegistry) {
-        return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig, zsetAddRedisScript, taskRegistry);
+                                    ScheduledTaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator) {
+        return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig, zsetAddRedisScript, taskRegistry, requestIdGenerator);
     }
 
     @Bean

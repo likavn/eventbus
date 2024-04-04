@@ -13,47 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.metadata.data;
+package com.github.likavn.eventbus.demo.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Builder;
+import lombok.Data;
+
+import java.time.LocalDateTime;
 
 /**
- * 通知消息体
+ * 消息数据
  *
  * @author likavn
- * @date 2024/01/01
- */
-public interface Message<T> {
+ * @date 2024/3/31
+ **/
+@Data
+@Builder
+@TableName("bs_data")
+public class BsData {
     /**
-     * 获取消息ID
-     *
-     * @return 消息ID
+     * 事件ID,默认UUID
      */
-    String getRequestId();
+    private String requestId;
 
     /**
      * 消息所属来源服务ID,服务名
-     *
-     * @return 应用服务ID
      */
-    String getServiceId();
+    private String serviceId;
 
     /**
      * 消息类型，用于区分不同的消息类型
-     *
-     * @return 消息类型
      */
-    String getCode();
+    private String code;
 
     /**
-     * 获取消息投递次数
-     *
-     * @return 消息投递次数
+     * 消息类型,1及时消息、2延时消息
      */
-    Integer getDeliverCount();
+    private Integer type;
 
     /**
-     * 获取消息体
-     *
-     * @return 消息体
+     * 消息体，必须包含无参构造函数
      */
-    T getBody();
+    private String body;
+    /**
+     * 创建时间
+     */
+    private LocalDateTime createTime;
 }

@@ -43,7 +43,7 @@ public class BusProperties {
     /**
      * 消费者数量
      */
-    private Integer consumerCount = 2;
+    private Integer consumerCount = 1;
 
     /**
      * 节点联通性配置
@@ -79,7 +79,7 @@ public class BusProperties {
         /**
          * 订阅消息一次性最多拉取多少条消息数据
          */
-        private Integer batchSize = 100;
+        private Integer batchSize = 10;
         /**
          * 每次最多拉取多少条待确认消息数据
          */
