@@ -125,8 +125,8 @@ public class BusBootRedisConfiguration {
                                     BusConfig config,
                                     InterceptorConfig interceptorConfig,
                                     DefaultRedisScript<Long> zsetAddRedisScript,
-                                    ScheduledTaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator) {
-        return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig, zsetAddRedisScript, taskRegistry, requestIdGenerator);
+                                    ScheduledTaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, SubscriberRegistry registry) {
+        return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig, zsetAddRedisScript, taskRegistry, requestIdGenerator, registry);
     }
 
     @Bean

@@ -18,7 +18,6 @@ package com.github.likavn.eventbus.demo.service;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.github.likavn.eventbus.core.SubscriberRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
-import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
@@ -79,12 +78,7 @@ public class BsHelper {
         String code = request.getCode();
         List<String> deliverIds = new ArrayList<>();
         if (request.getType().isDelay()) {
-            if (request.getDeliverId().equals(DefaultMsgDelayListener.DELIVER_ID)) {
-                Subscriber subscriberDelay = registry.getSubscriberDelay(code);
-                deliverIds.add(subscriberDelay.getTrigger().getDeliverId());
-            } else {
-                deliverIds.add(request.getDeliverId());
-            }
+            deliverIds.add(request.getDeliverId());
         } else {
             List<Subscriber> subscribers = registry.getSubscribers();
             deliverIds = subscribers.stream().filter(subscriber

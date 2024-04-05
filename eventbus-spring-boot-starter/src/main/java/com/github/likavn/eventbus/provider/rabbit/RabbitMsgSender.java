@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.provider.rabbit;
 
+import com.github.likavn.eventbus.core.SubscriberRegistry;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
@@ -35,8 +36,8 @@ public class RabbitMsgSender extends AbstractSenderAdapter {
     private final RabbitTemplate rabbitTemplate;
 
     public RabbitMsgSender(RabbitTemplate rabbitTemplate, BusConfig config,
-                           InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator) {
-        super(config, interceptorConfig, requestIdGenerator);
+                           InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, SubscriberRegistry registry) {
+        super(config, interceptorConfig, requestIdGenerator, registry);
         this.rabbitTemplate = rabbitTemplate;
     }
 

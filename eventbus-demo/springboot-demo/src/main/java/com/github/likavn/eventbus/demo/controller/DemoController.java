@@ -6,6 +6,7 @@ import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import com.github.likavn.eventbus.demo.domain.R;
 import com.github.likavn.eventbus.demo.listener.DemoMsgDelayListener;
+import com.github.likavn.eventbus.demo.service.BsHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +27,9 @@ public class DemoController {
 
     @Resource
     private MsgListenerContainer msgListenerContainer;
+
+    @Resource
+    private BsHelper bsHelper;
 
     /**
      * 测试消息
@@ -88,5 +92,11 @@ public class DemoController {
             log.error("DemoController.stop", e);
             return R.fail(e.getMessage());
         }
+    }
+
+    @GetMapping(value = "/reSendMessage")
+    public R<Boolean> reSendMessage(@RequestParam("consumerId") Long consumerId) {
+        bsHelper.reSendMessage(consumerId);
+        return R.ok(Boolean.TRUE);
     }
 }

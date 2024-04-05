@@ -15,16 +15,21 @@
  */
 package com.github.likavn.eventbus.core.base;
 
+import com.github.likavn.eventbus.core.SubscriberRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.github.likavn.eventbus.core.metadata.support.Subscriber;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 发送消息体包装处理类
@@ -36,12 +41,18 @@ public abstract class AbstractSenderAdapter implements MsgSender {
     private final BusConfig config;
     private final InterceptorConfig interceptorConfig;
     private final RequestIdGenerator requestIdGenerator;
+    /**
+     * key=code
+     */
+    private final Map<String, Subscriber> subscriberDelayMap;
 
     protected AbstractSenderAdapter(BusConfig config,
-                                    InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator) {
+                                    InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, SubscriberRegistry registry) {
         this.config = config;
         this.interceptorConfig = interceptorConfig;
         this.requestIdGenerator = requestIdGenerator;
+        this.subscriberDelayMap = registry.getSubscriberDelays().stream().filter(t -> !Func.isEmpty(t.getCode()))
+                .collect(Collectors.toMap(Subscriber::getCode, Function.identity(), (x, y) -> x));
     }
 
     @Override
@@ -66,6 +77,12 @@ public abstract class AbstractSenderAdapter implements MsgSender {
         request.setType(null == request.getType() ? MsgType.DELAY : request.getType());
         checkBuild(request);
         Assert.isTrue(null != request.getDelayTime() && request.getDelayTime() > 0, "延时时间不能小于0");
+        // 投递ID
+        if (Func.isEmpty(request.getDeliverId())) {
+            Subscriber subscriber = subscriberDelayMap.get(request.getCode());
+            Assert.notNull(subscriber, "延时消息code未找到对应订阅器！");
+            request.setDeliverId(subscriber.getTrigger().getDeliverId());
+        }
         interceptorConfig.sendBeforeExecute(request);
         toSendDelayMessage(request);
         interceptorConfig.sendAfterExecute(request);

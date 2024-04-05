@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.demo.entity;
 
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Builder;
 import lombok.Data;
@@ -34,6 +35,7 @@ public class BsData {
     /**
      * 事件ID,默认UUID
      */
+    @TableId
     private String requestId;
 
     /**

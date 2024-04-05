@@ -45,8 +45,8 @@ public class BusBootRabbitConfiguration {
 
     @Bean
     public MsgSender msgSender(RabbitTemplate rabbitTemplate, BusConfig config,
-                               InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator) {
-        return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig, requestIdGenerator);
+                               InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, SubscriberRegistry registry) {
+        return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig, requestIdGenerator, registry);
     }
 
     @Bean

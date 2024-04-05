@@ -16,7 +16,6 @@
 package com.github.likavn.eventbus.core.api;
 
 
-import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 
 /**
@@ -89,20 +88,7 @@ public interface MsgSender {
      */
     @SuppressWarnings("all")
     default void sendDelayMessage(String code, Object body, long delayTime) {
-        sendDelayMessage("", code, body, delayTime);
-    }
-
-    /**
-     * 发送延时消息接口
-     *
-     * @param serviceId 服务ID
-     * @param code      延时消息类型
-     * @param body      延时消息实体
-     * @param delayTime 延时时间，单位：秒
-     */
-    @SuppressWarnings("all")
-    default void sendDelayMessage(String serviceId, String code, Object body, long delayTime) {
-        sendDelayMessage(Request.builder().delayListener(DefaultMsgDelayListener.class).serviceId(serviceId).code(code).body(body).delayTime(delayTime).build());
+        sendDelayMessage(Request.builder().code(code).body(body).delayTime(delayTime).build());
     }
 
     /**

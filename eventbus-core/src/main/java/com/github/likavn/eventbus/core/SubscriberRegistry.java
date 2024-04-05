@@ -20,7 +20,6 @@ import com.github.likavn.eventbus.core.annotation.Subscribe;
 import com.github.likavn.eventbus.core.annotation.SubscribeDelay;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.api.MsgSubscribeListener;
-import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
@@ -56,7 +55,7 @@ public class SubscriberRegistry {
     private final Map<String, Subscriber> subscriberMap = new ConcurrentHashMap<>();
     /**
      * 订阅延时消息处理器
-     * key=code或订阅类全类名
+     * key=订阅器全类名+方法名{@link Trigger#getDeliverId()}
      * 注解:
      *
      * @see SubscribeDelay
@@ -64,11 +63,6 @@ public class SubscriberRegistry {
      * @see MsgDelayListener
      */
     private final Map<String, Subscriber> subscriberDelayMap = new ConcurrentHashMap<>();
-
-    /**
-     * 注册默认延时消息处理器
-     */
-    private final DefaultMsgDelayListener defaultDelayMsgListener = new DefaultMsgDelayListener();
 
     private final BusConfig config;
 
@@ -87,9 +81,6 @@ public class SubscriberRegistry {
     public void register(Collection<Object> objs) {
         Assert.notEmpty(objs, "初始化实例失败！");
         objs.forEach(this::register);
-
-        // 注册默认延时消息处理器
-        register(defaultDelayMsgListener);
     }
 
     /**
@@ -218,7 +209,7 @@ public class SubscriberRegistry {
                     putSubscriberMap(subscriber);
                 } else {
                     // 添加到延迟触发器订阅者映射表中
-                    putSubscriberDelayMap(subscriber.getCode(), subscriber);
+                    putSubscriberDelayMap(trigger.getDeliverId(), subscriber);
                 }
             }
         });
@@ -239,12 +230,12 @@ public class SubscriberRegistry {
     /**
      * 新增订阅器
      *
-     * @param key        code或全类名
+     * @param deliverId  投递ID
      * @param subscriber subscriber
      */
-    private void putSubscriberDelayMap(String key, Subscriber subscriber) {
-        Assert.isTrue(!subscriberDelayMap.containsKey(key), "subscribeDelay code=" + key + "存在相同的延时消息处理器");
-        subscriberDelayMap.put(key, subscriber);
+    private void putSubscriberDelayMap(String deliverId, Subscriber subscriber) {
+        Assert.isTrue(!subscriberDelayMap.containsKey(deliverId), "subscribeDelay deliverId=" + deliverId + "存在相同的延时消息处理器");
+        subscriberDelayMap.put(deliverId, subscriber);
     }
 
     /**

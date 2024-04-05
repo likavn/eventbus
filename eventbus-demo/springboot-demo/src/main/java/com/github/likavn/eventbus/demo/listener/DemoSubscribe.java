@@ -20,7 +20,7 @@ public class DemoSubscribe {
     public void action(Message<TMsg> message) {
         TMsg body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
-        throw new RuntimeException("DemoSubscribe test");
+        //throw new RuntimeException("DemoSubscribe test");
     }
 
     public void exceptionHandler(Message<TMsg> message, Throwable throwable) {

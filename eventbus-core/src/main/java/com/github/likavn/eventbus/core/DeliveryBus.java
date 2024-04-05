@@ -17,7 +17,6 @@ package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
 import com.github.likavn.eventbus.core.api.MsgSender;
-import com.github.likavn.eventbus.core.base.DefaultMsgDelayListener;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
@@ -116,33 +115,18 @@ public class DeliveryBus {
     @SuppressWarnings("all")
     public void deliverDelay(Request request) {
         // 获取延时订阅者
-        String realDeliverId = null;
-        String deliverId = request.getDeliverId();
-        if (!Func.isEmpty(deliverId)) {
-            String[] deliverIds = Func.toDeliverIds(deliverId);
-            realDeliverId = deliverIds[deliverIds.length - 1];
-            if (request.getType().isDelay() && DefaultMsgDelayListener.DELIVER_ID.equals(realDeliverId)) {
-                realDeliverId = request.getCode();
-            }
-        }
-
         Subscriber subscriber = null;
         if (request.getType().isDelay()) {
-            subscriber = registry.getSubscriberDelay(realDeliverId);
-            // 注解订阅延时消息，接收处理异常时，重新投递消息会走下面的逻辑
-            if (null == subscriber) {
-                subscriber = registry.getSubscriberDelay(request.getCode());
-            }
+            subscriber = registry.getSubscriberDelay(request.getDeliverId());
         } else {
-            subscriber = registry.getSubscriber(realDeliverId);
+            subscriber = registry.getSubscriber(request.getDeliverId());
         }
 
         // 如果订阅者为空，则打印错误日志并返回
         if (null == subscriber) {
-            log.error("delay msg handler not found deliverId={}", realDeliverId);
+            log.error("delay msg handler not found deliverId={}", request.getDeliverId());
             return;
         }
-        request.setDeliverId(null);
         // 交付消息给订阅者
         deliver(subscriber, request);
     }
@@ -220,9 +204,6 @@ public class DeliveryBus {
         // 获取下次投递失败时间
         long delayTime = (null != fail && fail.nextTime() > 0) ? fail.nextTime() : config.getFail().getNextTime();
         request.setDelayTime(delayTime);
-        // 设置默认的延时监听器
-        request.setDeliverId(Func.mergeDeliverIds(DefaultMsgDelayListener.DELIVER_ID, request.getDeliverId()));
-
         // 投递次数加一
         request.setDeliverCount(request.getDeliverCount() + 1);
         msgSender.sendDelayMessage(request);
