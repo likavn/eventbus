@@ -204,27 +204,4 @@ public final class Func {
     public String getDeliverId(Class<?> clz, String methodName) {
         return String.format("%s#%s", clz.getName(), methodName);
     }
-
-    /**
-     * 获取投递ID
-     */
-    public String mergeDeliverIds(String... deliverIds) {
-        StringBuilder sb = null;
-        for (String deliverId : deliverIds) {
-            if (null == sb) {
-                sb = new StringBuilder();
-                sb.append(deliverId);
-            } else {
-                sb.append(",").append(deliverId);
-            }
-        }
-        return null == sb ? "" : sb.toString();
-    }
-
-    /**
-     * 获取投递ID
-     */
-    public String[] toDeliverIds(String deliverId) {
-        return deliverId.split(",");
-    }
 }
