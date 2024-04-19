@@ -11,15 +11,54 @@
     <artifactId>eventbus-core</artifactId>
     <packaging>jar</packaging>
     <description>eventbus核心包</description>
+    <properties>
+        <fastjson2.version>2.0.48</fastjson2.version>
+        <fastjson.version>1.2.48</fastjson.version>
+        <gson.version>2.7</gson.version>
+        <jackson.version>2.9.6</jackson.version>
+        <hutool.version>4.6.17</hutool.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- 各个JSON序列化工具 -->
+        <!-- fastjson2 -->
         <dependency>
             <groupId>com.alibaba.fastjson2</groupId>
             <artifactId>fastjson2</artifactId>
+            <version>${fastjson2.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <!-- fastjson -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>${fastjson.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <!-- gson -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <!-- jackson -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <!-- hutool json-->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-json</artifactId>
+            <version>${hutool.version}</version>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

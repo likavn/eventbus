@@ -47,5 +47,5 @@ public abstract class Topic implements Serializable {
      *
      * @return topic
      */
-    public abstract String getTopic();
+    public abstract String topic();
 }

@@ -15,23 +15,19 @@
  */
 package com.github.likavn.eventbus.core.utils;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONReader;
-import com.alibaba.fastjson2.JSONValidator;
 import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.github.likavn.eventbus.core.support.spi.IJson;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * 工具类
+ * tool utils
  *
  * @author likavn
  * @date 2024/01/01
@@ -40,9 +36,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 @UtilityClass
 public final class Func {
     /**
-     * 代理 class 的名称
+     * agent class name pool
      */
     private static final List<String> PROXY_CLASS_NAMES = new ArrayList<>(4);
+
+    private static final IJson JSON;
 
     static {
         // cglib
@@ -51,38 +49,44 @@ public final class Func {
         // javassist
         PROXY_CLASS_NAMES.add("$$_JAVASSIST");
         PROXY_CLASS_NAMES.add("$$_javassist");
+
+        // load JSON
+        IJson js = null;
+        ServiceLoader<IJson> serviceLoader = ServiceLoader.load(IJson.class);
+        Integer minOrder = null;
+        for (IJson t : serviceLoader) {
+            if (!t.active()) {
+                continue;
+            }
+            if (null == minOrder || t.getOrder() < minOrder) {
+                minOrder = t.getOrder();
+                js = t;
+            }
+        }
+        JSON = js;
+        Assert.notNull(JSON, "json serialization tool is required!");
     }
 
     /**
-     * toJson
-     *
-     * @param value object
-     * @return string
-     */
-    public String toJson(Object value) {
-        return JSON.toJSONString(value);
-    }
-
-    /**
-     * json数据转换为实体数据类型
+     * jsonStr to request bean
      *
      * @param js js
      * @return bean
      */
     @SuppressWarnings("all")
     public Request convertByJson(String js) {
-        return JSON.parseObject(js, Request.class);
+        return parseObject(js, Request.class);
     }
 
     /**
-     * 二进制数据转换为实体数据类型
+     * jsonStr to request bean
      *
      * @param requestBytes bytes
      * @return bean
      */
     @SuppressWarnings("all")
     public Request convertByBytes(byte[] requestBytes) {
-        return JSON.parseObject(requestBytes, Request.class, JSONReader.Feature.SupportClassForName);
+        return convertByJson(new String(requestBytes, StandardCharsets.UTF_8));
     }
 
     /**
@@ -93,21 +97,31 @@ public final class Func {
     @SuppressWarnings("all")
     public <T> T parseObject(Object body, Class<T> clazz) {
         if (body instanceof String) {
-            String bodyStr = body.toString();
-            if (!JSONValidator.from(bodyStr).validate()) {
+            String bodyStr = (String) body;
+            if (!JSON.isJson(bodyStr)) {
                 return (T) bodyStr;
             }
-            return JSON.parseObject(bodyStr, clazz, JSONReader.Feature.SupportClassForName);
+            return JSON.parseObject(bodyStr, clazz);
         }
-        return JSON.parseObject(toJson(body), clazz, JSONReader.Feature.SupportClassForName);
+        return JSON.parseObject(toJson(body), clazz);
+    }
+
+    /**
+     * toJson
+     *
+     * @param value object
+     * @return string
+     */
+    public String toJson(Object value) {
+        return JSON.toJsonString(value);
     }
 
     public boolean isEmpty(Map<?, ?> map) {
-        return null == map || map.size() <= 0;
+        return null == map || map.size() == 0;
     }
 
     public boolean isEmpty(Object[] objs) {
-        return null == objs || objs.length <= 0;
+        return null == objs || objs.length == 0;
     }
 
     public boolean isEmpty(Collection<?> list) {
@@ -123,9 +137,9 @@ public final class Func {
     }
 
     /**
-     * 线程重新命名
+     * rename thread name
      *
-     * @param name 新名称
+     * @param name new name
      * @return old thread name
      */
     public String reThreadName(String name) {

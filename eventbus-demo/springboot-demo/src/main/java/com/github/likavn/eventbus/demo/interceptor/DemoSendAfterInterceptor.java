@@ -1,8 +1,8 @@
 package com.github.likavn.eventbus.demo.interceptor;
 
-import com.alibaba.fastjson2.JSONObject;
 import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
 import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.github.likavn.eventbus.core.utils.Func;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +15,6 @@ import org.springframework.stereotype.Component;
 public class DemoSendAfterInterceptor implements SendAfterInterceptor {
     @Override
     public void execute(Request<String> request) {
-        log.debug("发送后拦截器,{}", JSONObject.toJSONString(request));
+        log.debug("发送后拦截器,{}", Func.toJson(request));
     }
 }

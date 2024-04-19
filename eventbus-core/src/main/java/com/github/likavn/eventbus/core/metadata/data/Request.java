@@ -15,7 +15,6 @@
  */
 package com.github.likavn.eventbus.core.metadata.data;
 
-import com.alibaba.fastjson2.annotation.JSONField;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.MsgType;
@@ -23,9 +22,8 @@ import com.github.likavn.eventbus.core.metadata.support.Trigger;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.*;
 
-
 /**
- * 通知消息体
+ * 通知消息体，eventbus原始消息体
  *
  * @author likavn
  * @date 2024/01/01
@@ -39,11 +37,13 @@ public class Request<T> extends Topic implements Message<T> {
     private static final long serialVersionUID = 1L;
     /**
      * 事件ID,默认UUID
+     * <p>
+     * 如需修改请实现此接口{@link com.github.likavn.eventbus.core.api.RequestIdGenerator)}
      */
     private String requestId;
 
     /**
-     * 消息接收处理器（消费者ID）ID=全类名+方法名{@link Trigger#getDeliverId()}
+     * 消息接收处理器（消费者/投递）ID=类完全限定名+方法名{@link Trigger#getDeliverId()}
      */
     private String deliverId;
 
@@ -53,38 +53,41 @@ public class Request<T> extends Topic implements Message<T> {
     private Integer deliverCount;
 
     /**
-     * 消息体，必须包含无参构造函数
-     */
-    private T body;
-
-    /**
-     * 延时时间，单位：秒
-     */
-    private Long delayTime;
-
-    /**
      * 消息类型,默认及时消息
      */
     private MsgType type;
 
+    /**
+     * 延时消息的延时时间，单位：秒
+     */
+    private Long delayTime;
+
+    /**
+     * 业务消息体
+     * 注：必须包含无参构造函数
+     */
+    private T body;
+
     @Builder
-    public Request(Class<? extends MsgDelayListener> delayListener,
-                   String requestId, String serviceId, String deliverId, String code, T body, Integer deliverCount, MsgType type, Long delayTime) {
+    public Request(String serviceId,
+                   String code,
+                   String requestId,
+                   String deliverId,
+                   Class<? extends MsgDelayListener> delayListener,
+                   Integer deliverCount,
+                   MsgType type,
+                   Long delayTime,
+                   T body) {
         super(serviceId, code);
         this.requestId = requestId;
         this.deliverId = deliverId;
         if (null != delayListener) {
-            deliverId = Func.getDeliverId(delayListener, BusConstant.ON_MESSAGE);
-            if (!Func.isEmpty(this.deliverId)) {
-                this.deliverId = deliverId + "," + this.deliverId;
-            } else {
-                this.deliverId = deliverId;
-            }
+            this.deliverId = Func.getDeliverId(delayListener, BusConstant.ON_MESSAGE);
         }
-        this.body = body;
         this.deliverCount = deliverCount;
         this.type = type;
         this.delayTime = delayTime;
+        this.body = body;
     }
 
     @Override
@@ -103,8 +106,7 @@ public class Request<T> extends Topic implements Message<T> {
     }
 
     @Override
-    @JSONField(serialize = false)
-    public String getTopic() {
+    public String topic() {
         return Func.getTopic(serviceId, code);
     }
 

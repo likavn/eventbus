@@ -45,7 +45,7 @@ public class RabbitMsgSender extends AbstractSenderAdapter {
     public void toSend(Request<?> request) {
         rabbitTemplate.convertAndSend(
                 String.format(RabbitConstant.EXCHANGE, request.getServiceId()),
-                String.format(RabbitConstant.ROUTING_KEY, request.getTopic()),
+                String.format(RabbitConstant.ROUTING_KEY, request.topic()),
                 Func.toJson(request),
                 message -> {
                     message.getMessageProperties().setContentEncoding("utf-8");

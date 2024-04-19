@@ -5,6 +5,8 @@ import com.github.likavn.eventbus.core.base.MsgListenerContainer;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import com.github.likavn.eventbus.demo.domain.R;
+import com.github.likavn.eventbus.demo.domain.TMsg;
+import com.github.likavn.eventbus.demo.domain.TestBody;
 import com.github.likavn.eventbus.demo.listener.DemoMsgDelayListener;
 import com.github.likavn.eventbus.demo.service.BsHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -36,24 +38,33 @@ public class DemoController {
      */
     @PostMapping(value = "/trigger/{type}/{count}")
     public R<Boolean> trigger(@PathVariable("type") Integer type,
-                              @PathVariable("count") Long count, @PathParam("delayTime") Long delayTime, @RequestBody String msg) {
+                              @PathVariable("count") Long count, @PathParam("delayTime") Long delayTime, @RequestBody String content) {
         try {
             long l = System.currentTimeMillis();
-            log.info("发送消息数量count={}条,msg={}", count, msg);
-            Assert.notEmpty(msg, "msg不能为空");
+            log.info("发送消息数量count={}条,msg={}", count, content);
+            Assert.notEmpty(content, "msg不能为空");
             for (int i = 0; i < count; i++) {
                 switch (type) {
                     case 1:
-                        msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER, msg);
+                        TestBody testBody = new TestBody();
+                        testBody.setContent(content);
+                        msgSender.send(testBody);
                         break;
                     case 2:
-                        msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg);
+                        TMsg msg2 = new TMsg();
+                        msg2.setContent(content);
+                        msgSender.send(MsgConstant.TEST_MSG_SUBSCRIBE, msg2);
                         break;
                     case 3:
-                        msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg, delayTime);
+
+                        TMsg msg3 = new TMsg();
+                        msg3.setContent(content);
+                        msgSender.sendDelayMessage(DemoMsgDelayListener.class, msg3, delayTime);
                         break;
                     case 4:
-                        msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg, delayTime);
+                        TMsg msg4 = new TMsg();
+                        msg4.setContent(content);
+                        msgSender.sendDelayMessage(MsgConstant.TEST_MSG_DELAY_SUBSCRIBE, msg4, delayTime);
                         break;
                     default:
                         log.error("发送失败...");

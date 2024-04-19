@@ -25,6 +25,7 @@ import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.*;
 import com.github.likavn.eventbus.schedule.ScheduledTaskRegistry;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -116,7 +117,8 @@ public class BusBootRedisConfiguration {
     @Bean
     public RedisMsgDelayListener redisMsgDelayListener(
             StringRedisTemplate stringRedisTemplate, ScheduledTaskRegistry taskRegistry,
-            BusProperties busProperties, DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
+            BusProperties busProperties,
+            @Qualifier("pushMsgStreamRedisScript") DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
         return new RedisMsgDelayListener(stringRedisTemplate, taskRegistry, busProperties, pushMsgStreamRedisScript, rLock, deliveryBus);
     }
 
@@ -124,6 +126,7 @@ public class BusBootRedisConfiguration {
     public RedisMsgSender msgSender(StringRedisTemplate busStringRedisTemplate,
                                     BusConfig config,
                                     InterceptorConfig interceptorConfig,
+                                    @Qualifier("zsetAddRedisScript")
                                     DefaultRedisScript<Long> zsetAddRedisScript,
                                     ScheduledTaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, SubscriberRegistry registry) {
         return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig, zsetAddRedisScript, taskRegistry, requestIdGenerator, registry);

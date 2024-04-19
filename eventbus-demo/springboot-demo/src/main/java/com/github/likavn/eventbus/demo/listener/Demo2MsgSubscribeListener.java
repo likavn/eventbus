@@ -5,6 +5,7 @@ import com.github.likavn.eventbus.core.api.MsgSubscribeListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import com.github.likavn.eventbus.demo.domain.TMsg;
+import com.github.likavn.eventbus.demo.domain.TestBody;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -14,15 +15,15 @@ import org.springframework.stereotype.Component;
  **/
 @Slf4j
 @Component
-public class Demo2MsgSubscribeListener extends MsgSubscribeListener<TMsg> {
+public class Demo2MsgSubscribeListener extends MsgSubscribeListener<TestBody> {
     protected Demo2MsgSubscribeListener() {
         super(MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER);
     }
 
     @Override
     @Fail(callMethod = "exceptionHandler", retryCount = 3, nextTime = 7)
-    public void onMessage(Message<TMsg> message) {
-        TMsg body = message.getBody();
+    public void onMessage(Message<TestBody> message) {
+        TestBody body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
         // throw new RuntimeException("Demo2MsgSubscribeListener test");
     }
