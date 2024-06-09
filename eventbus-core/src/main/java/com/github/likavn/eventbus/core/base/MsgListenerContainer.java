@@ -76,7 +76,7 @@ public class MsgListenerContainer {
     /**
      * 注册所有监听组件
      */
-    protected void registerListeners() throws Exception {
+    protected void registerListeners() {
         if (!this.active) {
             return;
         }
@@ -91,7 +91,7 @@ public class MsgListenerContainer {
     /**
      * 销毁所有监听组件
      */
-    protected void destroyListeners() throws Exception {
+    protected void destroyListeners() {
         // 遍历组件列表
         for (Lifecycle listener : listeners) {
             // 销毁组件

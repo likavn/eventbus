@@ -15,7 +15,6 @@
  */
 package com.github.likavn.eventbus.core.metadata;
 
-import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.Getter;
 
 /**
@@ -49,7 +48,6 @@ public enum MsgType {
     /**
      * 消息类型的值
      */
-    @JSONField
     private final Integer value;
 
     /**

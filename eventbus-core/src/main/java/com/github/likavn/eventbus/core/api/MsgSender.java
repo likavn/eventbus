@@ -15,7 +15,7 @@
  */
 package com.github.likavn.eventbus.core.api;
 
-import com.github.likavn.eventbus.core.metadata.data.AbstractBody;
+import com.github.likavn.eventbus.core.metadata.data.MsgBody;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 
 /**
@@ -31,7 +31,7 @@ public interface MsgSender {
      *
      * @param body 消息体
      */
-    default void send(AbstractBody body) {
+    default void send(MsgBody body) {
         send(null, body.code(), body);
     }
 
@@ -52,7 +52,7 @@ public interface MsgSender {
      * @param serviceId 服务ID
      * @param body      消息体
      */
-    default void send(String serviceId, AbstractBody body) {
+    default void send(String serviceId, MsgBody body) {
         send(serviceId, body.code(), body);
     }
 
@@ -94,7 +94,7 @@ public interface MsgSender {
      * @param delayTime 延时时间，单位：秒
      */
     @SuppressWarnings("all")
-    default void sendDelayMessage(Class<? extends MsgDelayListener> listener, AbstractBody body, long delayTime) {
+    default void sendDelayMessage(Class<? extends MsgDelayListener> listener, MsgBody body, long delayTime) {
         sendDelayMessage(listener, body.code(), body, delayTime);
     }
 
@@ -119,7 +119,7 @@ public interface MsgSender {
      * @param delayTime 延时时间，单位：秒
      */
     @SuppressWarnings("all")
-    default void sendDelayMessage(AbstractBody body, long delayTime) {
+    default void sendDelayMessage(MsgBody body, long delayTime) {
         sendDelayMessage(body.code(), body, delayTime);
     }
 
@@ -132,7 +132,7 @@ public interface MsgSender {
      */
     @SuppressWarnings("all")
     default void sendDelayMessage(String code, Object body, long delayTime) {
-        sendDelayMessage(Request.builder().code(code).body(body).delayTime(delayTime).build());
+        sendDelayMessage(null, code, body, delayTime);
     }
 
     /**

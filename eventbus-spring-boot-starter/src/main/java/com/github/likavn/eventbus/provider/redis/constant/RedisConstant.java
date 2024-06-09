@@ -44,7 +44,7 @@ public class RedisConstant {
      * <p>
      * 1.服务serviceId;
      */
-    public static final String BUS_SUBSCRIBE_PREFIX = SUFFIX + "subscribe:{%s}";
+    public static final String BUS_SUBSCRIBE_PREFIX = SUFFIX + "queue:{%s}";
 
     /**
      * 延时队列,延时消息处理超时时长key
@@ -60,12 +60,12 @@ public class RedisConstant {
      * <p>
      * 1.服务serviceId;
      */
-    public static final String BUS_DELAY_PREFIX = SUFFIX + "delay:{%s}";
+    public static final String BUS_DELAY_PREFIX = SUFFIX + "delay-zset:{%s}";
     /**
      * 延时消息通知Stream队列key前缀
      * 参数：
      * <p>
      * 1.服务serviceId;
      */
-    public static final String BUS_DELAY_SUBSCRIBE_PREFIX = SUFFIX + "subscribe_delay:{%s}";
+    public static final String BUS_DELAY_SUBSCRIBE_PREFIX = SUFFIX + "queue-delay:{%s}";
 }

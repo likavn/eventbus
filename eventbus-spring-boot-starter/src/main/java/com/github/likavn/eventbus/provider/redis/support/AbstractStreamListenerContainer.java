@@ -16,7 +16,9 @@
 package com.github.likavn.eventbus.provider.redis.support;
 
 import com.github.likavn.eventbus.core.base.Lifecycle;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.utils.Func;
+import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
 import com.github.likavn.eventbus.prop.BusProperties;
 import lombok.extern.slf4j.Slf4j;
 import lombok.var;
@@ -25,7 +27,6 @@ import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
-import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import org.springframework.util.Assert;
 
 import java.time.Duration;
@@ -45,14 +46,12 @@ import java.util.stream.Collectors;
 public abstract class AbstractStreamListenerContainer implements Lifecycle {
     protected final StringRedisTemplate redisTemplate;
     protected final BusProperties config;
-    protected final String threadName;
     protected ThreadPoolExecutor executor;
     protected StreamMessageListenerContainer<String, ObjectRecord<String, String>> container;
 
-    protected AbstractStreamListenerContainer(StringRedisTemplate redisTemplate, BusProperties config, String threadName) {
+    protected AbstractStreamListenerContainer(StringRedisTemplate redisTemplate, BusProperties config) {
         this.redisTemplate = redisTemplate;
         this.config = config;
-        this.threadName = threadName;
     }
 
     @Override
@@ -61,34 +60,34 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
             container.start();
             return;
         }
-        executor = new ThreadPoolExecutor(
-                config.getRedis().getExecutorPoolSize(),
-                config.getRedis().getExecutorPoolSize(),
-                1,
-                TimeUnit.MINUTES,
-                new LinkedBlockingDeque<>(),
-                new CustomizableThreadFactory(threadName));
+        List<RedisListener> listeners = getListeners();
+        if (Func.isEmpty(listeners)) {
+            return;
+        }
+        int poolSize = config.getRedis().getExecutorPoolSize();
+        int concurrency = listeners.stream().map(RedisListener::getConcurrency).reduce(Integer::sum).orElse(poolSize);
+        if (poolSize > concurrency) {
+            poolSize = concurrency;
+        }
+        executor = new ThreadPoolExecutor(poolSize, poolSize, 1,
+                TimeUnit.MINUTES, new LinkedBlockingDeque<>(), new NamedThreadFactory(this.getClass().getSimpleName() + "-"));
         // 创建配置对象
-        var options
-                = StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder()
-                .executor(executor)
+        var options = StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder().executor(executor)
                 // 一次性最多拉取多少条消息
-                .batchSize(config.getRedis().getBatchSize())
+                .batchSize(config.getMsgBatchSize())
                 // 消息消费异常的handler
                 .errorHandler(t -> log.error("[Eventbus error] ", t))
                 // 超时时间，设置为0，表示不超时（超时后会抛出异常）
                 .pollTimeout(Duration.ZERO)
                 // 序列化器
-                .serializer(new StringRedisSerializer())
-                .targetType(String.class)
-                .build();
+                .serializer(new StringRedisSerializer()).targetType(String.class).build();
 
         // 根据配置对象创建监听容器对象
         RedisConnectionFactory connectionFactory = redisTemplate.getConnectionFactory();
         Assert.notNull(connectionFactory, "RedisConnectionFactory must not be null!");
-        container = StreamMessageListenerContainer.create(connectionFactory, options);
+        container = new XDefaultStreamMessageListenerContainer<>(connectionFactory, options);
         // 添加消费者
-        createConsumer(container);
+        createConsumer(container, listeners);
         // 启动监听
         container.start();
     }
@@ -97,21 +96,28 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      * 注册消费者
      *
      * @param container 监听容器
+     * @param listeners listeners
      */
-    private void createConsumer(StreamMessageListenerContainer<String, ObjectRecord<String, String>> container) {
-        List<RedisSubscriber> subscribers = getSubscribers();
+    private void createConsumer(StreamMessageListenerContainer<String, ObjectRecord<String, String>> container, List<RedisListener> listeners) {
         String hostName = Func.getHostName() + "@" + Func.getPid();
         // 初始化组
-        createGroup(subscribers);
-        subscribers.forEach(subscriber -> {
-            int num = 0;
-            while (++num <= config.getConsumerCount()) {
-                // 使用监听容器对象开始监听消费（使用的是手动确认方式）
-                container.receive(Consumer.from(subscriber.getGroup(), hostName + "-" + num),
-                        StreamOffset.create(subscriber.getStreamKey(), ReadOffset.lastConsumed()),
-                        msg -> deliver(subscriber, msg));
-            }
-        });
+        createGroup(listeners);
+        listeners.forEach(listener
+                -> Func.pollRun(listener.getConcurrency(), num
+                        // 使用监听容器对象开始监听消费（使用的是手动确认方式）
+                        -> container.receive(Consumer.from(listener.getGroup(),
+                        hostName + "-" + num), StreamOffset.create(listener.getStreamKey(), ReadOffset.lastConsumed()), msg
+                        -> {
+                    String oldName = Func.reThreadName(BusConstant.THREAD_NAME);
+                    try {
+                        deliver(listener, msg);
+                        redisTemplate.opsForStream().acknowledge(listener.getStreamKey(), listener.getGroup(), msg.getId());
+                    } finally {
+                        // 恢复线程名称
+                        Thread.currentThread().setName(oldName);
+                    }
+                })
+        ));
     }
 
     /**
@@ -119,7 +125,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      *
      * @return 消费者
      */
-    protected abstract List<RedisSubscriber> getSubscribers();
+    protected abstract List<RedisListener> getListeners();
 
     /**
      * 消费消息
@@ -127,40 +133,39 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      * @param subscriber 消费者
      * @param msg        消息体
      */
-    protected abstract void deliver(RedisSubscriber subscriber, Record<String, String> msg);
+    protected abstract void deliver(RedisListener subscriber, Record<String, String> msg);
 
     @Override
     public void destroy() {
         if (null != container) {
             container.stop();
         }
-        Func.resetPool(executor);
+        executor.purge();
     }
 
     /**
      * 创建消费者组。
      * 遍历给定的订阅者列表，为每个订阅者所指定的流创建消费者组，如果该消费者组还未在对应的流上存在的话。
      *
-     * @param subscribers 订阅者列表，每个订阅者包含流的键和消费者组的名称。
+     * @param listeners 订阅者列表，每个订阅者包含流的键和消费者组的名称。
      */
-    private void createGroup(List<RedisSubscriber> subscribers) {
+    private void createGroup(List<RedisListener> listeners) {
         // 根据流的键对订阅者进行分组
-        subscribers.stream().collect(Collectors.groupingBy(RedisSubscriber::getStreamKey))
-                .forEach((streamKey, subs) -> {
-                    // 检查流的键是否在Redis中存在
-                    if (Boolean.TRUE.equals(redisTemplate.hasKey(streamKey))) {
-                        // 获取当前流上已存在的消费者组信息
-                        StreamInfo.XInfoGroups groups = redisTemplate.opsForStream().groups(streamKey);
-                        // 从订阅者列表中移除那些组名已经存在于流上的订阅者
-                        subs = subs.stream().filter(t -> {
-                            long count = groups.stream().filter(g -> g.groupName().equals(t.getGroup())).count();
-                            return count <= 0;
-                        }).collect(Collectors.toList());
-                    }
-                    // 为剩余的订阅者（即组名在流上不存在的订阅者）创建新的消费者组
-                    if (!subs.isEmpty()) {
-                        subs.forEach(t -> redisTemplate.opsForStream().createGroup(t.getStreamKey(), t.getGroup()));
-                    }
-                });
+        listeners.stream().collect(Collectors.groupingBy(RedisListener::getStreamKey)).forEach((streamKey, subs) -> {
+            // 检查流的键是否在Redis中存在
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(streamKey))) {
+                // 获取当前流上已存在的消费者组信息
+                StreamInfo.XInfoGroups groups = redisTemplate.opsForStream().groups(streamKey);
+                // 从订阅者列表中移除那些组名已经存在于流上的订阅者
+                subs = subs.stream().filter(t -> {
+                    long count = groups.stream().filter(g -> g.groupName().equals(t.getGroup())).count();
+                    return count <= 0;
+                }).collect(Collectors.toList());
+            }
+            // 为剩余的订阅者（即组名在流上不存在的订阅者）创建新的消费者组
+            if (!subs.isEmpty()) {
+                subs.forEach(t -> redisTemplate.opsForStream().createGroup(t.getStreamKey(), t.getGroup()));
+            }
+        });
     }
 }

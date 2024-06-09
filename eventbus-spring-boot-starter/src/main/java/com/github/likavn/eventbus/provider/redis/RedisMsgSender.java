@@ -15,17 +15,16 @@
  */
 package com.github.likavn.eventbus.provider.redis;
 
-import com.github.likavn.eventbus.core.SubscriberRegistry;
+import com.github.likavn.eventbus.core.ListenerRegistry;
+import com.github.likavn.eventbus.core.TaskRegistry;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.github.likavn.eventbus.core.support.task.Task;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
-import com.github.likavn.eventbus.schedule.PeriodTask;
-import com.github.likavn.eventbus.schedule.ScheduledTaskRegistry;
-import com.github.likavn.eventbus.schedule.Task;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.Record;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -43,13 +42,13 @@ import java.util.Collections;
 public class RedisMsgSender extends AbstractSenderAdapter {
     private final StringRedisTemplate stringRedisTemplate;
     private final DefaultRedisScript<Long> zsetAddRedisScript;
-    private final ScheduledTaskRegistry taskRegistry;
+    private final TaskRegistry taskRegistry;
 
     public RedisMsgSender(StringRedisTemplate stringRedisTemplate,
                           BusConfig config,
                           InterceptorConfig interceptorConfig,
                           DefaultRedisScript<Long> zsetAddRedisScript,
-                          ScheduledTaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, SubscriberRegistry registry) {
+                          TaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, ListenerRegistry registry) {
         super(config, interceptorConfig, requestIdGenerator, registry);
         this.stringRedisTemplate = stringRedisTemplate;
         this.zsetAddRedisScript = zsetAddRedisScript;
@@ -85,8 +84,8 @@ public class RedisMsgSender extends AbstractSenderAdapter {
             return;
         }
         Task task = taskRegistry.getTask(RedisMsgDelayListener.class.getName());
-        if (task instanceof PeriodTask) {
-            ((PeriodTask) task).setNextTriggerTimeMillis(timeMillis);
+        if (null != task) {
+            task.setNextExecutionTime(timeMillis);
         }
     }
 }

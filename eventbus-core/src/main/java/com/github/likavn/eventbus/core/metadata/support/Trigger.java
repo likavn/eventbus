@@ -15,16 +15,14 @@
  */
 package com.github.likavn.eventbus.core.metadata.support;
 
-import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 
 /**
  * 触发器实体
@@ -33,6 +31,7 @@ import java.lang.reflect.Type;
  * @date 2024/01/01
  **/
 @Data
+@Slf4j
 public class Trigger {
     /**
      * 调用对象
@@ -47,12 +46,12 @@ public class Trigger {
     /**
      * 接收数据所在参数列表位置
      */
-    private Integer messageIndex;
+    private Integer messageDataIndex;
 
     /**
      * 接收数据所在参数数据类型
      */
-    private Class<?> messageClazz;
+    private Type messageDataType;
 
     /**
      * 异常所在参数列表位置
@@ -63,6 +62,7 @@ public class Trigger {
      * 参数数量
      */
     private int paramsCount;
+
 
     protected Trigger(Object invokeBean, Method method) {
         this.invokeBean = invokeBean;
@@ -95,7 +95,7 @@ public class Trigger {
      * @param message 消息
      */
     @SuppressWarnings("all")
-    public void invoke(Message message) {
+    public void invoke(Message message) throws InvocationTargetException, IllegalAccessException {
         invoke(message, null);
     }
 
@@ -106,25 +106,21 @@ public class Trigger {
      * @param throwable 异常
      */
     @SuppressWarnings("all")
-    public void invoke(Message message, Throwable throwable) {
+    public void invoke(Message message, Throwable throwable) throws InvocationTargetException, IllegalAccessException {
         Request request = (Request) message;
         Object oldBody = request.getBody();
         try {
             Object[] args = new Object[this.paramsCount];
             if (this.paramsCount > 0) {
-                if (this.messageIndex >= 0) {
-                    args[this.messageIndex] = message;
-                    if (null != messageClazz) {
-                        request.setBody(Func.parseObject(message.getBody(), messageClazz));
-                    }
+                if (this.messageDataIndex >= 0) {
+                    request.setBody(Func.parseObject(message.getBody(), messageDataType));
+                    args[this.messageDataIndex] = message;
                 }
                 if (this.throwableIndex >= 0) {
                     args[this.throwableIndex] = throwable;
                 }
             }
             method.invoke(invokeBean, args);
-        } catch (Exception e) {
-            throw new EventBusException(e);
         } finally {
             request.setBody(oldBody);
         }
@@ -134,35 +130,27 @@ public class Trigger {
      * 构建参数
      */
     private void buildParams(Method method) {
-        try {
-            if (null == method) {
-                return;
+        if (null == method) {
+            return;
+        }
+        int modifiers = method.getModifiers();
+        Assert.isTrue(Modifier.isPublic(modifiers),
+                String.format("Method %s of %s must be public", method.getName(), method.getDeclaringClass().getName()));
+        Type[] parameterTypes = method.getGenericParameterTypes();
+        this.paramsCount = parameterTypes.length;
+        this.messageDataIndex = -1;
+        this.throwableIndex = -1;
+        for (int index = 0; index < parameterTypes.length; index++) {
+            String typeName = parameterTypes[index].getTypeName();
+            // 接收消息
+            if (typeName.contains(Message.class.getName())) {
+                messageDataIndex = index;
+                messageDataType = ((ParameterizedType) parameterTypes[index]).getActualTypeArguments()[0];
             }
-            int modifiers = method.getModifiers();
-            Assert.isTrue(Modifier.isPublic(modifiers),
-                    String.format("Method %s of %s must be public", method.getName(), method.getDeclaringClass().getName()));
-            Type[] parameterTypes = method.getGenericParameterTypes();
-            this.paramsCount = parameterTypes.length;
-            this.messageIndex = -1;
-            this.throwableIndex = -1;
-            for (int index = 0; index < parameterTypes.length; index++) {
-                String typeName = parameterTypes[index].getTypeName();
-                // 接收消息
-                if (typeName.contains(Message.class.getName())) {
-                    messageIndex = index;
-                    int bodyIndex = typeName.indexOf('<');
-                    if (bodyIndex > 0) {
-                        String bodyClsName = typeName.substring(bodyIndex + 1, typeName.length() - 1);
-                        this.messageClazz = Class.forName(bodyClsName);
-                    }
-                }
-                // 接收异常
-                else if (typeName.contains(Throwable.class.getName())) {
-                    throwableIndex = index;
-                }
+            // 接收异常
+            else if (typeName.contains(Throwable.class.getName())) {
+                throwableIndex = index;
             }
-        } catch (Exception e) {
-            throw new EventBusException(e);
         }
     }
 

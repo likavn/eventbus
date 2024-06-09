@@ -21,10 +21,12 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
 
 /**
  * tool utils
@@ -90,20 +92,20 @@ public final class Func {
     }
 
     /**
-     * @param body  数据对象
-     * @param clazz 数据实体class
+     * @param body 数据对象
+     * @param type 数据实体class
      * @return 转换对象
      */
     @SuppressWarnings("all")
-    public <T> T parseObject(Object body, Class<T> clazz) {
+    public <T> T parseObject(Object body, Type type) {
         if (body instanceof String) {
             String bodyStr = (String) body;
-            if (!JSON.isJson(bodyStr)) {
+            if (!JSON.isJson(bodyStr) && isInterfaceImplemented((Class<?>) type, CharSequence.class)) {
                 return (T) bodyStr;
             }
-            return JSON.parseObject(bodyStr, clazz);
+            return JSON.parseObject(body.toString(), type);
         }
-        return JSON.parseObject(toJson(body), clazz);
+        return JSON.parseObject(toJson(body), type);
     }
 
     /**
@@ -137,6 +139,16 @@ public final class Func {
     }
 
     /**
+     * thread name pool
+     */
+    private final Map<String, String> theadNames = new ConcurrentHashMap<>();
+
+    /**
+     * process id
+     */
+    private final AtomicInteger processId = new AtomicInteger(1);
+
+    /**
      * rename thread name
      *
      * @param name new name
@@ -145,19 +157,9 @@ public final class Func {
     public String reThreadName(String name) {
         Thread thread = Thread.currentThread();
         String oldName = thread.getName();
-        thread.setName(name + oldName.substring(oldName.lastIndexOf("-") + 1));
+        String newName = theadNames.computeIfAbsent(oldName, key -> name + processId.getAndAdd(1));
+        thread.setName(newName);
         return oldName;
-    }
-
-    @SuppressWarnings("all")
-    public void resetPool(ThreadPoolExecutor poolExecutor) {
-        if (null == poolExecutor) {
-            return;
-        }
-        for (Future f : poolExecutor.getQueue().toArray(new Future[0])) {
-            f.cancel(true);
-        }
-        poolExecutor.purge();
     }
 
     /**
@@ -166,7 +168,7 @@ public final class Func {
      * @param obj 传入对象
      * @return 原始类型
      */
-    public static Class<?> primitiveClass(Object obj) {
+    public Class<?> primitiveClass(Object obj) {
         return isProxy(obj.getClass()) ? obj.getClass().getSuperclass() : obj.getClass();
     }
 
@@ -176,7 +178,7 @@ public final class Func {
      * @param clazz 传入 class 对象
      * @return 如果对象class是代理 class，返回 true
      */
-    private static boolean isProxy(Class<?> clazz) {
+    private boolean isProxy(Class<?> clazz) {
         for (String proxyClassName : PROXY_CLASS_NAMES) {
             if (clazz.getName().contains(proxyClassName)) {
                 return true;
@@ -209,7 +211,7 @@ public final class Func {
         if (Func.isEmpty(code)) {
             return serviceId;
         }
-        return serviceId + "." + code;
+        return serviceId + "|" + code;
     }
 
     /**
@@ -217,5 +219,48 @@ public final class Func {
      */
     public String getDeliverId(Class<?> clz, String methodName) {
         return String.format("%s#%s", clz.getName(), methodName);
+    }
+
+    /**
+     * 轮询执行
+     *
+     * @param count    轮询次数
+     * @param runnable 轮询任务
+     */
+    public void pollRun(int count, Runnable runnable) {
+        for (int i = 0; i < count; i++) {
+            runnable.run();
+        }
+    }
+
+    /**
+     * 轮询执行
+     *
+     * @param count    轮询次数
+     * @param consumer 轮询任务
+     */
+    public void pollRun(int count, IntConsumer consumer) {
+        for (int i = 0; i < count; i++) {
+            consumer.accept(i);
+        }
+    }
+
+    /**
+     * 判断类是否实现了接口
+     *
+     * @param clazz          类
+     * @param interfaceClass 接口
+     * @return 是否实现了接口
+     */
+    public boolean isInterfaceImplemented(Class<?> clazz, Class<?> interfaceClass) {
+        if (interfaceClass.isAssignableFrom(clazz)) {
+            return true;
+        }
+        for (Class<?> inf : clazz.getInterfaces()) {
+            if (isInterfaceImplemented(inf, interfaceClass)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -17,7 +17,7 @@ package com.github.likavn.eventbus.prop;
 
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import lombok.Data;
-import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -27,33 +27,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @date 2024/01/01
  */
 @Data
-@ToString
+@EqualsAndHashCode(callSuper = true)
 @ConfigurationProperties(prefix = "eventbus")
-public class BusProperties {
-    /**
-     * 服务ID
-     */
-    private String serviceId;
-
-    /**
-     * 消息引擎类别（redis、rabbitmq、rocketmq、pulsar）
-     */
-    private String type;
-
-    /**
-     * 消费者数量
-     */
-    private Integer consumerCount = 1;
-
-    /**
-     * 节点联通性配置
-     */
-    private BusConfig.TestConnect testConnect = new BusConfig.TestConnect();
-
-    /**
-     * 消息投递失败时配置信息
-     */
-    private BusConfig.Fail fail = new BusConfig.Fail();
+public class BusProperties extends BusConfig {
 
     /**
      * redis配置
@@ -64,7 +40,6 @@ public class BusProperties {
      * redis配置
      */
     @Data
-    @ToString
     public static class RedisProperties {
         /**
          * 订阅消息线程池大小
@@ -77,16 +52,16 @@ public class BusProperties {
          */
         private Long deliverTimeout = 60 * 5L;
         /**
-         * 订阅消息一次性最多拉取多少条消息数据
-         */
-        private Integer batchSize = 10;
-        /**
          * 每次最多拉取多少条待确认消息数据
          */
         private Integer pendingMessagesBatchSize = 100;
         /**
-         * stream 过期时间，单位：小时，默认 7 天
+         * stream 过期时间，6.2及以上版本支持，单位：小时，默认 5 天
          */
-        private Long streamExpiredHours = 24 * 7L;
+        private Long streamExpiredHours = 24 * 5L;
+        /**
+         * stream 大小截取阈值，6.2以下版本支持
+         */
+        private Long streamMaxLength = 10000L;
     }
 }

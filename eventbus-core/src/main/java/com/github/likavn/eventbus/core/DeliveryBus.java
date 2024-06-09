@@ -22,7 +22,7 @@ import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
-import com.github.likavn.eventbus.core.metadata.support.Subscriber;
+import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.extern.slf4j.Slf4j;
@@ -40,12 +40,12 @@ public class DeliveryBus {
     private final InterceptorConfig interceptorConfig;
     private final BusConfig config;
     private final MsgSender msgSender;
-    private final SubscriberRegistry registry;
+    private final ListenerRegistry registry;
 
     public DeliveryBus(InterceptorConfig interceptorConfig,
                        BusConfig config,
                        MsgSender msgSender,
-                       SubscriberRegistry registry) {
+                       ListenerRegistry registry) {
         this.interceptorConfig = interceptorConfig;
         this.config = config;
         this.msgSender = msgSender;
@@ -58,7 +58,7 @@ public class DeliveryBus {
      * @param subscriber 订阅者
      * @param body       内容的主体
      */
-    public void deliverTimely(Subscriber subscriber, byte[] body) {
+    public void deliverTimely(Listener subscriber, byte[] body) {
         deliverTimely(subscriber, Func.convertByBytes(body));
     }
 
@@ -68,7 +68,7 @@ public class DeliveryBus {
      * @param subscriber 订阅者
      * @param body       内容的主体
      */
-    public void deliverTimely(Subscriber subscriber, String body) {
+    public void deliverTimely(Listener subscriber, String body) {
         deliverTimely(subscriber, Func.convertByJson(body));
     }
 
@@ -78,12 +78,10 @@ public class DeliveryBus {
      * @param subscriber 订阅者
      * @param request    请求对象
      */
-    public void deliverTimely(Subscriber subscriber, Request<?> request) {
-        if (null != request.getDeliverId()) {
-            // 判断当前订阅者是否等于消息投递ID
-            if (!subscriber.getTrigger().getDeliverId().equals(request.getDeliverId())) {
-                return;
-            }
+    public void deliverTimely(Listener subscriber, Request<?> request) {
+        if (null != request.getDeliverId()
+                && (!subscriber.getTrigger().getDeliverId().equals(request.getDeliverId()))) {
+            return;
         }
         // 发送消息给订阅者
         deliver(subscriber, request);
@@ -115,11 +113,11 @@ public class DeliveryBus {
     @SuppressWarnings("all")
     public void deliverDelay(Request request) {
         // 获取延时订阅者
-        Subscriber subscriber = null;
+        Listener subscriber = null;
         if (request.getType().isDelay()) {
-            subscriber = registry.getSubscriberDelay(request.getDeliverId());
+            subscriber = registry.getDelayListener(request.getDeliverId());
         } else {
-            subscriber = registry.getSubscriber(request.getDeliverId());
+            subscriber = registry.getTimelyListener(request.getDeliverId());
         }
 
         // 如果订阅者为空，则打印错误日志并返回
@@ -134,7 +132,7 @@ public class DeliveryBus {
     /**
      * 投递消息
      */
-    private void deliver(Subscriber subscriber, Request<?> request) {
+    private void deliver(Listener subscriber, Request<?> request) {
         Trigger trigger = subscriber.getTrigger();
         if (null == request.getDeliverId()) {
             request.setDeliverId(trigger.getDeliverId());
@@ -157,12 +155,12 @@ public class DeliveryBus {
      * @param request    request
      * @param throwable  throwable
      */
-    private void failHandle(Subscriber subscriber, Request<?> request, Throwable throwable) {
-        if (!(throwable.getCause() instanceof InvocationTargetException)) {
+    private void failHandle(Listener subscriber, Request<?> request, Throwable throwable) {
+        if (!(throwable instanceof InvocationTargetException)) {
             throw new EventBusException(throwable.getCause());
         }
         // 获取异常的真正原因
-        throwable = throwable.getCause().getCause();
+        throwable = throwable.getCause();
         // 发生异常时记录错误日志
         log.error("deliver error", throwable);
         // 获取订阅器的FailTrigger

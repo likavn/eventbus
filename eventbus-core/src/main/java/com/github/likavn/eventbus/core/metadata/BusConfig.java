@@ -18,41 +18,47 @@ package com.github.likavn.eventbus.core.metadata;
 import lombok.*;
 
 /**
- * 配置
+ * eventbus全局配置
  *
  * @author likavn
  * @date 2024/01/01
  */
 @Data
-@ToString
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 public class BusConfig {
     /**
-     * 服务ID
+     * 服务ID/消息来源ID
      */
-    private String serviceId;
+    protected String serviceId;
 
     /**
      * 消息引擎类别（redis、rabbitmq、rocketmq、pulsar）
      */
-    private String type;
+    protected String type;
 
     /**
-     * 消费者数量
+     * 定义接收并发级别，默认值为1。
      */
-    private Integer consumerCount = 1;
+    protected Integer concurrency = 1;
+
+    /**
+     * 定义接收延时消息并发级别，默认值为1。
+     */
+    protected Integer delayConcurrency = 2;
+
+    /**
+     * 单次获取消息数量，默认16条
+     */
+    protected Integer msgBatchSize = 16;
 
     /**
      * 节点联通性配置
      */
-    private TestConnect testConnect = new TestConnect();
+    protected TestConnect testConnect = new TestConnect();
 
     /**
      * 消息投递失败时配置信息
      */
-    private Fail fail = new Fail();
+    protected Fail fail = new Fail();
 
     /**
      * 节点联通性配置

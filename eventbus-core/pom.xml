@@ -22,7 +22,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <optional>true</optional>
         </dependency>
         <!-- 各个JSON序列化工具 -->
         <!-- fastjson2 -->
@@ -39,13 +38,6 @@
             <version>${fastjson.version}</version>
             <optional>true</optional>
         </dependency>
-        <!-- gson -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>${gson.version}</version>
-            <optional>true</optional>
-        </dependency>
         <!-- jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -53,11 +45,11 @@
             <version>${jackson.version}</version>
             <optional>true</optional>
         </dependency>
-        <!-- hutool json-->
+        <!-- gson -->
         <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-json</artifactId>
-            <version>${hutool.version}</version>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
             <optional>true</optional>
         </dependency>
     </dependencies>

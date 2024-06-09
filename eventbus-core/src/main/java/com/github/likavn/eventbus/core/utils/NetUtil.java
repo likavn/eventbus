@@ -68,10 +68,10 @@ public class NetUtil {
      * @return 本地hostName
      */
     public String getHostName() {
-        InetAddress inetAddress = getHostAddress();
-        String hostName = inetAddress.getHostName();
+        InetAddress inet = getHostAddress();
+        String hostName = inet.getHostName();
         if (Func.isEmpty(hostName)) {
-            hostName = inetAddress.getHostAddress();
+            hostName = inet.getHostAddress();
         }
         return hostName;
     }

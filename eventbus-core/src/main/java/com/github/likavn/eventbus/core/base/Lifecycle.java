@@ -15,6 +15,8 @@
  */
 package com.github.likavn.eventbus.core.base;
 
+import com.github.likavn.eventbus.core.exception.EventBusException;
+
 /**
  * 中间件实现监听容器初始化接口
  *
@@ -26,14 +28,14 @@ public interface Lifecycle {
     /**
      * 监听组件注册
      *
-     * @throws Exception e
+     * @throws EventBusException e
      */
-    void register() throws Exception;
+    void register() throws EventBusException;
 
     /**
      * 监听组件销毁
      *
-     * @throws Exception e
+     * @throws EventBusException e
      */
-    void destroy() throws Exception;
+    void destroy() throws EventBusException;
 }

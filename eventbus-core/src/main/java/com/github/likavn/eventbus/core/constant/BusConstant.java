@@ -16,7 +16,7 @@
 package com.github.likavn.eventbus.core.constant;
 
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
-import com.github.likavn.eventbus.core.api.MsgSubscribeListener;
+import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 
 /**
@@ -32,7 +32,7 @@ public class BusConstant {
     /**
      * 接口订阅器接收方法名
      *
-     * @see MsgSubscribeListener#onMessage(Message)
+     * @see MsgListener#onMessage(Message)
      * @see MsgDelayListener#onMessage(Message)
      */
     public static final String ON_MESSAGE = "onMessage";
@@ -43,12 +43,7 @@ public class BusConstant {
     public static final String TASK_NAME = "eventbus-task-pool-";
 
     /**
-     * delay thread name
-     */
-    public static final String DELAY_MSG_THREAD_NAME = "eventbus-delayMsg-pool-";
-
-    /**
      * subscribe thread name
      */
-    public static final String SUBSCRIBE_MSG_THREAD_NAME = "eventbus-subscribeMsg-pool-";
+    public static final String THREAD_NAME = "eventbus-msg-pool-";
 }

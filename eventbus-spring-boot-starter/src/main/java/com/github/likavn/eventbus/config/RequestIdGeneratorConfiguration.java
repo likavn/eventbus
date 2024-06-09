@@ -16,7 +16,7 @@
 package com.github.likavn.eventbus.config;
 
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
-import com.github.likavn.eventbus.core.base.DefaultRequestIdGenerator;
+import com.github.likavn.eventbus.core.base.UUIDRequestIdGenerator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,17 +28,17 @@ import org.springframework.context.annotation.Lazy;
  **/
 @Lazy
 @Configuration(proxyBeanMethods = false)
-public class RequestIdGeneratorConfiguration {
+class RequestIdGeneratorConfiguration {
+    private RequestIdGeneratorConfiguration() {
+    }
 
     @Configuration(proxyBeanMethods = false)
-    public static class RequestIdAutoConfig {
-        public RequestIdAutoConfig() {
-        }
+    static class RequestIdAutoConfig {
 
         @Bean
         @ConditionalOnMissingBean
         public RequestIdGenerator requestIdGenerator() {
-            return new DefaultRequestIdGenerator();
+            return new UUIDRequestIdGenerator();
         }
     }
 }

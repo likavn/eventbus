@@ -16,11 +16,10 @@
 package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
-import com.github.likavn.eventbus.core.constant.BusConstant;
-import com.github.likavn.eventbus.core.metadata.support.Subscriber;
+import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.support.AbstractStreamListenerContainer;
-import com.github.likavn.eventbus.provider.redis.support.RedisSubscriber;
+import com.github.likavn.eventbus.provider.redis.support.RedisListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.Record;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -35,26 +34,25 @@ import java.util.List;
  **/
 @Slf4j
 public class RedisMsgSubscribeListener extends AbstractStreamListenerContainer {
-    private final List<RedisSubscriber> subscribers;
+    private final List<RedisListener> subscribers;
     private final DeliveryBus deliveryBus;
 
     public RedisMsgSubscribeListener(StringRedisTemplate stringRedisTemplate,
                                      BusProperties busProperties,
-                                     List<Subscriber> subscribers,
+                                     List<Listener> subscribers,
                                      DeliveryBus deliveryBus) {
-        super(stringRedisTemplate, busProperties, BusConstant.SUBSCRIBE_MSG_THREAD_NAME);
+        super(stringRedisTemplate, busProperties);
         this.deliveryBus = deliveryBus;
-        this.subscribers = RedisSubscriber.redisSubscriber(subscribers);
+        this.subscribers = RedisListener.redisListeners(subscribers);
     }
 
     @Override
-    protected List<RedisSubscriber> getSubscribers() {
+    protected List<RedisListener> getListeners() {
         return this.subscribers;
     }
 
     @Override
-    protected void deliver(RedisSubscriber subscriber, Record<String, String> msg) {
+    protected void deliver(RedisListener subscriber, Record<String, String> msg) {
         deliveryBus.deliverTimely(subscriber, msg.getValue());
-        redisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), msg.getId());
     }
 }

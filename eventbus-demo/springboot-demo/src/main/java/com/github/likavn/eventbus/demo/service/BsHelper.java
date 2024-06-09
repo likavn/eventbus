@@ -16,12 +16,12 @@
 package com.github.likavn.eventbus.demo.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.github.likavn.eventbus.core.SubscriberRegistry;
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
-import com.github.likavn.eventbus.core.metadata.support.Subscriber;
+import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.demo.entity.BsConsumer;
 import com.github.likavn.eventbus.demo.entity.BsData;
@@ -56,7 +56,7 @@ public class BsHelper {
     private MsgSender msgSender;
 
     @Resource
-    private SubscriberRegistry registry;
+    private ListenerRegistry registry;
 
     /**
      * 发送消息
@@ -80,7 +80,7 @@ public class BsHelper {
         if (request.getType().isDelay()) {
             deliverIds.add(request.getDeliverId());
         } else {
-            List<Subscriber> subscribers = registry.getSubscribers();
+            List<Listener> subscribers = registry.getTimelyListeners();
             deliverIds = subscribers.stream().filter(subscriber
                             -> subscriber.getCode().equals(code))
                     .map(t -> t.getTrigger().getDeliverId()).collect(Collectors.toList());

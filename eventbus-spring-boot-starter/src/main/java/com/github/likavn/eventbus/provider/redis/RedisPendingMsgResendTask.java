@@ -15,16 +15,18 @@
  */
 package com.github.likavn.eventbus.provider.redis;
 
+import com.github.likavn.eventbus.core.TaskRegistry;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.metadata.data.Request;
-import com.github.likavn.eventbus.core.metadata.support.Subscriber;
+import com.github.likavn.eventbus.core.metadata.support.Listener;
+import com.github.likavn.eventbus.core.support.task.CronTask;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
-import com.github.likavn.eventbus.provider.redis.support.RedisSubscriber;
-import com.github.likavn.eventbus.schedule.CronTask;
-import com.github.likavn.eventbus.schedule.ScheduledTaskRegistry;
+import com.github.likavn.eventbus.provider.redis.support.RedisListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.ObjectRecord;
 import org.springframework.data.redis.connection.stream.PendingMessages;
@@ -42,7 +44,7 @@ import java.util.List;
  * @date 2024/1/4
  **/
 @Slf4j
-public class RedisPendingMsgResendTask extends CronTask {
+public class RedisPendingMsgResendTask implements Runnable,Lifecycle {
     private static final long POLLING_INTERVAL = 35L;
     private static final String CRON = POLLING_INTERVAL + " * * * * ?";
     private final BusProperties busProperties;
@@ -53,21 +55,29 @@ public class RedisPendingMsgResendTask extends CronTask {
      * 延时消息流key
      */
     private final String delayStreamKey;
-    private final List<RedisSubscriber> redisSubscribers;
+    private final List<RedisListener> redisSubscribers;
+    private CronTask task;
+    private final TaskRegistry taskRegistry;
 
-    public RedisPendingMsgResendTask(StringRedisTemplate stringRedisTemplate, ScheduledTaskRegistry taskRegistry,
-                                     BusProperties busProperties, List<Subscriber> subscribers,
+    public RedisPendingMsgResendTask(StringRedisTemplate stringRedisTemplate, TaskRegistry taskRegistry,
+                                     BusProperties busProperties, List<Listener> subscribers,
                                      RLock rLock,
                                      RedisMsgSender msgSender) {
-        super(taskRegistry, RedisPendingMsgResendTask.class.getName(), CRON);
         // 一分钟执行一次,这里选择每分钟的35秒执行，是为了避免整点任务过多的问题
         this.stringRedisTemplate = stringRedisTemplate;
+        this.taskRegistry = taskRegistry;
         this.busProperties = busProperties;
         this.rLock = rLock;
         this.msgSender = msgSender;
         this.delayStreamKey = String.format(RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX, busProperties.getServiceId());
         // 及时消息订阅
-        this.redisSubscribers = RedisSubscriber.fullRedisSubscriber(subscribers, busProperties.getServiceId());
+        this.redisSubscribers = RedisListener.fullRedisSubscriber(subscribers, busProperties.getServiceId());
+    }
+
+    @Override
+    public void register() {
+        task = CronTask.create(this.getClass().getName(), CRON, this);
+        taskRegistry.createTask(task);
     }
 
     @Override
@@ -92,10 +102,19 @@ public class RedisPendingMsgResendTask extends CronTask {
         });
     }
 
-    private void pendingMessagesResendExecute(RedisSubscriber subscriber) {
+    private void pendingMessagesResendExecute(RedisListener subscriber) {
         StreamOperations<String, String, String> sops = stringRedisTemplate.opsForStream();
         // 获取my_group中的pending消息信息
-        PendingMessagesSummary stats = sops.pending(subscriber.getStreamKey(), subscriber.getGroup());
+        PendingMessagesSummary stats = null;
+        try {
+            stats = sops.pending(subscriber.getStreamKey(), subscriber.getGroup());
+        } catch (RedisSystemException e) {
+            if (("" + e.getMessage()).contains("No such key")) {
+                return;
+            }
+            log.error(e.getMessage());
+            return;
+        }
         if (null == stats) {
             return;
         }
@@ -121,14 +140,14 @@ public class RedisPendingMsgResendTask extends CronTask {
                     return;
                 }
                 pushMessage(subscriber, pendingMessages);
-            } while ((msgCount -= pendingMessagesBatchSize) > 0);
+            } while ((msgCount = msgCount - pendingMessagesBatchSize) > 0);
         });
     }
 
     /**
      * 从pending队列中读取消息
      */
-    public void pushMessage(RedisSubscriber subscriber, PendingMessages pendingMessages) {
+    public void pushMessage(RedisListener subscriber, PendingMessages pendingMessages) {
         // 遍历所有pending消息的详情
         pendingMessages.get().parallel().forEach(message -> {
             // 消息的ID
@@ -156,5 +175,10 @@ public class RedisPendingMsgResendTask extends CronTask {
             // 如果手动消费成功后，往消费组提交消息的ACK
             stringRedisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), message.getId());
         });
+    }
+
+    @Override
+    public void destroy() {
+        taskRegistry.removeTask(task);
     }
 }

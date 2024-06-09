@@ -21,14 +21,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * rocket实现配置
+ * pulsar实现配置
  *
  * @author likavn
  * @date 2024/01/01
  */
 @Configuration
 @ConditionalOnClass(RabbitTemplate.class)
-@ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rocket")
+@ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "pulsar")
 public class BusBootPulsarConfiguration {
 
 }

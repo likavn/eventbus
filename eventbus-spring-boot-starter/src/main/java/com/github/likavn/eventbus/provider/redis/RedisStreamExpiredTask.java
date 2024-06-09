@@ -15,11 +15,12 @@
  */
 package com.github.likavn.eventbus.provider.redis;
 
-import com.github.likavn.eventbus.core.metadata.support.Subscriber;
+import com.github.likavn.eventbus.core.TaskRegistry;
+import com.github.likavn.eventbus.core.base.Lifecycle;
+import com.github.likavn.eventbus.core.metadata.support.Listener;
+import com.github.likavn.eventbus.core.support.task.CronTask;
 import com.github.likavn.eventbus.prop.BusProperties;
-import com.github.likavn.eventbus.provider.redis.support.RedisSubscriber;
-import com.github.likavn.eventbus.schedule.CronTask;
-import com.github.likavn.eventbus.schedule.ScheduledTaskRegistry;
+import com.github.likavn.eventbus.provider.redis.support.RedisListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -34,7 +35,7 @@ import java.util.List;
  * @date 2024/3/26
  **/
 @Slf4j
-public class RedisStreamExpiredTask extends CronTask {
+public class RedisStreamExpiredTask implements Runnable, Lifecycle {
     /**
      * 数据清理定时任务，默认：每个小时21分进行清理
      */
@@ -42,24 +43,32 @@ public class RedisStreamExpiredTask extends CronTask {
     private final BusProperties busProperties;
     private final RLock rLock;
     private final StringRedisTemplate redisTemplate;
-    private final List<RedisSubscriber> redisSubscribers;
+    private final List<RedisListener> redisSubscribers;
     private final DefaultRedisScript<Long> script;
+    private CronTask task;
+    private final TaskRegistry taskRegistry;
 
     public RedisStreamExpiredTask(StringRedisTemplate redisTemplate,
-                                  ScheduledTaskRegistry taskRegistry,
+                                  TaskRegistry taskRegistry,
                                   BusProperties busProperties,
-                                  List<Subscriber> subscribers,
+                                  List<Listener> subscribers,
                                   RLock rLock) {
-        super(taskRegistry, RedisStreamExpiredTask.class.getName(), CRON);
         this.busProperties = busProperties;
+        this.taskRegistry = taskRegistry;
         this.rLock = rLock;
         this.redisTemplate = redisTemplate;
 
         // 及时消息订阅
-        this.redisSubscribers = RedisSubscriber.fullRedisSubscriber(subscribers, busProperties.getServiceId());
+        this.redisSubscribers = RedisListener.fullRedisSubscriber(subscribers, busProperties.getServiceId());
 
         // 过期消息处理脚本
         this.script = new DefaultRedisScript<>("return redis.call('XTRIM', KEYS[1],'MINID', ARGV[1]);", Long.class);
+    }
+
+    @Override
+    public void register() {
+        task = CronTask.create(this.getClass().getName(), CRON, this);
+        taskRegistry.createTask(task);
     }
 
     @Override
@@ -68,9 +77,8 @@ public class RedisStreamExpiredTask extends CronTask {
         Long expiredHours = busProperties.getRedis().getStreamExpiredHours();
         // 过期时间毫秒数
         long expiredMillis = System.currentTimeMillis() - (1000L * 60 * 60 * expiredHours);
-        redisSubscribers.stream().map(RedisSubscriber::getStreamKey).distinct().forEach(streamKey -> {
-            deleteExpired(streamKey, expiredMillis + "-0");
-        });
+        redisSubscribers.stream().map(RedisListener::getStreamKey).distinct().forEach(streamKey
+                -> deleteExpired(streamKey, expiredMillis + "-0"));
     }
 
     /**
@@ -92,5 +100,10 @@ public class RedisStreamExpiredTask extends CronTask {
                 rLock.releaseLock(lockKey);
             }
         }
+    }
+
+    @Override
+    public void destroy() {
+        taskRegistry.removeTask(task);
     }
 }

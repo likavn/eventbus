@@ -16,7 +16,7 @@
 package com.github.likavn.eventbus.provider.rabbit.config;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
-import com.github.likavn.eventbus.core.SubscriberRegistry;
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
@@ -45,14 +45,14 @@ public class BusBootRabbitConfiguration {
 
     @Bean
     public MsgSender msgSender(RabbitTemplate rabbitTemplate, BusConfig config,
-                               InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, SubscriberRegistry registry) {
+                               InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, ListenerRegistry registry) {
         return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig, requestIdGenerator, registry);
     }
 
     @Bean
     public RabbitMsgSubscribeListener rabbitMsgSubscribeListener(
-            CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, SubscriberRegistry registry) {
-        return new RabbitMsgSubscribeListener(connectionFactory, config, deliveryBus, registry.getSubscribers());
+            CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
+        return new RabbitMsgSubscribeListener(connectionFactory, config, deliveryBus, registry.getTimelyListeners());
     }
 
     @Bean
@@ -61,7 +61,7 @@ public class BusBootRabbitConfiguration {
     }
 
     @Bean
-    public RabbitNodeTestConnect redisNodeTestConnect(CachingConnectionFactory connectionFactory, BusConfig config) {
+    public RabbitNodeTestConnect rabbitNodeTestConnect(CachingConnectionFactory connectionFactory, BusConfig config) {
         return new RabbitNodeTestConnect(connectionFactory, config);
     }
 }

@@ -39,6 +39,7 @@
 <div>
     <span>触发按钮：</span>
     <button id="sendBtn" onclick="sendMessage()">发送消息</button>
+    <span id="sendTime" style="color: red;"></span>
 </div>
 <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
 <script>
@@ -95,6 +96,16 @@
         console.log("content=" + content);
         // 存储消息
         localStorage.setItem('content', content);
+        $("#sendBtn").prop("disabled", true);
+        var note = "发送中...";
+        var timerId = setInterval(function () {
+            $("#sendTime").text(note);
+            if (note.length > 3) {
+                note = "发送中"
+            } else {
+                note = "发送中...";
+            }
+        }, 500);
         $.ajax({
             type: "post",
             // url
@@ -103,11 +114,14 @@
             dateType: "json",
             contentType: 'application/json',
             success: function (response) {
+                clearInterval(timerId);
                 if (response.success) {
-                    alert("发送成功");
+                    $("#sendTime").text(response.data);
                 } else {
+                    $("#sendTime").text("发送失败!");
                     alert("发送失败");
                 }
+                $("#sendBtn").prop("disabled", false);
             }
         });
     }

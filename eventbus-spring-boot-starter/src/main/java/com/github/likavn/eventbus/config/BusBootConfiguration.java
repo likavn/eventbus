@@ -18,7 +18,7 @@ package com.github.likavn.eventbus.config;
 import com.github.likavn.eventbus.BootConnectionWatchdog;
 import com.github.likavn.eventbus.core.ConnectionWatchdog;
 import com.github.likavn.eventbus.core.DeliveryBus;
-import com.github.likavn.eventbus.core.SubscriberRegistry;
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.interceptor.DeliverSuccessInterceptor;
 import com.github.likavn.eventbus.core.api.interceptor.DeliverThrowableInterceptor;
@@ -32,12 +32,13 @@ import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.pulsar.BusBootPulsarConfiguration;
 import com.github.likavn.eventbus.provider.rabbit.config.BusBootRabbitConfiguration;
 import com.github.likavn.eventbus.provider.redis.config.BusBootRedisConfiguration;
-import com.github.likavn.eventbus.provider.rocket.BusBootRocketConfiguration;
+import com.github.likavn.eventbus.provider.rocket.config.BusBootRocketConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -49,7 +50,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * boot 启动配置
@@ -60,39 +63,10 @@ import java.util.*;
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(BusProperties.class)
-@ImportAutoConfiguration({
-        // rabbit
-        BusBootRabbitConfiguration.class,
-        // redis
-        BusBootRedisConfiguration.class,
-        // rocket
-        BusBootRocketConfiguration.class,
-        // pulsar
-        BusBootPulsarConfiguration.class})
+@ImportAutoConfiguration({BusBootRabbitConfiguration.class,
+        BusBootRedisConfiguration.class, BusBootRocketConfiguration.class, BusBootPulsarConfiguration.class})
+@ConditionalOnProperty(prefix = "eventbus", name = "enable", havingValue = "true", matchIfMissing = true)
 public class BusBootConfiguration {
-
-    /**
-     * 事件总线配置
-     */
-    @Bean
-    public BusConfig busConfig(Environment environment, BusProperties properties) {
-        log.info("Eventbus Initializing... {}", properties.getType());
-        // 自动获取服务名
-        String serviceId = properties.getServiceId();
-        if (!StringUtils.hasLength(serviceId)) {
-            serviceId = environment.getProperty("spring.application.name");
-            if (null == serviceId || serviceId.isEmpty()) {
-                serviceId = System.getProperties().getProperty("sun.java.command");
-            }
-        }
-        properties.setServiceId(serviceId);
-        return BusConfig.builder().serviceId(serviceId)
-                .type(properties.getType())
-                .consumerCount(properties.getConsumerCount())
-                .testConnect(properties.getTestConnect())
-                .fail(properties.getFail())
-                .build();
-    }
 
     /**
      * 事件总线拦截器配置
@@ -111,8 +85,9 @@ public class BusBootConfiguration {
      * 事件总线订阅者注册
      */
     @Bean
-    @ConditionalOnMissingBean(SubscriberRegistry.class)
-    public SubscriberRegistry subscriberRegistry(ApplicationContext context, BusConfig config) {
+    @ConditionalOnMissingBean(ListenerRegistry.class)
+    public ListenerRegistry listenerRegistry(ApplicationContext context, Environment environment, BusProperties busConfig) {
+        busConfig(environment, busConfig);
         // Component
         Map<String, Object> beanMap = context.getBeansWithAnnotation(Component.class);
         List<Object> objects = new ArrayList<>(beanMap.values());
@@ -129,19 +104,35 @@ public class BusBootConfiguration {
         beanMap = context.getBeansWithAnnotation(Service.class);
         objects.addAll(beanMap.values());
 
-        SubscriberRegistry registry = new SubscriberRegistry(config);
+        ListenerRegistry registry = new ListenerRegistry(busConfig);
         registry.register(objects);
         return registry;
     }
 
     /**
-     * 事件总线
+     * 事件总线配置
+     */
+    public void busConfig(Environment environment, BusProperties config) {
+        log.info("Eventbus Initializing... {}", config.getType());
+        // 自动获取服务名
+        String serviceId = config.getServiceId();
+        if (!StringUtils.hasLength(serviceId)) {
+            serviceId = environment.getProperty("spring.application.name");
+            if (null == serviceId || serviceId.isEmpty()) {
+                serviceId = System.getProperties().getProperty("sun.java.command");
+            }
+        }
+        config.setServiceId(serviceId);
+    }
+
+    /**
+     * 事件总线分发器
      */
     @Bean
     @ConditionalOnBean(MsgSender.class)
     @ConditionalOnMissingBean(DeliveryBus.class)
-    public DeliveryBus deliveryBus(InterceptorConfig interceptorConfig, BusConfig config, MsgSender msgSender, SubscriberRegistry registry) {
-        return new DeliveryBus(interceptorConfig, config, msgSender, registry);
+    public DeliveryBus deliveryBus(InterceptorConfig interceptorConfig, BusConfig busConfig, MsgSender msgSender, ListenerRegistry registry) {
+        return new DeliveryBus(interceptorConfig, busConfig, msgSender, registry);
     }
 
     /**
@@ -149,12 +140,7 @@ public class BusBootConfiguration {
      */
     @Bean
     @ConditionalOnBean(NodeTestConnect.class)
-    public ConnectionWatchdog connectionWatchdog(ApplicationContext applicationContext, NodeTestConnect nodeTestConnect, BusConfig busConfig) {
-        Collection<Lifecycle> listeners = Collections.emptyList();
-        Map<String, Lifecycle> containerMap = applicationContext.getBeansOfType(Lifecycle.class);
-        if (!containerMap.isEmpty()) {
-            listeners = containerMap.values();
-        }
+    public ConnectionWatchdog connectionWatchdog(NodeTestConnect nodeTestConnect, BusConfig busConfig, List<Lifecycle> listeners) {
         return new BootConnectionWatchdog(nodeTestConnect, busConfig.getTestConnect(), listeners);
     }
 }

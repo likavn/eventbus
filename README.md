@@ -1,8 +1,8 @@
-[![码云](https://gitee.com/likavn/eventbus/badge/star.svg?theme=blue)](https://gitee.com/likavn/eventbus) [![github](https://img.shields.io/github/stars/likavn/eventbus.svg?style=social&label=Stars)](https://github.com/likavn/eventbus) ![MIT](https://img.shields.io/badge/License-Apache2.0-blue.svg) ![JDK8](https://img.shields.io/badge/JDK-8+-green.svg) ![SpringBoot2.5](https://img.shields.io/badge/Srping%20Boot-2.5+-green.svg) ![redis7.0](https://img.shields.io/badge/Redis-7.0+-green.svg) ![rebbitmq](https://img.shields.io/badge/RabbitMQ-3.8.3+-green.svg)
+[![码云](https://gitee.com/likavn/eventbus/badge/star.svg?theme=blue)](https://gitee.com/likavn/eventbus) [![github](https://img.shields.io/github/stars/likavn/eventbus.svg?style=social&label=Stars)](https://github.com/likavn/eventbus) ![MIT](https://img.shields.io/badge/License-Apache2.0-blue.svg) ![JDK](https://img.shields.io/badge/JDK-8+-green.svg) ![SpringBoot](https://img.shields.io/badge/Srping%20Boot-2.5+-green.svg) ![redis](https://img.shields.io/badge/Redis-6.2+-green.svg) ![rebbitmq](https://img.shields.io/badge/RabbitMQ-3.8.0+-green.svg)![rocketmq](https://img.shields.io/badge/RocketMQ-4.0+-green.svg)
 
 ## eventbus是什么
 
-eventbus是分布式业务消息分发总线组件，支持广播及时消息、延时消息等。组件通过屏蔽底层不同种类的消息引擎，提供统一的调用接口，可发送广播及时消息和延时消息，同时可订阅异步消息或延时消息，当我们的应用引入组件时有利于降低系统耦合度。目前可选择基于Redis、RabbitMQ等任一一种做消息引擎，其他消息中间件将被陆续支持。
+eventbus是分布式业务消息分发总线组件，支持广播及时消息、延时消息等。组件通过屏蔽底层不同种类的消息引擎，并提供统一的接口调用，可发送广播及时消息和延时消息，同时可订阅及时消息或延时消息等。当我们的应用引入eventbus组件时有利于降低系统耦合度。目前可选择基于Redis、RabbitMQ、RocketMQ等任一 一种做底层的消息引擎，其他消息引擎中间件将被陆续支持。
 
 注意：它不属于`消息中间件`，他是通过和消息中间件整合，来完成服务之间的消息通讯，类似于消息代理。
 
@@ -10,17 +10,18 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 
 - Redis
 - RabbitMQ
+- RocketMQ
 
-计划支持RocketMQ、Pulsar
+计划支持Pulsar
 
 ## 有哪些特点
 
-我们不是另外开发一个MQ，而是屏蔽底层不同种类的消息中间件，统一整合接口调用。
+我们不是另外开发一个MQ，而是屏蔽底层不同种类的消息中间件，并提供统一的接口调用。
 
 ## 有哪些功能
 
 - 消息：支持广播消息、延时消息的投递和接收，可通过统一的接口或注解方式去订阅接收消息；
-- 重试：支持消息投递失败时投递重试，重试投递次数及下次投递时间可自定义；
+- 重试：支持消息投递失败时投递重试，可自定义失败重试投递次数及下次投递时间；
 - 拦截器：支持全局拦截器，可自主实现拦截逻辑，支持发送前拦截（`SendBeforeInterceptor `）、发送后拦截（`SendAfterInterceptor `
   ）、投递成功后拦截（`DeliverSuccessInterceptor `）、投递失败时拦截（`DeliverThrowableInterceptor `）；
 
@@ -36,19 +37,54 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 
 1.SpringBoot 2.5.0.RELEASE+
 
-2.Redis 7.0+
+2.Redis 6.2+
 
-3.RabbitMQ 3.8.3+
+3.RabbitMQ 3.8.0+
+
+4.RocketMQ 4.0+
 
 ## 快速开始
 
 ### 引入依赖
 
+json序列化支持`Fast2json`、`Fastjson`、`Jackson`、`Gson`、`HutoolJson`等任意一种，如果存在多个json序列化工具依赖，序列化时的优先级如上。
+
 ```xml
 <dependency>
     <groupId>com.github.likavn</groupId>
     <artifactId>eventbus-spring-boot-starter</artifactId>
-    <version>2.1.0</version>
+    <version>2.2</version>
+</dependency>
+<!-- 各JSON序列化工具 任选一个-->
+<!-- fastjson2 -->
+<dependency>
+    <groupId>com.alibaba.fastjson2</groupId>
+    <artifactId>fastjson2</artifactId>
+    <version>${fastjson2.version}</version>
+</dependency>
+<!-- fastjson -->
+<dependency>
+     <groupId>com.alibaba</groupId>
+     <artifactId>fastjson</artifactId>
+     <version>${fastjson.version}</version>
+</dependency>
+<!-- gson -->
+<dependency>
+     <groupId>com.google.code.gson</groupId>
+     <artifactId>gson</artifactId>
+     <version>${gson.version}</version>
+</dependency>
+<!-- jackson 如果项目已引入spring-boot-starter-web，项目自带jackson依赖，不需要单独引入-->
+<dependency>
+     <groupId>com.fasterxml.jackson.core</groupId>
+     <artifactId>jackson-databind</artifactId>
+     <version>${jackson.version}</version>
+</dependency>
+<!-- hutool json-->
+<dependency>
+     <groupId>cn.hutool</groupId>
+     <artifactId>hutool-json</artifactId>
+     <version>${hutool.version}</version>
 </dependency>
 ```
 
@@ -58,7 +94,7 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 
 ```yaml
 eventbus:
-  type: redis  #redis或者rabbitmq
+  type: redis  #redis或者rabbitmq、rocketmq
 ```
 
 #### redis
@@ -81,12 +117,24 @@ eventbus:
 
 #### RabbitMQ
 
-rabbitmq，需要在pom.xml单独引入，如下：
+rabbitmq需要在pom.xml单独引入，如下：
 
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-amqp</artifactId>
+</dependency>
+```
+
+#### RocketMQ
+
+rocketmq需要在pom.xml单独引入，如下：
+
+```xml
+<dependency>
+     <groupId>org.apache.rocketmq</groupId>
+     <artifactId>rocketmq-spring-boot-starter</artifactId>
+     <version>2.1.1</version>
 </dependency>
 ```
 
@@ -127,7 +175,52 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
 }
 ```
 
+也可使消息实体实现接口`MsgBody`，并在实体中定义消息编码，使得同一类型的消息在定义监听器和发送消息时不需要单独设置消息编码。
+
+```java
+// 定义消息实体@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class TestBody implements MsgBody {
+    private String content;
+
+    @Override
+    public String code() {
+        return MsgConstant.TEST_MSG_SUBSCRIBE_LISTENER;
+    }
+}
+
+// 发送消息
+@Resource
+private MsgSender msgSender;
+
+// 发送异步消息
+msgSender.send("testMsgSubscribe", "charging");
+TestBody testBody = new TestBody();
+// 第一个参数是业务消息Object实体对象数据
+msgSender.send(testBody);
+
+```
+
+定义消息监听器
+
+```java
+@Slf4j
+@Component
+public class Demo3MsgSubscribeListener extends MsgListener<TestBody> {
+
+    @Override
+    public void onMessage(Message<TestBody> message) {
+        TestBody body = message.getBody();
+        log.info("接收数据: {}", message.getRequestId());
+        //throw new RuntimeException("Demo2MsgSubscribeListener test");
+    }
+}
+```
+
 ### 发送与订阅延时消息
+
+注意：当消息引擎为rocketMq时，延时时间为rocketMq的18个延时级别。
 
 ```java
 @Resource
@@ -196,15 +289,16 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
 }
 ```
 
-### 接口信息
+## 接口信息
+
 
 | 接口                                                                                                                                          | 说明                                                                                     | 示例                                                                                                                                                                                                                                                                                                     |
-| ----------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [MsgSender](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgSender.java)                                                 | 消息的sender,用于消息的发送                                                              | [DemoController ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/controller/DemoController.java)                                                                                                                                                                          |
-| [MsgSubscribeListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgSubscribeListener.java)                           | 接收广播消息的处理器接口类                                                               | [DemoMsgSubscribeListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgSubscribeListener.java)<br/>[Demo2MsgSubscribeListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2MsgSubscribeListener.java) |
-| [Subscribe ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Subscribe.java)                                         | 接收广播消息处理器注解                                                                   | [DemoSubscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoSubscribe.java)<br/>[Demo2Subscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2Subscribe.java)                                            |
+| [MsgListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgListener.java)                                             | 接收广播消息的处理器接口类                                                               | [DemoMsgSubscribeListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgSubscribeListener.java)<br/>[Demo2MsgSubscribeListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2MsgSubscribeListener.java) |
+| [Listener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Listener.java)                                           | 接收广播消息处理器注解                                                                   | [DemoSubscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoSubscribe.java)<br/>[Demo2Subscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2Subscribe.java)                                            |
 | [MsgDelayListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgDelayListener.java)                                   | 接收延时消息的处理器接口类                                                               | [DemoMsgDelayListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgDelayListener.java)                                                                                                                                                                |
-| [SubscribeDelay ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/SubscribeDelay.java)                               | 接收延时消息的处理器注解                                                                 | [DemoSubscribeDelay](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoSubscribeDelay.java)                                                                                                                                                                     |
+| [DelayListener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/DelayListener.java)                                 | 接收延时消息的处理器注解                                                                 | [DemoSubscribeDelay](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoSubscribeDelay.java)                                                                                                                                                                     |
 | [Fail ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Fail.java)                                                   | 接收消息处理投递失败时异常捕获注解                                                       | [DemoMsgSubscribeListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgSubscribeListener.java)                                                                                                                                                         |
 | [SendBeforeInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendBeforeInterceptor.java)             | 发送前全局拦截器                                                                         | [DemoSendBeforeInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendBeforeInterceptor.java)                                                                                                                                                    |
 | [SendAfterInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendAfterInterceptor.java)               | 发送后全局拦截器                                                                         | [DemoSendAfterInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendAfterInterceptor.java)                                                                                                                                                      |
@@ -213,7 +307,7 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
 
 更多信息请查阅相关接口类...
 
-### 示例
+## 示例
 
 启动springboot-demo访问http://localhost:8080/index.html
 

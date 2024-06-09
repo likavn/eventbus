@@ -2,4 +2,3 @@ com.github.likavn.eventbus.core.support.Fast2jsonProvider
 com.github.likavn.eventbus.core.support.FastjsonProvider
 com.github.likavn.eventbus.core.support.JacksonProvider
 com.github.likavn.eventbus.core.support.GsonProvider
-com.github.likavn.eventbus.core.support.HutoolJsonProvider

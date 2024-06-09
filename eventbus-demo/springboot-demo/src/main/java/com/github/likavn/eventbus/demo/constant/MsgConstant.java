@@ -5,7 +5,7 @@ package com.github.likavn.eventbus.demo.constant;
  * @date 2024/01/01
  **/
 public class MsgConstant {
-    public static final String TEST_MSG_SUBSCRIBE = "testMsgSubscribe";
-    public static final String TEST_MSG_SUBSCRIBE_LISTENER = "testMsgSubscribeListener";
-    public static final String TEST_MSG_DELAY_SUBSCRIBE = "testMsgDelaySubscribe";
+    public static final String DEMO_ANN_LISTENER = "demoAnnListener";
+    public static final String DEMO_MSG_LISTENER = "demoMsgListener";
+    public static final String DEMO_ANN_DELAY_LISTENER = "demoAnnDelayListener";
 }

@@ -16,13 +16,12 @@
 package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
-import com.github.likavn.eventbus.core.constant.BusConstant;
+import com.github.likavn.eventbus.core.TaskRegistry;
+import com.github.likavn.eventbus.core.support.task.PeriodTask;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 import com.github.likavn.eventbus.provider.redis.support.AbstractStreamListenerContainer;
-import com.github.likavn.eventbus.provider.redis.support.RedisSubscriber;
-import com.github.likavn.eventbus.schedule.PeriodTask;
-import com.github.likavn.eventbus.schedule.ScheduledTaskRegistry;
+import com.github.likavn.eventbus.provider.redis.support.RedisListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.Record;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -68,16 +67,16 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
      * 延时消息流key
      */
     private final String delayStreamKey;
-    private final ScheduledTaskRegistry scheduledTaskRegistry;
+    private final TaskRegistry taskRegistry;
     private PeriodTask task;
 
     public RedisMsgDelayListener(StringRedisTemplate stringRedisTemplate,
-                                 ScheduledTaskRegistry scheduledTaskRegistry,
+                                 TaskRegistry taskRegistry,
                                  BusProperties busProperties,
                                  DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
-        super(stringRedisTemplate, busProperties, BusConstant.DELAY_MSG_THREAD_NAME);
+        super(stringRedisTemplate, busProperties);
         this.stringRedisTemplate = stringRedisTemplate;
-        this.scheduledTaskRegistry = scheduledTaskRegistry;
+        this.taskRegistry = taskRegistry;
         this.pushMsgStreamRedisScript = pushMsgStreamRedisScript;
         this.rLock = rLock;
         this.deliveryBus = deliveryBus;
@@ -87,27 +86,20 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     }
 
     @Override
-    protected List<RedisSubscriber> getSubscribers() {
-        return RedisSubscriber.redisDelaySubscriber(config.getServiceId());
+    protected List<RedisListener> getListeners() {
+        return RedisListener.redisDelaySubscriber(config.getServiceId(), config.getDelayConcurrency());
     }
 
     @Override
-    protected void deliver(RedisSubscriber subscriber, Record<String, String> msg) {
+    protected void deliver(RedisListener subscriber, Record<String, String> msg) {
         deliveryBus.deliverDelay(msg.getValue());
-        stringRedisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), msg.getId());
     }
 
     @Override
     public synchronized void register() {
         super.register();
-        if (null == this.task) {
-            this.task = new PeriodTask(this.getClass().getName(), POLL_MILLIS, this::pollTask);
-            scheduledTaskRegistry.createTask(this.task);
-            return;
-        }
-
-        // 任务重启
-        scheduledTaskRegistry.restart(task);
+        this.task = PeriodTask.create(this.getClass().getName(), POLL_MILLIS, this::pollTask);
+        taskRegistry.createTask(this.task);
     }
 
     /**
@@ -139,15 +131,12 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
      * 重置轮询时间
      */
     public void setNextTriggerTimeMillis(long timeMillis) {
-        this.task.setNextTriggerTimeMillis(timeMillis);
+        this.task.setNextExecutionTime(timeMillis);
     }
 
     @Override
     public void destroy() {
         super.destroy();
-        // 任务重启
-        if (null != task) {
-            scheduledTaskRegistry.pause(task);
-        }
+        taskRegistry.removeTask(task);
     }
 }
