@@ -15,7 +15,8 @@
  */
 package com.github.likavn.eventbus.core.metadata;
 
-import lombok.*;
+import lombok.Data;
+import lombok.ToString;
 
 /**
  * eventbus全局配置
@@ -41,7 +42,7 @@ public class BusConfig {
     protected Integer concurrency = 1;
 
     /**
-     * 定义接收延时消息并发级别，默认值为1。
+     * 定义接收延时消息并发级别，默认值为2。
      */
     protected Integer delayConcurrency = 2;
 

@@ -39,6 +39,7 @@ nbdist/
 
 ######################################################################
 # Others
+*mydev.yml
 *.log
 *.class
 *.xml.versionsBackup

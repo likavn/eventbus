@@ -32,12 +32,19 @@ import java.util.concurrent.*;
  * @since 2.2
  */
 public class TaskRegistry {
-    // 使用Timer进行任务定时触发
+    /**
+     * 使用Timer进行任务定时触发
+     */
+    @SuppressWarnings("all")
     private final Timer timer = new Timer(false);
 
-    // 线程池执行器，用于执行任务
+    /**
+     * 线程池执行器，用于执行任务
+     */
     private final TaskThreadPoolExecutor poolExecutor;
-    // 任务映射，存储所有任务
+    /**
+     * 任务映射，存储所有任务
+     */
     private final Map<String, Task> taskMap = new ConcurrentHashMap<>();
 
     /**
@@ -61,6 +68,7 @@ public class TaskRegistry {
      *
      * @param task 要创建的任务
      */
+    @SuppressWarnings("all")
     public void createTask(Task task) {
         Assert.isTrue(task.isInitialized(), "任务未初始化！");
         // 确保任务名称唯一
@@ -108,7 +116,7 @@ public class TaskRegistry {
         // 线程池的最大线程数
         private static final int MAXIMUM_POOL_SIZE = 10;
         // 空闲线程的存活时间
-        private static final long KEEP_ALIVE_TIME = 10L;
+        private static final long KEEP_ALIVE_TIME = 60L;
         // 时间单位
         private static final TimeUnit UNIT = TimeUnit.SECONDS;
         // 任务队列

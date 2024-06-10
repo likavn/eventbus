@@ -17,13 +17,13 @@ package com.github.likavn.eventbus.provider.rocket.support;
 
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
-import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.provider.AcquireListeners;
 import com.github.likavn.eventbus.provider.rocket.constant.RocketConstant;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -43,6 +43,7 @@ import java.util.List;
  * @date 2024/1/20
  * @since 2.2
  **/
+@Slf4j
 public abstract class AbstractRocketRegisterContainer implements AcquireListeners, Lifecycle {
     private final List<DefaultMQPushConsumer> consumers = Collections.synchronizedList(new ArrayList<>());
     protected final RocketMQProperties rocketMqProperties;
@@ -67,13 +68,7 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
 
         // register
         for (Listener listener : listeners) {
-            Func.pollRun(listener.getConcurrency(), num -> {
-                try {
-                    registerPushConsumer(listener, num);
-                } catch (MQClientException e) {
-                    throw new EventBusException(e);
-                }
-            });
+            Func.pollRun(listener.getConcurrency(), num -> registerPushConsumer(listener, num));
         }
     }
 
@@ -82,40 +77,46 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
      *
      * @param listener listener
      */
-    private void registerPushConsumer(Listener listener, int num) throws MQClientException {
+    private void registerPushConsumer(Listener listener, int num) {
         String group = null != listener.getTrigger() ? listener.getTrigger().getDeliverId() : listener.getServiceId();
         group = group.replace(".", "_").replace("#", "|");
         //1.创建消费者Consumer，制定消费者组名
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
-        String hostName = Func.getHostName() + "@" + Func.getPid();
-        consumer.setInstanceName(hostName + "_" + num);
-        consumer.setPullBatchSize(config.getMsgBatchSize());
-        consumer.setConsumeMessageBatchMaxSize(config.getMsgBatchSize());
-        //2.指定Nameserver地址
-        consumer.setNamesrvAddr(rocketMqProperties.getNameServer());
-        MsgType msgType = listener.getType();
-        //3.订阅主题Topic和Tag
-        String topic = String.format(msgType.isTimely() ? RocketConstant.QUEUE : RocketConstant.DELAY_QUEUE, listener.getTopic());
-        consumer.subscribe(topic, listener.getServiceId());
-        //设定消费模式：负载均衡|广播模式
-        consumer.setMessageModel(MessageModel.CLUSTERING);
-        //4.设置回调函数，处理消息
-        // MessageListenerConcurrently  并发模式 多线程消费
-        //接受消息内容
-        consumer.registerMessageListener((MessageListenerConcurrently) (msgList, context) -> {
-            String oldName = Func.reThreadName(BusConstant.THREAD_NAME);
-            try {
-                for (MessageExt msg : msgList) {
-                    deliver(listener, msg);
+        try {
+            String hostName = Func.getHostName() + "@" + Func.getPid();
+            consumer.setInstanceName(hostName + "_" + num);
+            consumer.setPullBatchSize(config.getMsgBatchSize());
+            consumer.setConsumeMessageBatchMaxSize(config.getMsgBatchSize());
+            //2.指定Nameserver地址
+            consumer.setNamesrvAddr(rocketMqProperties.getNameServer());
+            MsgType msgType = listener.getType();
+            //3.订阅主题Topic和Tag
+            String topic = String.format(msgType.isTimely() ? RocketConstant.QUEUE : RocketConstant.DELAY_QUEUE, listener.getTopic());
+            consumer.subscribe(topic, listener.getServiceId());
+            //设定消费模式：负载均衡|广播模式
+            consumer.setMessageModel(MessageModel.CLUSTERING);
+            //4.设置回调函数，处理消息
+            // MessageListenerConcurrently  并发模式 多线程消费
+            //接受消息内容
+            consumer.registerMessageListener((MessageListenerConcurrently) (msgList, context) -> {
+                String oldName = Func.reThreadName(BusConstant.THREAD_NAME);
+                try {
+                    for (MessageExt msg : msgList) {
+                        deliver(listener, msg);
+                    }
+                } finally {
+                    Thread.currentThread().setName(oldName);
                 }
-            } finally {
-                Thread.currentThread().setName(oldName);
-            }
-            //返回值CONSUME_SUCCESS成功，消息会从mq出队
-            // RECONSUME_LATER (报错/null) 失败消息会重新回到队列过一会重新投递出来给当前消费者或者其他消费者消费的
-            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-        });
-        consumer.start();
+                //返回值CONSUME_SUCCESS成功，消息会从mq出队
+                // RECONSUME_LATER (报错/null) 失败消息会重新回到队列过一会重新投递出来给当前消费者或者其他消费者消费的
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            });
+
+            consumer.start();
+        } catch (MQClientException | IllegalStateException e) {
+            log.error("registerPushConsumer", e);
+            System.exit(1);
+        }
         consumers.add(consumer);
     }
 

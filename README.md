@@ -47,7 +47,7 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 
 ### 引入依赖
 
-json序列化支持`Fast2json`、`Fastjson`、`Jackson`、`Gson`、`HutoolJson`等任意一种，如果存在多个json序列化工具依赖，序列化时的优先级如上。
+json序列化支持`Fast2json`、`Fastjson`、`Jackson`、`Gson`等任意一种，如果存在多个json序列化工具依赖，序列化时的优先级如上。
 
 ```xml
 <dependency>
@@ -68,23 +68,17 @@ json序列化支持`Fast2json`、`Fastjson`、`Jackson`、`Gson`、`HutoolJson`�
      <artifactId>fastjson</artifactId>
      <version>${fastjson.version}</version>
 </dependency>
-<!-- gson -->
-<dependency>
-     <groupId>com.google.code.gson</groupId>
-     <artifactId>gson</artifactId>
-     <version>${gson.version}</version>
-</dependency>
 <!-- jackson 如果项目已引入spring-boot-starter-web，项目自带jackson依赖，不需要单独引入-->
 <dependency>
      <groupId>com.fasterxml.jackson.core</groupId>
      <artifactId>jackson-databind</artifactId>
      <version>${jackson.version}</version>
 </dependency>
-<!-- hutool json-->
+<!-- gson -->
 <dependency>
-     <groupId>cn.hutool</groupId>
-     <artifactId>hutool-json</artifactId>
-     <version>${hutool.version}</version>
+     <groupId>com.google.code.gson</groupId>
+     <artifactId>gson</artifactId>
+     <version>${gson.version}</version>
 </dependency>
 ```
 
@@ -293,7 +287,7 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
 
 
 | 接口                                                                                                                                          | 说明                                                                                     | 示例                                                                                                                                                                                                                                                                                                     |
-| --------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [MsgSender](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgSender.java)                                                 | 消息的sender,用于消息的发送                                                              | [DemoController ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/controller/DemoController.java)                                                                                                                                                                          |
 | [MsgListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgListener.java)                                             | 接收广播消息的处理器接口类                                                               | [DemoMsgSubscribeListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgSubscribeListener.java)<br/>[Demo2MsgSubscribeListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2MsgSubscribeListener.java) |
 | [Listener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Listener.java)                                           | 接收广播消息处理器注解                                                                   | [DemoSubscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoSubscribe.java)<br/>[Demo2Subscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2Subscribe.java)                                            |

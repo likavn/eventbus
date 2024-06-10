@@ -1,6 +1,7 @@
 package com.github.likavn.eventbus.demo.listener;
 
 import com.github.likavn.eventbus.core.annotation.DelayListener;
+import com.github.likavn.eventbus.core.annotation.Fail;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import com.github.likavn.eventbus.demo.domain.TMsg;
@@ -15,8 +16,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class DemoAnnDelayListener {
 
-    @DelayListener(codes = MsgConstant.DEMO_ANN_DELAY_LISTENER)
-    // @DelayListener(codes = MsgConstant.DEMO_ANN_DELAY_LISTENER,fail = @Fail(callMethod = "exceptionHandler"))
+    @DelayListener(codes = MsgConstant.DEMO_ANN_DELAY_LISTENER,
+            fail = @Fail(callMethod = "exceptionHandler", retryCount = 1, nextTime = 5))
     public void action(Message<TMsg> message) {
         TMsg body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
