@@ -1,4 +1,4 @@
-[![码云](https://gitee.com/likavn/eventbus/badge/star.svg?theme=blue)](https://gitee.com/likavn/eventbus) [![github](https://img.shields.io/github/stars/likavn/eventbus.svg?style=social&label=Stars)](https://github.com/likavn/eventbus) ![MIT](https://img.shields.io/badge/License-Apache2.0-blue.svg) ![JDK](https://img.shields.io/badge/JDK-8+-green.svg) ![SpringBoot](https://img.shields.io/badge/Srping%20Boot-2.5+-green.svg) ![redis](https://img.shields.io/badge/Redis-6.2+-green.svg) ![rebbitmq](https://img.shields.io/badge/RabbitMQ-3.8.0+-green.svg)![rocketmq](https://img.shields.io/badge/RocketMQ-4.0+-green.svg)
+![MIT](https://img.shields.io/badge/License-Apache2.0-blue.svg) ![JDK](https://img.shields.io/badge/JDK-8+-green.svg) ![SpringBoot](https://img.shields.io/badge/Srping%20Boot-2.5+-green.svg) ![redis](https://img.shields.io/badge/Redis-6.2+-green.svg) ![rebbitmq](https://img.shields.io/badge/RabbitMQ-3.8.0+-green.svg)![rocketmq](https://img.shields.io/badge/RocketMQ-4.0+-green.svg)
 
 ## eventbus是什么
 
