@@ -144,17 +144,17 @@ private MsgSender msgSender;
 msgSender.send("testMsgSubscribe", "charging");
 ```
 
-订阅异步业务消息监听器实现类[DemoMsgSubscribeListener.java](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgSubscribeListener.java)
+订阅异步业务消息监听器实现类[DemoMsgListener.java](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java)
 
 ```java
 /**
  * 订阅异步消息
- * 继承超类【MsgSubscribeListener】并设置监听的消息实体对象
+ * 继承超类【MsgListener】并设置监听的消息实体对象
  */
 @Slf4j
 @Component
-public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
-    protected DemoMsgSubscribeListener() {
+public class DemoMsgListener extends MsgListener<String> {
+    protected DemoMsgListener() {
         // 订阅消息code
         super("testMsgSubscribe");
     }
@@ -164,12 +164,12 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
     public void onMessage(Message<String> message) {
         String body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
-        // throw new RuntimeException("DemoMsgSubscribeListener test");
+        // throw new RuntimeException("DemoMsgListener test");
     }
 }
 ```
 
-也可使消息实体实现接口`MsgBody`，并在实体中定义消息编码，使得同一类型的消息在定义监听器和发送消息时不需要单独设置消息编码。
+也可使消息实体实现接口`MsgBody`，并在实体中定义消息编码，使得同一类型的消息在定义监听器或发送消息时不需要单独设置消息编码。
 
 ```java
 // 定义消息实体@Data
@@ -189,8 +189,8 @@ public class TestBody implements MsgBody {
 private MsgSender msgSender;
 
 // 发送异步消息
-msgSender.send("testMsgSubscribe", "charging");
 TestBody testBody = new TestBody();
+testBody.setContent("这是一个测试消息！！！");
 // 第一个参数是业务消息Object实体对象数据
 msgSender.send(testBody);
 
@@ -201,13 +201,13 @@ msgSender.send(testBody);
 ```java
 @Slf4j
 @Component
-public class Demo3MsgSubscribeListener extends MsgListener<TestBody> {
+public class DemoMsgListener3 extends MsgListener<TestBody> {
 
     @Override
     public void onMessage(Message<TestBody> message) {
         TestBody body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
-        //throw new RuntimeException("Demo2MsgSubscribeListener test");
+        //throw new RuntimeException("DemoMsgListener3 test");
     }
 }
 ```
@@ -223,7 +223,7 @@ private MsgSender msgSender;
 // 发送异步消息
 // 第一个参数 【DemoMsgDelayListener.class】为当前延时消息的处理实现类
 // 第二个参数为延时消息体Object对象
-// 第三个参数为延时时间，单位：秒
+// 第三个参数为延时时间，单位：秒 
 msgSender.sendDelayMessage(DemoMsgDelayListener.class,"922321333",5);
 ```
 
@@ -240,7 +240,7 @@ public class DemoMsgDelayListener implements MsgDelayListener<String> {
     @Override
     public void onMessage(Message<String> message) {
         String body = message.getBody();
-      log.info("接收消息: {}", message.getRequestId());
+        log.info("接收消息: {}", message.getRequestId());
       // throw new RuntimeException("DemoMsgDelayListener test");
     }
 }
@@ -258,14 +258,14 @@ public class DemoMsgDelayListener implements MsgDelayListener<String> {
  */
 @Slf4j
 @Component
-public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
+public class DemoMsgSubscribeListener extends MsgListener<String> {
     protected DemoMsgSubscribeListener() {
         // 订阅消息code
         super("testMsgSubscribe");
     }
 
     // 接收业务消息体对象数据
-    // @Fail消息投递失败时重试，callMethod=投递失败时异常处理方法名，这里设置重试2次，下次重试间隔5秒后触发
+    // @Fail消息投递失败时重试，callMethod=投递失败时异常处理方法名，这里设置重试2次，下次重试间隔5秒（引擎为rocketMq时，此处延时时间为rocketMq的18个延时级别）后触发
     @Override
     @Fail(callMethod = "exceptionHandler", retry = 2, nextTime = 5)
     public void onMessage(Message<String> message) {
@@ -289,11 +289,11 @@ public class DemoMsgSubscribeListener extends MsgSubscribeListener<String> {
 | 接口                                                                                                                                          | 说明                                                                                     | 示例                                                                                                                                                                                                                                                                                                     |
 | ----------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [MsgSender](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgSender.java)                                                 | 消息的sender,用于消息的发送                                                              | [DemoController ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/controller/DemoController.java)                                                                                                                                                                          |
-| [MsgListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgListener.java)                                             | 接收广播消息的处理器接口类                                                               | [DemoMsgSubscribeListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgSubscribeListener.java)<br/>[Demo2MsgSubscribeListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2MsgSubscribeListener.java) |
-| [Listener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Listener.java)                                           | 接收广播消息处理器注解                                                                   | [DemoSubscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoSubscribe.java)<br/>[Demo2Subscribe ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/Demo2Subscribe.java)                                            |
+| [MsgListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgListener.java)                                             | 接收广播消息的处理器接口类                                                               | [DemoMsgListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java)<br/>[DemoMsgListener2](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener2.java) |
+| [Listener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Listener.java)                                           | 接收广播消息处理器注解                                                                   | [DemoAnnListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnListener.java)<br/>[DemoAnnListener2 ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnListener2.java)                                            |
 | [MsgDelayListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgDelayListener.java)                                   | 接收延时消息的处理器接口类                                                               | [DemoMsgDelayListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgDelayListener.java)                                                                                                                                                                |
-| [DelayListener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/DelayListener.java)                                 | 接收延时消息的处理器注解                                                                 | [DemoSubscribeDelay](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoSubscribeDelay.java)                                                                                                                                                                     |
-| [Fail ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Fail.java)                                                   | 接收消息处理投递失败时异常捕获注解                                                       | [DemoMsgSubscribeListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgSubscribeListener.java)                                                                                                                                                         |
+| [DelayListener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/DelayListener.java)                                 | 接收延时消息的处理器注解                                                                 | [DemoAnnDelayListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnDelayListener.java)                                                                                                                                                                     |
+| [Fail ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Fail.java)                                                   | 接收消息处理投递失败时异常捕获注解                                                       | [DemoMsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java)                                                                                                                                                         |
 | [SendBeforeInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendBeforeInterceptor.java)             | 发送前全局拦截器                                                                         | [DemoSendBeforeInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendBeforeInterceptor.java)                                                                                                                                                    |
 | [SendAfterInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendAfterInterceptor.java)               | 发送后全局拦截器                                                                         | [DemoSendAfterInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendAfterInterceptor.java)                                                                                                                                                      |
 | [DeliverSuccessInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverSuccessInterceptor.java)     | 投递成功全局拦截器                                                                       | [DemoDeliverSuccessInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverSuccessInterceptor.java)                                                                                                                                            |
