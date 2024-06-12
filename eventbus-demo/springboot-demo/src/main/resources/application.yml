@@ -41,7 +41,7 @@ eventbus:
   #type: rocketmq
   type: redis
   #type: rabbitmq
-  concurrency: 10
+  concurrency: 5
   #msg-batch-size: 1000
   redis:
     stream-expired-hours: 24
