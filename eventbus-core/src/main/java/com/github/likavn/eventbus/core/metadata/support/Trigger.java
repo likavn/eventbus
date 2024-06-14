@@ -134,23 +134,30 @@ public class Trigger {
             return;
         }
         int modifiers = method.getModifiers();
-        Assert.isTrue(Modifier.isPublic(modifiers),
-                String.format("Method %s of %s must be public", method.getName(), method.getDeclaringClass().getName()));
-        Type[] parameterTypes = method.getGenericParameterTypes();
-        this.paramsCount = parameterTypes.length;
-        this.messageDataIndex = -1;
-        this.throwableIndex = -1;
-        for (int index = 0; index < parameterTypes.length; index++) {
-            String typeName = parameterTypes[index].getTypeName();
-            // 接收消息
-            if (typeName.contains(Message.class.getName())) {
-                messageDataIndex = index;
-                messageDataType = ((ParameterizedType) parameterTypes[index]).getActualTypeArguments()[0];
+        try {
+            Assert.isTrue(Modifier.isPublic(modifiers),
+                    String.format("Method %s of %s must be public", method.getName(), method.getDeclaringClass().getName()));
+            Class<?> primitiveClass = Func.primitiveClass(invokeBean);
+            method = primitiveClass.getMethod(method.getName(), method.getParameterTypes());
+            Type[] parameterTypes = method.getGenericParameterTypes();
+            this.paramsCount = parameterTypes.length;
+            this.messageDataIndex = -1;
+            this.throwableIndex = -1;
+            for (int index = 0; index < parameterTypes.length; index++) {
+                String typeName = parameterTypes[index].getTypeName();
+                // 接收消息
+                if (typeName.contains(Message.class.getName())) {
+                    messageDataIndex = index;
+                    messageDataType = ((ParameterizedType) parameterTypes[index]).getActualTypeArguments()[0];
+                }
+                // 接收异常
+                else if (typeName.contains(Throwable.class.getName())) {
+                    throwableIndex = index;
+                }
             }
-            // 接收异常
-            else if (typeName.contains(Throwable.class.getName())) {
-                throwableIndex = index;
-            }
+        } catch (Exception e) {
+            log.error("Trigger.buildParams", e);
+            System.exit(1);
         }
     }
 

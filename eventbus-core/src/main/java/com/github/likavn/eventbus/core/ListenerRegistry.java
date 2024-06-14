@@ -156,7 +156,7 @@ public class ListenerRegistry {
      * 注册注解监听器。
      * 该方法会遍历提供的方法列表，查找并注册带有特定注解的方法作为事件监听器。
      *
-     * @param obj 要注册监听器的对象实例。
+     * @param obj     要注册监听器的对象实例。
      * @param methods 要检查的方法列表。
      */
     private void registerAnnotationListeners(Object obj, List<Method> methods) {
@@ -238,7 +238,8 @@ public class ListenerRegistry {
             // 从DelayListener注解中获取失败处理方式、错误码列表和并发控制设置
             fail = delayListener.fail();
             codes = Arrays.asList(delayListener.codes());
-            concurrency = config.getDelayConcurrency(); // 若未指定，则使用默认的并发控制值
+            // 若未指定，则使用默认的并发控制值
+            concurrency = config.getDelayConcurrency();
         }
 
         // 创建失败触发器，用于处理订阅执行失败的情况
@@ -269,6 +270,7 @@ public class ListenerRegistry {
     private void putTimelyMap(Listener listener) {
         String deliverId = listener.getTrigger().getDeliverId();
         Assert.isTrue(!timelyMap.containsKey(deliverId), "listenerMap deliverId=" + deliverId + "存在相同的消息处理器");
+        log.debug("ListenerRegistry 注册消息监听器deliverId={}", deliverId);
         timelyMap.put(deliverId, listener);
     }
 
@@ -280,6 +282,7 @@ public class ListenerRegistry {
      */
     private void putDelayMap(String deliverId, Listener listener) {
         Assert.isTrue(!delayMap.containsKey(deliverId), "subscribeDelay deliverId=" + deliverId + "存在相同的延时消息处理器");
+        log.debug("ListenerRegistry 注册消息监听器deliverId={}", deliverId);
         delayMap.put(deliverId, listener);
     }
 

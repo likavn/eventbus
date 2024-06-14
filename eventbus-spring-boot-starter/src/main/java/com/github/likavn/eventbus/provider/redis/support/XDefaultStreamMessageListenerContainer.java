@@ -152,20 +152,9 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
                     .filter(it -> !it.isActive())
                     .map(TaskSubscription.class::cast)
                     .map(TaskSubscription::getTask)
-                    .forEach(task -> {
-                        // 推入任务队列
-                        task.pushTask(() -> pushTask(task));
-                        taskExecutor.execute(task);
-                    });
+                    .forEach(taskExecutor::execute);
             running = true;
         }
-    }
-
-    private void pushTask(StreamPollTask task) {
-        if (!this.running) {
-            return;
-        }
-        taskExecutor.execute(task);
     }
 
     /*

@@ -19,6 +19,7 @@ import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
+import com.github.likavn.eventbus.core.utils.PollThreadPoolExecutor;
 import com.github.likavn.eventbus.prop.BusProperties;
 import lombok.extern.slf4j.Slf4j;
 import lombok.var;
@@ -69,10 +70,11 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
         if (poolSize > concurrency) {
             poolSize = concurrency;
         }
-        executor = new ThreadPoolExecutor(poolSize, poolSize, 1,
+        executor = new PollThreadPoolExecutor(poolSize, poolSize, 1,
                 TimeUnit.MINUTES, new LinkedBlockingDeque<>(), new NamedThreadFactory(this.getClass().getSimpleName() + "-"));
         // 创建配置对象
-        var options = StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder().executor(executor)
+        var options = StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder()
+                .executor(executor)
                 // 一次性最多拉取多少条消息
                 .batchSize(config.getMsgBatchSize())
                 // 消息消费异常的handler
@@ -80,7 +82,9 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
                 // 超时时间，设置为0，表示不超时（超时后会抛出异常）
                 .pollTimeout(Duration.ZERO)
                 // 序列化器
-                .serializer(new StringRedisSerializer()).targetType(String.class).build();
+                .serializer(new StringRedisSerializer())
+                .targetType(String.class)
+                .build();
 
         // 根据配置对象创建监听容器对象
         RedisConnectionFactory connectionFactory = redisTemplate.getConnectionFactory();
@@ -99,25 +103,33 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      * @param listeners listeners
      */
     private void createConsumer(StreamMessageListenerContainer<String, ObjectRecord<String, String>> container, List<RedisListener> listeners) {
-        String hostName = Func.getHostName() + "@" + Func.getPid();
+        String hostName = Func.getHostName();
         // 初始化组
         createGroup(listeners);
-        listeners.forEach(listener
-                -> Func.pollRun(listener.getConcurrency(), num
-                        // 使用监听容器对象开始监听消费（使用的是手动确认方式）
-                        -> container.receive(Consumer.from(listener.getGroup(),
-                        hostName + "-" + num), StreamOffset.create(listener.getStreamKey(), ReadOffset.lastConsumed()), msg
-                        -> {
-                    String oldName = Func.reThreadName(BusConstant.THREAD_NAME);
-                    try {
-                        deliver(listener, msg);
-                        redisTemplate.opsForStream().acknowledge(listener.getStreamKey(), listener.getGroup(), msg.getId());
-                    } finally {
-                        // 恢复线程名称
-                        Thread.currentThread().setName(oldName);
-                    }
-                })
-        ));
+        for (RedisListener listener : listeners) {
+            Func.pollRun(listener.getConcurrency(), () -> container.receive(
+                    Consumer.from(listener.getGroup(), hostName),
+                    StreamOffset.create(listener.getStreamKey(), ReadOffset.lastConsumed()),
+                    // 使用监听容器对象开始监听消费（使用的是手动确认方式）
+                    msg -> deliverMsg(listener, msg)));
+        }
+    }
+
+    /**
+     * 消费消息
+     *
+     * @param listener listeners
+     * @param msg      msg
+     */
+    private void deliverMsg(RedisListener listener, Record<String, String> msg) {
+        String oldName = Func.reThreadName(BusConstant.THREAD_NAME);
+        try {
+            deliver(listener, msg);
+            redisTemplate.opsForStream().acknowledge(listener.getStreamKey(), listener.getGroup(), msg.getId());
+        } finally {
+            // 恢复线程名称
+            Thread.currentThread().setName(oldName);
+        }
     }
 
     /**

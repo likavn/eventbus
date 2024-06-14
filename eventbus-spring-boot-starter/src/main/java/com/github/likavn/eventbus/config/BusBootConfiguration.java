@@ -90,22 +90,8 @@ public class BusBootConfiguration {
         busConfig(environment, busConfig);
         // Component
         Map<String, Object> beanMap = context.getBeansWithAnnotation(Component.class);
-        List<Object> objects = new ArrayList<>(beanMap.values());
-
-        // Controller
-        beanMap = context.getBeansWithAnnotation(Controller.class);
-        objects.addAll(beanMap.values());
-
-        // Repository
-        beanMap = context.getBeansWithAnnotation(Repository.class);
-        objects.addAll(beanMap.values());
-
-        // Service
-        beanMap = context.getBeansWithAnnotation(Service.class);
-        objects.addAll(beanMap.values());
-
         ListenerRegistry registry = new ListenerRegistry(busConfig);
-        registry.register(objects);
+        registry.register(beanMap.values());
         return registry;
     }
 

@@ -78,13 +78,13 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
         // 过期时间毫秒数
         long expiredMillis = System.currentTimeMillis() - (1000L * 60 * 60 * expiredHours);
         redisSubscribers.stream().map(RedisListener::getStreamKey).distinct().forEach(streamKey
-                -> deleteExpired(streamKey, expiredMillis + "-0"));
+                -> cleanExpired(streamKey, expiredMillis + "-0"));
     }
 
     /**
      * 截取过期的消息
      */
-    private void deleteExpired(String streamKey, String minId) {
+    private void cleanExpired(String streamKey, String minId) {
         String lockKey = streamKey + ".deleteExpiredLock";
         boolean lock = rLock.getLock(lockKey);
         try {
@@ -92,9 +92,9 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
                 return;
             }
             Long deleteCount = redisTemplate.execute(script, Collections.singletonList(streamKey), minId);
-            log.debug("过期消息清理：streamKey={}, deleteCount={}", streamKey, deleteCount);
+            log.debug("clean expired：streamKey={}, deleteCount={}", streamKey, deleteCount);
         } catch (Exception e) {
-            log.error("过期消息清理失败：streamKey={}", streamKey, e);
+            log.error("clean expired：streamKey={}", streamKey, e);
         } finally {
             if (lock) {
                 rLock.releaseLock(lockKey);

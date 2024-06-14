@@ -19,6 +19,8 @@ import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.support.task.Task;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
+import com.github.likavn.eventbus.core.utils.WaitThreadPoolExecutor;
+import lombok.Getter;
 
 import java.util.Map;
 import java.util.Timer;
@@ -41,7 +43,8 @@ public class TaskRegistry {
     /**
      * 线程池执行器，用于执行任务
      */
-    private final TaskThreadPoolExecutor poolExecutor;
+    @Getter
+    private final WaitThreadPoolExecutor poolExecutor;
     /**
      * 任务映射，存储所有任务
      */
@@ -51,7 +54,7 @@ public class TaskRegistry {
      * 构造函数，创建一个带默认线程池的TaskRegistry。
      */
     public TaskRegistry() {
-        this.poolExecutor = TaskThreadPoolExecutor.create();
+        this.poolExecutor = createDefaultPool();
     }
 
     /**
@@ -59,7 +62,7 @@ public class TaskRegistry {
      *
      * @param poolExecutor 自定义的线程池执行器
      */
-    public TaskRegistry(TaskThreadPoolExecutor poolExecutor) {
+    public TaskRegistry(WaitThreadPoolExecutor poolExecutor) {
         this.poolExecutor = poolExecutor;
     }
 
@@ -103,59 +106,13 @@ public class TaskRegistry {
         return taskMap.get(name);
     }
 
-    public TaskThreadPoolExecutor getPoolExecutor() {
-        return poolExecutor;
-    }
-
     /**
-     * 自定义的线程池执行器类，用于执行定时任务。
+     * 创建默认的线程池执行器。
+     *
+     * @return 默认的线程池执行器
      */
-    public static class TaskThreadPoolExecutor extends ThreadPoolExecutor {
-        // 线程池的核心线程数
-        private static final int CORE_POOL_SIZE = 1;
-        // 线程池的最大线程数
-        private static final int MAXIMUM_POOL_SIZE = 10;
-        // 空闲线程的存活时间
-        private static final long KEEP_ALIVE_TIME = 60L;
-        // 时间单位
-        private static final TimeUnit UNIT = TimeUnit.SECONDS;
-        // 任务队列
-        private static final BlockingQueue<Runnable> QUEUE = new LinkedBlockingQueue<>(5);
-
-        /**
-         * 构造函数，初始化线程池执行器。
-         */
-        public TaskThreadPoolExecutor(int corePoolSize,
-                                      int maximumPoolSize,
-                                      long keepAliveTime,
-                                      TimeUnit unit, BlockingQueue<Runnable> workQueue) {
-            super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, new NamedThreadFactory(BusConstant.TASK_NAME));
-        }
-
-        /**
-         * 创建并返回一个默认配置的线程池执行器实例。
-         *
-         * @return 默认配置的线程池执行器实例
-         */
-        public static TaskThreadPoolExecutor create() {
-            return new TaskThreadPoolExecutor(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE_TIME, UNIT, QUEUE);
-        }
-
-        /**
-         * 等待ThreadPoolExecutor变为可用状态，然后执行任务。
-         *
-         * @param command 要执行的任务
-         */
-        public synchronized void executeWait(Runnable command) {
-            // 等待ThreadPoolExecutor变为可用状态
-            while (!isShutdown() && !isTerminated()) {
-                if (getPoolSize() < getMaximumPoolSize()
-                        || getQueue().remainingCapacity() > 0) {
-                    // 线程池有足够的线程和队列容量，可以提交任务
-                    super.execute(command);
-                    break;
-                }
-            }
-        }
+    private WaitThreadPoolExecutor createDefaultPool() {
+        return new WaitThreadPoolExecutor(1,
+                10, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10), new NamedThreadFactory(BusConstant.TASK_NAME));
     }
 }

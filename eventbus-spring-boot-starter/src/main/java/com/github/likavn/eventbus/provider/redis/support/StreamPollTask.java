@@ -132,7 +132,6 @@ public class StreamPollTask<K, V extends Record<K, ?>> implements Task {
         } finally {
             isInEventLoop = false;
         }
-        pushTask.run();
     }
 
     private void doLoop() {
@@ -165,7 +164,8 @@ public class StreamPollTask<K, V extends Record<K, ?>> implements Task {
     }
 
     private List<ByteRecord> readRecords() {
-        return readFunction.apply(pollState.getCurrentReadOffset());
+        return readFunction.apply(ReadOffset.lastConsumed());
+      //  return readFunction.apply(pollState.getCurrentReadOffset());
     }
 
     private void deserializeAndEmitRecords(List<ByteRecord> records) {

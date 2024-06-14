@@ -16,6 +16,8 @@
 package com.github.likavn.eventbus.core.support.task;
 
 import com.github.likavn.eventbus.core.TaskRegistry;
+import com.github.likavn.eventbus.core.utils.WaitThreadPoolExecutor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
@@ -34,6 +36,7 @@ public abstract class Task extends TimerTask {
     /**
      * 任务名称
      */
+    @Getter
     private String name;
 
     private Runnable runnable;
@@ -53,9 +56,12 @@ public abstract class Task extends TimerTask {
      * 任务注册
      */
     TaskRegistry taskRegistry;
-    // 线程池执行器，用于执行任务
-    private TaskRegistry.TaskThreadPoolExecutor poolExecutor;
+    /**
+     * 线程池执行器，用于执行任务
+     */
+    private WaitThreadPoolExecutor poolExecutor;
 
+    @Getter
     private boolean initialized = false;
 
     /**
@@ -83,23 +89,10 @@ public abstract class Task extends TimerTask {
                 return;
             }
             this.nextExecutionTime = nextExecutionTime();
-            poolExecutor.executeWait(runnable);
+            poolExecutor.execute(runnable);
         } catch (Exception e) {
             log.error("task run error", e);
         }
-    }
-
-    /**
-     * 获取任务的名称。
-     *
-     * @return 返回任务的名称。
-     */
-    public String getName() {
-        return name;
-    }
-
-    public boolean isInitialized() {
-        return initialized;
     }
 
     /**
