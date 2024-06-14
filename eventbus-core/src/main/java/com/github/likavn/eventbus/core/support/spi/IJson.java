@@ -47,7 +47,21 @@ public interface IJson {
      *
      * @return true可用
      */
-    boolean active();
+    default boolean active() {
+        try {
+            Class.forName(className());
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * json工具类名称
+     *
+     * @return name
+     */
+    String className();
 
     /**
      * to json string

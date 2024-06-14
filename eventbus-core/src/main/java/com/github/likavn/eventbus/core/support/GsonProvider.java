@@ -30,13 +30,8 @@ import java.lang.reflect.Type;
 public class GsonProvider implements IJson {
 
     @Override
-    public boolean active() {
-        try {
-            Class.forName("com.google.gson.Gson");
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-        return true;
+    public String className() {
+        return "com.google.gson.Gson";
     }
 
     @Override

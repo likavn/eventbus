@@ -29,13 +29,8 @@ import java.lang.reflect.Type;
  */
 public class FastjsonProvider implements IJson {
     @Override
-    public boolean active() {
-        try {
-            Class.forName("com.alibaba.fastjson.JSON");
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-        return true;
+    public String className() {
+        return "com.alibaba.fastjson.JSON";
     }
 
     @Override

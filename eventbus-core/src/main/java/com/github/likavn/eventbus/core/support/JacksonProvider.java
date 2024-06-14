@@ -37,13 +37,8 @@ import java.lang.reflect.Type;
 public class JacksonProvider implements IJson {
 
     @Override
-    public boolean active() {
-        try {
-            Class.forName("com.fasterxml.jackson.databind.ObjectMapper");
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-        return true;
+    public String className() {
+        return "com.fasterxml.jackson.databind.ObjectMapper";
     }
 
     @Override
