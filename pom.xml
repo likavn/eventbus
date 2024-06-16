@@ -44,7 +44,7 @@
     </scm>
 
     <properties>
-        <revision>2.2</revision>
+        <revision>2.2.1</revision>
         <!--maven配置信息-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>

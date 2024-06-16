@@ -33,7 +33,6 @@ import org.springframework.util.Assert;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -47,7 +46,7 @@ import java.util.stream.Collectors;
 public abstract class AbstractStreamListenerContainer implements Lifecycle {
     protected final StringRedisTemplate redisTemplate;
     protected final BusProperties config;
-    protected ThreadPoolExecutor executor;
+    protected PollThreadPoolExecutor executor;
     protected StreamMessageListenerContainer<String, ObjectRecord<String, String>> container;
 
     protected AbstractStreamListenerContainer(StringRedisTemplate redisTemplate, BusProperties config) {
@@ -58,6 +57,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
     @Override
     public void register() {
         if (null != container) {
+            executor.start();
             container.start();
             return;
         }
@@ -152,7 +152,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
         if (null != container) {
             container.stop();
         }
-        executor.purge();
+        executor.cancel();
     }
 
     /**
