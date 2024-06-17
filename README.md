@@ -305,7 +305,6 @@ public class DemoMsgSubscribeListener extends MsgListener<String> {
 | fail        | retryCount                | int      | 消息投递失败时，一定时间内再次进行投递的次数，默认3次        |
 | fail        | nextTime                  | int      | 下次触发时间，单位：秒，默认10秒 ，（rocketMq的18个延时消息级别） |
 | eventbus    | redis                     |          | redis配置                                                    |
-| redis       | executorPoolSize          | int      | 订阅消息线程池大，默认10个。                                 |
 | redis       | deliverTimeout            | int      | 消息超时时间，超时消息未被确认，才会被重新投递，默认5分钟。  |
 | redis       | pendingMessagesBatchSize  | int      | 未确认消息，重新投递时每次最多拉取多少条待确认消息数据，默认：100条； |
 | redis       | streamExpiredHours        | int      | stream 过期时间，6.2及以上版本支持，单位：小时，默认 5 天    |

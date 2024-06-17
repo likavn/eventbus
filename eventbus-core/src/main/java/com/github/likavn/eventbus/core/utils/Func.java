@@ -188,12 +188,12 @@ public final class Func {
     }
 
     /**
-     * 获取主机名
+     * 获取主机地址
      *
-     * @return 主机名
+     * @return 主机地址
      */
-    public synchronized String getHostName() {
-        return NetUtil.getHostName();
+    public String getHostAddress() {
+        return NetUtil.getHostAddr();
     }
 
     /**
@@ -230,18 +230,6 @@ public final class Func {
     public void pollRun(int count, Runnable runnable) {
         for (int i = 0; i < count; i++) {
             runnable.run();
-        }
-    }
-
-    /**
-     * 轮询执行
-     *
-     * @param count    轮询次数
-     * @param consumer 轮询任务
-     */
-    public void pollRun(int count, IntConsumer consumer) {
-        for (int i = 0; i < count; i++) {
-            consumer.accept(i);
         }
     }
 

@@ -44,6 +44,7 @@ public class NetUtil {
         }
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            flag:
             while (interfaces.hasMoreElements()) {
                 NetworkInterface networkInterface = interfaces.nextElement();
                 Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
@@ -51,7 +52,7 @@ public class NetUtil {
                     InetAddress adder = addresses.nextElement();
                     if (!adder.isLoopbackAddress() && !(adder.getHostAddress() + "").contains(":")) {
                         inetAddress = adder;
-                        break;
+                        break flag;
                     }
                 }
             }
@@ -67,12 +68,7 @@ public class NetUtil {
      *
      * @return 本地hostName
      */
-    public String getHostName() {
-        InetAddress inet = getHostAddress();
-        String hostName = inet.getHostName();
-        if (Func.isEmpty(hostName)) {
-            hostName = inet.getHostAddress();
-        }
-        return hostName;
+    public String getHostAddr() {
+        return getHostAddress().getHostAddress();
     }
 }

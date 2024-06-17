@@ -42,17 +42,11 @@ public class BusProperties extends BusConfig {
     @Data
     public static class RedisProperties {
         /**
-         * 订阅消息线程池大小
-         */
-        private Integer executorPoolSize = 10;
-        /**
-         * 消息超时时间，默认 5 分钟
-         * 1. 超时的消息才会被重新投递
-         * 2. 由于定时任务 1 分钟一次，消息超时后不会被立即重投，极端情况下消息5分钟过期后，再等 1 分钟才会被扫瞄到
+         * 消息超时时间，超时消息未被确认，才会被重新投递，单位：秒，默认5分钟。
          */
         private Long deliverTimeout = 60 * 5L;
         /**
-         * 每次最多拉取多少条待确认消息数据
+         * 未确认消息，重新投递时每次最多拉取多少条待确认消息数据，默认：100条；
          */
         private Integer pendingMessagesBatchSize = 100;
         /**

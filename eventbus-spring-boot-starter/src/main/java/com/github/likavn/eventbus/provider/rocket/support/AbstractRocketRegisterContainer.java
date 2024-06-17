@@ -103,7 +103,7 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
         //1.创建消费者Consumer，制定消费者组名
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
         try {
-            String hostName = Func.getHostName() + "@" + Func.getPid();
+            String hostName = Func.getHostAddress() + "@" + Func.getPid();
             consumer.setConsumeThreadMin(listener.getConcurrency());
             consumer.setConsumeThreadMax(listener.getConcurrency());
             consumer.setInstanceName(hostName);
