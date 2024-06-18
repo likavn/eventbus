@@ -66,15 +66,6 @@ public class CronTask extends Task {
     }
 
     /**
-     * 获取任务的cron表达式。
-     *
-     * @return 返回任务关联的cron表达式字符串。
-     */
-    public String getCron() {
-        return cron;
-    }
-
-    /**
      * 计算并返回任务的下一次执行时间。
      *
      * @return 返回下一次执行时间的毫秒数。如果无法确定下一次执行时间，则返回0。

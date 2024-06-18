@@ -88,8 +88,8 @@ public abstract class Task extends TimerTask {
             if (System.currentTimeMillis() < this.nextExecutionTime) {
                 return;
             }
-            this.nextExecutionTime = nextExecutionTime();
             poolExecutor.execute(runnable);
+            this.nextExecutionTime = nextExecutionTime();
         } catch (Exception e) {
             log.error("task run error", e);
         }
@@ -113,12 +113,8 @@ public abstract class Task extends TimerTask {
      */
     public void setNextExecutionTime(long nextExecutionTime) {
         if (0 < this.nextExecutionTime && this.nextExecutionTime < nextExecutionTime) {
-            long millis = System.currentTimeMillis();
-            if (millis - this.nextExecutionTime < 0) {
-                return;
-            }
+            this.nextExecutionTime = nextExecutionTime;
         }
-        this.nextExecutionTime = nextExecutionTime;
     }
 
     /**

@@ -75,7 +75,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
                 // 消息消费异常的handler
                 .errorHandler(t -> log.error("[Eventbus error] ", t))
                 // 超时时间，设置为0，表示不超时（超时后会抛出异常）
-                .pollTimeout(Duration.ofSeconds(60))
+                .pollTimeout(Duration.ZERO)
                 // 序列化器
                 .serializer(new StringRedisSerializer())
                 .targetType(String.class)
