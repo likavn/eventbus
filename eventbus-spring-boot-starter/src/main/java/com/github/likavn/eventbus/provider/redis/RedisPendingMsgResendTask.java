@@ -27,10 +27,7 @@ import com.github.likavn.eventbus.provider.redis.support.RedisListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.RedisSystemException;
-import org.springframework.data.redis.connection.stream.Consumer;
-import org.springframework.data.redis.connection.stream.ObjectRecord;
-import org.springframework.data.redis.connection.stream.PendingMessages;
-import org.springframework.data.redis.connection.stream.PendingMessagesSummary;
+import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.CollectionUtils;
@@ -44,7 +41,7 @@ import java.util.List;
  * @date 2024/1/4
  **/
 @Slf4j
-public class RedisPendingMsgResendTask implements Runnable,Lifecycle {
+public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
     private static final long POLLING_INTERVAL = 35L;
     private static final String CRON = POLLING_INTERVAL + " * * * * ?";
     private final BusProperties busProperties;
@@ -102,10 +99,15 @@ public class RedisPendingMsgResendTask implements Runnable,Lifecycle {
         });
     }
 
+    /**
+     * 重新发送pending消息
+     *
+     * @param subscriber 消费者
+     */
     private void pendingMessagesResendExecute(RedisListener subscriber) {
         StreamOperations<String, String, String> sops = stringRedisTemplate.opsForStream();
         // 获取my_group中的pending消息信息
-        PendingMessagesSummary stats = null;
+        PendingMessagesSummary stats;
         try {
             stats = sops.pending(subscriber.getStreamKey(), subscriber.getGroup());
         } catch (RedisSystemException e) {
@@ -161,6 +163,7 @@ public class RedisPendingMsgResendTask implements Runnable,Lifecycle {
             List<ObjectRecord<String, String>> result = stringRedisTemplate
                     .opsForStream().range(String.class, subscriber.getStreamKey(), Range.closed(recordId, recordId));
             if (CollectionUtils.isEmpty(result)) {
+                acknowledge(subscriber, message.getId());
                 return;
             }
             Request<?> request = Func.convertByJson(result.get(0).getValue());
@@ -172,9 +175,18 @@ public class RedisPendingMsgResendTask implements Runnable,Lifecycle {
             } else {
                 msgSender.toSend(delayStreamKey, request);
             }
-            // 如果手动消费成功后，往消费组提交消息的ACK
-            stringRedisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), message.getId());
+            acknowledge(subscriber, message.getId());
         });
+    }
+
+    /**
+     * 确认消费
+     *
+     * @param subscriber 消费者
+     * @param recordId   消息ID
+     */
+    private void acknowledge(RedisListener subscriber, RecordId recordId) {
+        stringRedisTemplate.opsForStream().acknowledge(subscriber.getStreamKey(), subscriber.getGroup(), recordId);
     }
 
     @Override
