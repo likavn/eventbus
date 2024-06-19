@@ -16,5 +16,7 @@ public interface MsgBody {
      *
      * @return code编码
      */
-    String code();
+    default String code() {
+        return this.getClass().getSimpleName();
+    }
 }

@@ -8,16 +8,22 @@ import com.github.likavn.eventbus.demo.domain.TMsg;
 import com.github.likavn.eventbus.demo.domain.TestBody;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 
 /**
  * @author likavn
  * @date 2024/01/01
  **/
 @Slf4j
-@Component
+@Controller
 public class DemoMsgListener extends MsgListener<TestBody> {
     protected DemoMsgListener() {
-        super(MsgConstant.DEMO_MSG_LISTENER);
+        super(
+                // 订阅的消息编码
+                MsgConstant.DEMO_MSG_LISTENER,
+                // 并发数
+                2);
     }
 
     @Override
@@ -25,7 +31,7 @@ public class DemoMsgListener extends MsgListener<TestBody> {
     public void onMessage(Message<TestBody> message) {
         TestBody body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
-     //   throw new RuntimeException("DemoMsgListener test");
+        //   throw new RuntimeException("DemoMsgListener test");
     }
 
     /**

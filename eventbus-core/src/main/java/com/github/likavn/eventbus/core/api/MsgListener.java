@@ -71,7 +71,7 @@ public abstract class MsgListener<T> {
                 throw new EventBusException(e);
             }
         }
-        Assert.notEmpty(codes, this.getClass().getName() + "订阅消息编码不能为空");
+        Assert.notEmpty(codes, this.getClass().getName() + "msg code is not null");
     }
 
     /**
@@ -90,7 +90,7 @@ public abstract class MsgListener<T> {
      * @param concurrency 并发级别
      */
     protected MsgListener(String code, Integer concurrency) {
-        this(Collections.singletonList(code));
+        this(Collections.singletonList(code), concurrency);
     }
 
     /**
