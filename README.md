@@ -22,14 +22,15 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 - 重试：支持消息投递失败时投递重试，可自定义失败重试投递次数及下次投递时间；
 - 拦截器：支持全局拦截器，可自主实现拦截逻辑，支持发送前拦截（`SendBeforeInterceptor `）、发送后拦截（`SendAfterInterceptor `
   ）、投递成功后拦截（`DeliverSuccessInterceptor `）、投递失败时拦截（`DeliverThrowableInterceptor `）；
+- 提供消息持久化示例，可参考[BsHelper](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/service/BsHelper.java)，持久化消息投递状态，可便于后续处理；
+- 支持通过多种方式订阅消息，可实现接口或注解的方式去订阅接收消息；
 
 ## 有哪些场景可以使用
 
-单一业务分发消息进行异步处理时，比如业务完成推送业务数据给第三方；
-
-支付时，后端服务需要定时轮训支付接口查询是否支付成功；
-
-系统业务消息传播解耦，降低消息投递和接收的复杂度；
+- 单一业务分发消息进行异步处理时，比如业务完成推送业务数据给第三方；
+- 支付时，后端服务需要定时轮训支付接口查询是否支付成功；
+- 系统业务消息传播解耦，降低消息投递和接收的复杂度（消息可靠性传递）；
+- 当我们需要切换消息中间件时，可以做到无缝切换，不需要修改业务代码；
 
 ## 版本要求
 
@@ -45,7 +46,7 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 
 ### 引入依赖
 
-如果存在多个json序列化工具依赖，序列化时的优先级如下，json序列化支持`Fast2json`、`Fastjson`、`Jackson`、`Gson`等任意一种。
+项目中必须引入`eventbus-spring-boot-starter`组件依赖
 
 ```xml
 <!-- 必须引入 eventbus-spring-boot-starter组件-->
@@ -54,7 +55,11 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
     <artifactId>eventbus-spring-boot-starter</artifactId>
     <version>2.2.1</version>
 </dependency>
+```
 
+`Json`序列化工具支持`Fast2json`、`Fastjson`、`Jackson`、`Gson`等任意一种。项目已引入`spring-boot-starter-web`时自带`Jackson`依赖，不需要单独引入其他`Json`工具依赖。如果项目中存在多个`Json`序列化工具依赖，序列化时的优先级如下:
+
+```xml
 <!-- 各JSON序列化工具 任选一个-->
 <!-- fastjson2 -->
 <dependency>
@@ -98,7 +103,6 @@ eventbus:
 需要在pom.xml单独引入，如下：
 
 ```xml
-
 <dependency>
      <groupId>org.springframework.boot</groupId>
      <artifactId>spring-boot-starter-data-redis</artifactId>
@@ -314,7 +318,6 @@ public class EventbusConfiguration {
 }
 ```
 
-
 ### 自定JSON序列化工具
 
 当前json序列化支持`Fast2json`、`Fastjson`、`Jackson`、`Gson`等任意一种，如果当前项目同时存在相关依赖时，优先级也同上顺序。若需调整顺序或使用其他JSON序列化工具时，可以自定义JSON实现，需实现接口[IJson](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/support/spi/IJson.java)。
@@ -388,7 +391,6 @@ public class Fast2jsonProvider implements IJson {
 com.github.likavn.eventbus.core.support.Fast2jsonProvider
 ```
 
-
 ## 配置
 
 `BusProperties`，在application.yaml中eventbus配置以 `eventbus` 开头，所有配置如下：
@@ -433,12 +435,22 @@ com.github.likavn.eventbus.core.support.Fast2jsonProvider
 
 ## 示例
 
-启动springboot-demo访问http://localhost:8080/index.html
+示例项目需配置数据库，初始化数据库sql：[demo-init.sql](./doc/sql/demo-init.sql)
 
+启动springboot-demo访问http://localhost:8080/index.html
 <img src="./doc/picture/event_send.jpg" alt="event_send" style="zoom: 33%; margin-left: 0px;" />
 
 ## 注意事项
 
 **订阅、广播消息在消息引擎中是以订阅器实现类全类名加方法名进行分组（在rabbitMq中的存在是队列），当我们不在需要某个订阅器时请及时在消息引擎中删除此分组或队列，避免不必要的存储空间浪费。**
 
-项目地址：[https://gitee.com/likavn/eventbus](https://gitee.com/likavn/eventbus)
+Github项目地址：[https://github.com/likavn/eventbus](https://github.com/likavn/eventbus)
+Gitee项目地址：[https://gitee.com/likavn/eventbus](https://gitee.com/likavn/eventbus)
+
+## 联系我
+
+本项目会持续更新和维护，喜欢别忘了 Star，有问题可通过微信、QQ及时联系我，谢谢您的关注。
+
+微信：likavn
+
+QQ：1085257460
