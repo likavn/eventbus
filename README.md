@@ -14,16 +14,17 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 
 ## 有哪些特点
 
-我们不是另外开发一个MQ，而是屏蔽底层不同种类的消息中间件，并提供统一的接口调用，使用时配置简单，结构清晰易于维护。
+我们不是另外开发一个MQ，而是屏蔽底层不同种类的消息中间件，并提供统一的接口调用，旨在提供简单的事件处理编程模型，让基于事件的开发更灵活简单，结构清晰易于维护，扩展方便，集成使用更简单。
 
 ## 有哪些功能
 
-- 消息：支持广播消息、延时消息的投递和接收，可通过统一的接口或注解方式去订阅接收消息；
+- 消息：支持广播消息、延时消息的投递和接收，支持通过多种方式订阅消息，可通过统一的接口或注解方式去订阅接收消息；
 - 重试：支持消息投递失败时投递重试，可自定义失败重试投递次数及下次投递时间；
 - 拦截器：支持全局拦截器，可自主实现拦截逻辑，支持发送前拦截（`SendBeforeInterceptor `）、发送后拦截（`SendAfterInterceptor `
   ）、投递成功后拦截（`DeliverSuccessInterceptor `）、投递失败时拦截（`DeliverThrowableInterceptor `）；
 - 提供消息持久化示例，可参考[BsHelper](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/service/BsHelper.java)，持久化消息投递状态，可便于后续处理；
-- 支持通过多种方式订阅消息，可实现接口或注解的方式去订阅接收消息；
+- 可控的消息订阅监听器开关，如通过`Nacos`下线某个服务实例时需要同时关闭消息的监听；
+- 消息中间件网络断开重连机制，支持重连；
 
 ## 有哪些场景可以使用
 
@@ -34,13 +35,10 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 
 ## 版本要求
 
-1.SpringBoot 2.5.0.RELEASE+
-
-2.Redis 6.2+
-
-3.RabbitMQ 3.8.0+
-
-4.RocketMQ 4.0+
+1. SpringBoot 2.5.0.RELEASE+
+2. Redis 6.2+
+3. RabbitMQ 3.8.0+
+4. RocketMQ 4.0+
 
 ## 快速开始
 
@@ -65,25 +63,25 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 <dependency>
     <groupId>com.alibaba.fastjson2</groupId>
     <artifactId>fastjson2</artifactId>
-    <version>${fastjson2.version}</version>
+    <version>${version}</version>
 </dependency>
 <!-- fastjson -->
 <dependency>
      <groupId>com.alibaba</groupId>
      <artifactId>fastjson</artifactId>
-     <version>${fastjson.version}</version>
+     <version>${version}</version>
 </dependency>
 <!-- jackson 如果项目已引入spring-boot-starter-web，项目自带jackson依赖，不需要单独引入-->
 <dependency>
      <groupId>com.fasterxml.jackson.core</groupId>
      <artifactId>jackson-databind</artifactId>
-     <version>${jackson.version}</version>
+     <version>${version}</version>
 </dependency>
 <!-- gson -->
 <dependency>
      <groupId>com.google.code.gson</groupId>
      <artifactId>gson</artifactId>
-     <version>${gson.version}</version>
+     <version>${version}</version>
 </dependency>
 ```
 
@@ -137,6 +135,8 @@ rocketmq需要在pom.xml单独引入（rocketMQ会引入fastjson），如下：
 ```
 
 ### 发送与订阅异步消息
+
+发送消息
 
 ```java
 @Resource
@@ -215,9 +215,13 @@ public class DemoMsgListener3 extends MsgListener<TestBody> {
 }
 ```
 
+也可基于注解[@Listener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Listener.java)的方式定义及时消息监听器，参考：[DemoAnnListener.java](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnListener.java)
+
 ### 发送与订阅延时消息
 
 注意：当消息引擎为rocketMq时，延时时间为rocketMq的18个延时级别。
+
+发送延时消息
 
 ```java
 @Resource
@@ -246,7 +250,7 @@ public class DemoMsgDelayListener implements MsgDelayListener<String> {
     }
 }
 ```
-
+也可基于注解[@DelayListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/DelayListener.java)的方式定义延时消息监听器，此时需定义延时消息编码，参考：[DemoAnnDelayListener.java](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnDelayListener.java)
 ### 异常捕获
 
 当消息或延时消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（系统默认重复投递3次，每次间隔10秒），即便这样，消息还是有可能会存在投递不成功的问题，当消息进行最后一次投递还是失败时，可以使用注解`@Fail`
@@ -286,9 +290,9 @@ public class DemoMsgSubscribeListener extends MsgListener<String> {
 
 ## 高级使用
 
-### 自定义requestId（消息ID）
+### 自定义消息ID
 
-消息ID默认使用UUID,若需修改为其他类型的ID,可实现接口[RequestIdGenerator](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/RequestIdGenerator.java) 并配置。
+RequestId（消息ID）默认使用UUID，若需修改为其他类型的ID，可实现接口[RequestIdGenerator](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/RequestIdGenerator.java) 时重写`nextId()`方法并配置。
 
 接口：
 
@@ -320,7 +324,7 @@ public class EventbusConfiguration {
 
 ### 自定JSON序列化工具
 
-当前json序列化支持`Fast2json`、`Fastjson`、`Jackson`、`Gson`等任意一种，如果当前项目同时存在相关依赖时，优先级也同上顺序。若需调整顺序或使用其他JSON序列化工具时，可以自定义JSON实现，需实现接口[IJson](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/support/spi/IJson.java)。
+当前Json序列化支持`Fast2json`、`Fastjson`、`Jackson`、`Gson`等任意一种，如果当前项目同时存在相关依赖时，优先级也同上顺序。若需调整顺序或使用其他JSON序列化工具时，可以自定义JSON实现，需实现接口[IJson](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/support/spi/IJson.java)。
 
 接口：
 
@@ -359,7 +363,7 @@ public interface IJson {
 }
 ```
 
-创建jsonProvider并实现接口IJson，需重写className、toJsonString、parseObject、getOrder等方法即可，可参考Fast2jsonProvider的实现，如下：
+创建JsonProvider并实现接口IJson，需重写className、toJsonString、parseObject、getOrder等方法即可，可参考[Fast2jsonProvider](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/support/Fast2jsonProvider.java)的实现，实现代码如下：
 
 ```java
 public class Fast2jsonProvider implements IJson {  
@@ -389,6 +393,21 @@ public class Fast2jsonProvider implements IJson {
 
 ```java
 com.github.likavn.eventbus.core.support.Fast2jsonProvider
+```
+
+### 消息监听器开关
+
+可控的消息订阅器开关，如通过`Nacos`下线某个服务实例时需要同时关闭消息的监听；
+
+```java
+@Resource 
+private MsgListenerContainer msgListenerContainer;
+
+// 打开消息监听
+msgListenerContainer.startup();
+
+// 关闭消息监听
+msgListenerContainer.shutdown();
 ```
 
 ## 配置
