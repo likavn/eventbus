@@ -15,8 +15,8 @@
     <name>eventbus</name>
     <url>https://github.com/likavn/eventbus</url>
     <description>
-        eventbus是分布式业务消息分发总线组件，支持广播及时消息、延时消息等（即发布/订阅模式）。组件通过屏蔽底层不同种类的消息引擎，并提供统一的接口调用，
-        可发送广播及时消息和延时消息，同时可订阅及时消息或延时消息等。当我们的应用引入eventbus组件时可降低系统耦合度。目前可选择基于Redis、RabbitMQ、RocketMQ等任意一种做底层的消息引擎，其他消息引擎中间件将被陆续支持。
+        eventbus是基于Spring Boot Starter的分布式业务消息分发总线组件（发布/订阅模式），
+        支持延时消息。可使用Redis、RabbitMQ、RocketMQ等任意一种做底层的消息引擎，点个Star关注更新。
     </description>
 
     <developers>

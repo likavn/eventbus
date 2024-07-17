@@ -2,7 +2,6 @@
 
 eventbus基于Spring Boot Starter的分布式业务消息分发总线组件（发布/订阅模式），支持延时消息。可使用Redis、RabbitMQ、RocketMQ等任意一种做底层的消息引擎，🔝 🔝 点个Star关注更新。
 
-
 ## eventbus简介
 
 eventbus是分布式业务消息分发总线组件，支持广播及时消息、延时消息等（即发布/订阅模式）。组件通过屏蔽底层不同种类的消息引擎，并提供统一的接口调用，可发送广播及时消息和延时消息，同时可订阅及时消息或延时消息等。当我们的应用引入eventbus组件时可降低系统耦合度。目前可选择基于Redis、RabbitMQ、RocketMQ等任意一种做底层的消息引擎，其他消息引擎中间件将被陆续支持。
@@ -114,6 +113,8 @@ eventbus:
 ```
 
 #### RabbitMQ
+
+底层使用`RabbitMQ`发送延时消息时，需安装延时消息插件`rabbitmq_delayed_message_exchange`。
 
 rabbitmq需要在pom.xml单独引入，如下：
 
@@ -458,9 +459,12 @@ public class DemoDeliverSuccessInterceptor implements DeliverSuccessInterceptor 
 
 #### 消费失败拦截器
 
-消息投递消费者失败拦截器：[DeliverThrowableInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableInterceptor.java)实现接口方法`execute`即可， 如下示例是消息消费失败后更新消息的投递状态示例代码，参考：[DemoDeliverThrowableInterceptor](eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverThrowableInterceptor.java)
+消息投递消费者失败拦截器：[DeliverThrowableInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableInterceptor.java)
+实现接口方法`execute`即可，
+如下示例是消息消费失败后更新消息的投递状态示例代码，参考：[DemoDeliverThrowableInterceptor](eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverThrowableInterceptor.java)
 
-注：可实现另一个失败拦截器[DeliverThrowableInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableInterceptor.java)（每次消息投递都失败发生异常时都会调用该拦截器）
+注：可实现另一个失败拦截器[DeliverThrowableEveryInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableEveryInterceptor)
+（每次消息投递都失败发生异常时都会调用该拦截器）
 
 ```java
 @Component
@@ -479,44 +483,42 @@ public class DemoDeliverThrowableInterceptor implements DeliverThrowableIntercep
 
 `BusProperties`，在application.yaml中eventbus配置以 `eventbus` 开头，所有配置如下：
 
-
-| 节点        | key                       | 数据类型 | 备注                                                         |
-| ----------- | ------------------------- | -------- | ------------------------------------------------------------ |
-| eventbus    |                           |          | eventbus配置                                                 |
-| eventbus    | serviceId                 | string   | 服务ID/消息来源ID,可以不用设置，默认等于spring.application.name |
-| eventbus    | type                      | string   | 消息引擎类别（redis、rabbitmq、rocketmq）                    |
-| eventbus    | concurrency               | int      | 定义异步消息接收并发级别，默认值为1                          |
-| eventbus    | delayConcurrency          | int      | 定义接收延时消息并发级别，默认值为2                          |
-| eventbus    | msgBatchSize              | int      | 单次获取消息数量，默认16条                                   |
-| eventbus    | testConnect               |          | mq服务节点联通性配置                                         |
-| testConnect | pollSecond                | int      | 轮询检测时间间隔，单位：秒，默认：35秒进行检测一次           |
-| testConnect | loseConnectMaxMilliSecond | int      | 丢失连接最长时间大于等于次值设置监听容器为连接断开，单位：秒，默认：120秒 |
-| eventbus    | fail                      |          | 消息投递失败时配置信息                                       |
-| fail        | retryCount                | int      | 消息投递失败时，一定时间内再次进行投递的次数，默认3次        |
-| fail        | nextTime                  | int      | 下次触发时间，单位：秒，默认10秒 ，（rocketMq的18个延时消息级别） |
-| eventbus    | redis                     |          | redis配置                                                    |
+| 节点        | key                       | 数据类型 | 备注                                                                                                           |
+| ------------- | --------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| eventbus    |                           |          | eventbus配置                                                                                                   |
+| eventbus    | serviceId                 | string   | 服务ID/消息来源ID,可以不用设置，默认等于spring.application.name                                                |
+| eventbus    | type                      | string   | 消息引擎类别（redis、rabbitmq、rocketmq）                                                                      |
+| eventbus    | concurrency               | int      | 定义异步消息接收并发级别，默认值为1                                                                            |
+| eventbus    | delayConcurrency          | int      | 定义接收延时消息并发级别，默认值为2                                                                            |
+| eventbus    | msgBatchSize              | int      | 单次获取消息数量，默认16条                                                                                     |
+| eventbus    | testConnect               |          | mq服务节点联通性配置                                                                                           |
+| testConnect | pollSecond                | int      | 轮询检测时间间隔，单位：秒，默认：35秒进行检测一次                                                             |
+| testConnect | loseConnectMaxMilliSecond | int      | 丢失连接最长时间大于等于次值设置监听容器为连接断开，单位：秒，默认：120秒                                      |
+| eventbus    | fail                      |          | 消息投递失败时配置信息                                                                                         |
+| fail        | retryCount                | int      | 消息投递失败时，一定时间内再次进行投递的次数，默认3次                                                          |
+| fail        | nextTime                  | int      | 下次触发时间，单位：秒，默认10秒 ，（rocketMq的18个延时消息级别）                                              |
+| eventbus    | redis                     |          | redis配置                                                                                                      |
 | redis       | pollBlock                 | boolean  | 是否为阻塞轮询，开启阻塞轮询会占用redis连接的线程池。占用线程数量=消费者并发总数，默认为：否，不开启阻塞和轮询 |
-| redis       | pollThreadPoolSize        | int      | 非阻塞轮询时的轮询线程池大小，默认为：5                      |
-| redis       | deliverTimeout            | int      | 消息超时时间，超时消息未被确认，才会被重新投递，默认5分钟    |
-| redis       | pendingMessagesBatchSize  | int      | 未确认消息，重新投递时每次最多拉取多少条待确认消息数据，默认：100条 |
-| redis       | streamExpiredHours        | int      | stream 过期时间，6.2及以上版本支持，单位：小时，默认 5 天    |
+| redis       | pollThreadPoolSize        | int      | 非阻塞轮询时的轮询线程池大小，默认为：5                                                                        |
+| redis       | deliverTimeout            | int      | 消息超时时间，超时消息未被确认，才会被重新投递，默认5分钟                                                      |
+| redis       | pendingMessagesBatchSize  | int      | 未确认消息，重新投递时每次最多拉取多少条待确认消息数据，默认：100条                                            |
+| redis       | streamExpiredHours        | int      | stream 过期时间，6.2及以上版本支持，单位：小时，默认 5 天                                                      |
 
 ## 接口信息
 
-
-| 接口                                                         | 说明                                                         | 示例                                                         |
-| ------------------------------------------------------------ | :----------------------------------------------------------- | ------------------------------------------------------------ |
-| [MsgSender](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgSender.java) | 消息的生产者sender,用于消息的发送                            | [DemoController ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/controller/DemoController.java) |
-| [MsgListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgListener.java) | 接收广播消息的处理器接口类                                   | [DemoMsgListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java)<br/>[DemoMsgListener2](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener2.java) |
-| [Listener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Listener.java) | 接收广播消息处理器注解                                       | [DemoAnnListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnListener.java)<br/>[DemoAnnListener2 ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnListener2.java) |
-| [MsgDelayListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgDelayListener.java) | 接收延时消息的处理器接口类                                   | [DemoMsgDelayListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgDelayListener.java) |
-| [DelayListener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/DelayListener.java) | 接收延时消息的处理器注解                                     | [DemoAnnDelayListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnDelayListener.java) |
-| [Fail ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Fail.java) | 接收消息处理投递失败时异常捕获注解                           | [DemoMsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java) |
-| [SendBeforeInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendBeforeInterceptor.java) | 发送前全局拦截器                                             | [DemoSendBeforeInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendBeforeInterceptor.java) |
-| [SendAfterInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendAfterInterceptor.java) | 发送后全局拦截器                                             | [DemoSendAfterInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendAfterInterceptor.java) |
-| [DeliverSuccessInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverSuccessInterceptor.java) | 投递消费者成功全局拦截器                                     | [DemoDeliverSuccessInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverSuccessInterceptor.java) |
-| [DeliverThrowableEveryInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableEveryInterceptor.java) | 投递消费者异常全局拦截器<br/> * 注：每次消息投递都失败发生异常时都会调用该拦截器 | [DemoDeliverThrowableEveryInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverThrowableEveryInterceptor.java) |
-| [DeliverThrowableInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableInterceptor.java) | 投递消费者异常全局拦截器<br/> * 注：消息重复投递都失败时，最后一次消息投递失败时才会调用该拦截器 | [DemoDeliverThrowableInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverThrowableInterceptor.java) |
+| 接口                                                                                                                                                    | 说明                                                                                             | 示例                                                                                                                                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [MsgSender](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgSender.java)                                                           | 消息的生产者sender,用于消息的发送                                                                | [DemoController ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/controller/DemoController.java)                                                                                                                                       |
+| [MsgListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgListener.java)                                                       | 接收广播消息的处理器接口类                                                                       | [DemoMsgListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java)<br/>[DemoMsgListener2](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener2.java)  |
+| [Listener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Listener.java)                                                     | 接收广播消息处理器注解                                                                           | [DemoAnnListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnListener.java)<br/>[DemoAnnListener2 ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnListener2.java) |
+| [MsgDelayListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/MsgDelayListener.java)                                             | 接收延时消息的处理器接口类                                                                       | [DemoMsgDelayListener ](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgDelayListener.java)                                                                                                                             |
+| [DelayListener ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/DelayListener.java)                                           | 接收延时消息的处理器注解                                                                         | [DemoAnnDelayListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnDelayListener.java)                                                                                                                              |
+| [Fail ](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Fail.java)                                                             | 接收消息处理投递失败时异常捕获注解                                                               | [DemoMsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java)                                                                                                                                        |
+| [SendBeforeInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendBeforeInterceptor.java)                       | 发送前全局拦截器                                                                                 | [DemoSendBeforeInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendBeforeInterceptor.java)                                                                                                                 |
+| [SendAfterInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendAfterInterceptor.java)                         | 发送后全局拦截器                                                                                 | [DemoSendAfterInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendAfterInterceptor.java)                                                                                                                   |
+| [DeliverSuccessInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverSuccessInterceptor.java)               | 投递消费者成功全局拦截器                                                                         | [DemoDeliverSuccessInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverSuccessInterceptor.java)                                                                                                         |
+| [DeliverThrowableEveryInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableEveryInterceptor.java) | 投递消费者异常全局拦截器<br/> * 注：每次消息投递都失败发生异常时都会调用该拦截器                 | [DemoDeliverThrowableEveryInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverThrowableEveryInterceptor.java)                                                                                           |
+| [DeliverThrowableInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableInterceptor.java)           | 投递消费者异常全局拦截器<br/> * 注：消息重复投递都失败时，最后一次消息投递失败时才会调用该拦截器 | [DemoDeliverThrowableInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverThrowableInterceptor.java)                                                                                                     |
 
 更多信息请查阅相关接口类...
 
