@@ -131,9 +131,9 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
                     // 处理接收到的消息，并确认消息处理成功
                     deliver(listener, body);
                     channel.basicAck(envelope.getDeliveryTag(), false);
-                } catch (Exception ex) {
+                } catch (Exception e) {
                     // 记录消息处理失败的日志，并重试或拒绝消息
-                    log.error("AbstractRabbitRegisterContainer", ex);
+                    log.error("[Eventbus error] ", e);
                     channel.basicNack(envelope.getDeliveryTag(), false, true);
                 } finally {
                     // 恢复线程名称

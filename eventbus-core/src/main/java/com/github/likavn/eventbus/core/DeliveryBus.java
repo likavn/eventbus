@@ -171,6 +171,8 @@ public class DeliveryBus {
             fail = failTrigger.getFail();
         }
 
+        // 每次投递消息异常时都会调用
+        interceptorConfig.deliverThrowableEveryExecute(request, throwable);
         // 获取有效的投递次数
         int deliverCount = (null != fail && fail.retryCount() >= 0) ? fail.retryCount() : config.getFail().getRetryCount();
         if (request.getDeliverCount() <= deliverCount) {

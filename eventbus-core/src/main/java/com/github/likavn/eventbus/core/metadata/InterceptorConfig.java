@@ -15,10 +15,7 @@
  */
 package com.github.likavn.eventbus.core.metadata;
 
-import com.github.likavn.eventbus.core.api.interceptor.DeliverSuccessInterceptor;
-import com.github.likavn.eventbus.core.api.interceptor.DeliverThrowableInterceptor;
-import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
-import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
+import com.github.likavn.eventbus.core.api.interceptor.*;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.Setter;
@@ -35,15 +32,17 @@ public class InterceptorConfig {
     private final SendBeforeInterceptor sendBeforeInterceptor;
     private final SendAfterInterceptor sendAfterInterceptor;
     private final DeliverSuccessInterceptor deliverSuccessInterceptor;
+    private final DeliverThrowableEveryInterceptor deliverThrowableEveryInterceptor;
     private final DeliverThrowableInterceptor deliverThrowableInterceptor;
 
     public InterceptorConfig(SendBeforeInterceptor sendBeforeInterceptor,
                              SendAfterInterceptor sendAfterInterceptor,
                              DeliverSuccessInterceptor deliverSuccessInterceptor,
-                             DeliverThrowableInterceptor deliverThrowableInterceptor) {
+                             DeliverThrowableEveryInterceptor deliverThrowableEveryInterceptor, DeliverThrowableInterceptor deliverThrowableInterceptor) {
         this.sendBeforeInterceptor = sendBeforeInterceptor;
         this.sendAfterInterceptor = sendAfterInterceptor;
         this.deliverSuccessInterceptor = deliverSuccessInterceptor;
+        this.deliverThrowableEveryInterceptor = deliverThrowableEveryInterceptor;
         this.deliverThrowableInterceptor = deliverThrowableInterceptor;
     }
 
@@ -82,6 +81,20 @@ public class InterceptorConfig {
         if (deliverSuccessInterceptor != null) {
             convertRequest(request);
             deliverSuccessInterceptor.execute((Request<String>) request);
+        }
+    }
+
+    /**
+     * 接收异常拦截
+     * 每次投递消息异常时都会调用
+     *
+     * @param request   请求
+     * @param throwable 异常
+     */
+    public void deliverThrowableEveryExecute(Request<?> request, Throwable throwable) {
+        if (deliverThrowableEveryInterceptor != null) {
+            convertRequest(request);
+            deliverThrowableEveryInterceptor.execute((Request<String>) request, throwable);
         }
     }
 

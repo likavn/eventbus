@@ -42,6 +42,14 @@ public class BusProperties extends BusConfig {
     @Data
     public static class RedisProperties {
         /**
+         * 是否为阻塞轮询，开启阻塞轮询会占用redis连接的线程池。占用线程数量=消费者并发总数，默认是：否，不开启阻塞和轮询；
+         */
+        private Boolean pollBlock = false;
+        /**
+         * 非阻塞轮询时的轮询线程池大小，默认5
+         */
+        private Integer pollThreadPoolSize = 5;
+        /**
          * 消息超时时间，超时消息未被确认，才会被重新投递，单位：秒，默认5分钟。
          */
         private Long deliverTimeout = 60 * 5L;

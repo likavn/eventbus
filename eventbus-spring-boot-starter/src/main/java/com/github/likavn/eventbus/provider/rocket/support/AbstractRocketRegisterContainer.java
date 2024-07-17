@@ -126,12 +126,15 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
                     for (MessageExt msg : msgList) {
                         deliver(listener, msg);
                     }
+                    //返回值CONSUME_SUCCESS成功，消息会从mq出队
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                } catch (Exception e) {
+                    log.error("[Eventbus error] ", e);
+                    // RECONSUME_LATER (报错/null) 失败消息会重新回到队列过一会重新投递出来给当前消费者或者其他消费者消费的
+                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 } finally {
                     Thread.currentThread().setName(oldName);
                 }
-                //返回值CONSUME_SUCCESS成功，消息会从mq出队
-                // RECONSUME_LATER (报错/null) 失败消息会重新回到队列过一会重新投递出来给当前消费者或者其他消费者消费的
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             });
             consumers.add(consumer);
         } catch (MQClientException | IllegalStateException e) {

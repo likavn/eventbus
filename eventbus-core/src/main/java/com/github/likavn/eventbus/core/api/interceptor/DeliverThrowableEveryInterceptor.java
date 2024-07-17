@@ -13,25 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.metadata.data;
+package com.github.likavn.eventbus.core.api.interceptor;
+
+import com.github.likavn.eventbus.core.metadata.data.Request;
 
 /**
- * 业务消息体
- * 发送消息时避免每次都要写code编码
- * <p>
- * 备注：实现类必须存在无参构造器
+ * 投递异常，全局拦截器
+ * 注：每次消息投递都失败发生异常时都会调用该拦截器
  *
  * @author likavn
- * @date 2024/04/19
- */
-public interface MsgBody {
+ * @date 2024/01/01
+ **/
+public interface DeliverThrowableEveryInterceptor {
 
     /**
-     * 消息体code
+     * 拦截器执行
      *
-     * @return code编码
+     * @param request   request
+     * @param throwable t
      */
-    default String code() {
-        return this.getClass().getSimpleName();
-    }
+    void execute(Request<String> request, Throwable throwable);
 }

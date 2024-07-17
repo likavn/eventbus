@@ -20,10 +20,7 @@ import com.github.likavn.eventbus.core.ConnectionWatchdog;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
-import com.github.likavn.eventbus.core.api.interceptor.DeliverSuccessInterceptor;
-import com.github.likavn.eventbus.core.api.interceptor.DeliverThrowableInterceptor;
-import com.github.likavn.eventbus.core.api.interceptor.SendAfterInterceptor;
-import com.github.likavn.eventbus.core.api.interceptor.SendBeforeInterceptor;
+import com.github.likavn.eventbus.core.api.interceptor.*;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
@@ -45,12 +42,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Repository;
-import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -77,8 +70,9 @@ public class BusBootConfiguration {
             @Autowired(required = false) SendBeforeInterceptor sendBeforeInterceptor,
             @Autowired(required = false) SendAfterInterceptor sendAfterInterceptor,
             @Autowired(required = false) DeliverSuccessInterceptor deliverSuccessInterceptor,
+            @Autowired(required = false) DeliverThrowableEveryInterceptor deliverThrowableEveryInterceptor,
             @Autowired(required = false) DeliverThrowableInterceptor deliverExceptionInterceptor) {
-        return new InterceptorConfig(sendBeforeInterceptor, sendAfterInterceptor, deliverSuccessInterceptor, deliverExceptionInterceptor);
+        return new InterceptorConfig(sendBeforeInterceptor, sendAfterInterceptor, deliverSuccessInterceptor, deliverThrowableEveryInterceptor, deliverExceptionInterceptor);
     }
 
     /**

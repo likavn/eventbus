@@ -31,7 +31,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Fail {
     /**
-     * 失败回调方法，回调方法必须和订阅器处理器在同一个类中
+     * 失败回调方法，回调方法必须和订阅器处理器在同一个类中,最后一次重试投递仍然抛出异常时会调用此方法
      * <p>回调方法可选参数（无序）：</p>
      * 1：消息体{@link com.github.likavn.eventbus.core.metadata.data.Message}
      * 1：重复投递失败异常，为原始异常{@link java.lang.Throwable}
