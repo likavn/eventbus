@@ -52,6 +52,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
     private final Object lifecycleMonitor = new Object();
 
     private final Executor taskExecutor;
+    private final Executor taskExcExecutor;
     private final ErrorHandler errorHandler;
     private final StreamReadOptions readOptions;
     private final RedisTemplate<K, ?> template;
@@ -69,12 +70,13 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
      * @param containerOptions  must not be {@literal null}.
      */
     XDefaultStreamMessageListenerContainer(RedisConnectionFactory connectionFactory,
-                                           StreamMessageListenerContainerOptions<K, V> containerOptions) {
+                                           StreamMessageListenerContainerOptions<K, V> containerOptions, Executor taskExcExecutor) {
 
         Assert.notNull(connectionFactory, "RedisConnectionFactory must not be null!");
         Assert.notNull(containerOptions, "StreamMessageListenerContainerOptions must not be null!");
 
         this.taskExecutor = containerOptions.getExecutor();
+        this.taskExcExecutor = taskExcExecutor;
         this.errorHandler = containerOptions.getErrorHandler();
         this.readOptions = getStreamReadOptions(containerOptions);
         this.template = createRedisTemplate(connectionFactory, containerOptions);
@@ -211,7 +213,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         TypeDescriptor targetType = TypeDescriptor
                 .valueOf(containerOptions.hasHashMapper() ? containerOptions.getTargetType() : MapRecord.class);
 
-        return new StreamPollTask<>(streamRequest, listener, errorHandler, targetType, readFunction, deserializerToUse);
+        return new StreamPollTask<>(streamRequest, listener, errorHandler, targetType, readFunction, deserializerToUse, taskExcExecutor);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

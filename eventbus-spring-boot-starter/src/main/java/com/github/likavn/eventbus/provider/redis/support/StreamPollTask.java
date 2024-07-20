@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -43,7 +44,7 @@ import java.util.function.Predicate;
  */
 @SuppressWarnings("all")
 public class StreamPollTask<K, V extends Record<K, ?>> implements Task {
-
+    private final Executor taskExcExecutor;
     private final StreamListener<K, V> listener;
     private final ErrorHandler errorHandler;
     private final Predicate<Throwable> cancelSubscriptionOnError;
@@ -57,13 +58,14 @@ public class StreamPollTask<K, V extends Record<K, ?>> implements Task {
 
     StreamPollTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener, ErrorHandler errorHandler,
                    TypeDescriptor targetType, Function<ReadOffset, List<ByteRecord>> readFunction,
-                   Function<ByteRecord, V> deserializer) {
+                   Function<ByteRecord, V> deserializer, Executor taskExcExecutor) {
 
         this.listener = listener;
         this.errorHandler = Optional.ofNullable(streamRequest.getErrorHandler()).orElse(errorHandler);
         this.cancelSubscriptionOnError = streamRequest.getCancelSubscriptionOnError();
         this.readFunction = readFunction;
         this.deserializer = deserializer;
+        this.taskExcExecutor = taskExcExecutor;
         this.pollState = createPollState(streamRequest);
         this.targetType = targetType;
     }
@@ -165,31 +167,35 @@ public class StreamPollTask<K, V extends Record<K, ?>> implements Task {
 
     private List<ByteRecord> readRecords() {
         return readFunction.apply(ReadOffset.lastConsumed());
-      //  return readFunction.apply(pollState.getCurrentReadOffset());
+        //  return readFunction.apply(pollState.getCurrentReadOffset());
     }
 
     private void deserializeAndEmitRecords(List<ByteRecord> records) {
+        taskExcExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                for (ByteRecord raw : records) {
 
-        for (ByteRecord raw : records) {
+                    try {
 
-            try {
+                        pollState.updateReadOffset(raw.getId().getValue());
+                        V record = convertRecord(raw);
+                        listener.onMessage(record);
+                    } catch (RuntimeException e) {
 
-                pollState.updateReadOffset(raw.getId().getValue());
-                V record = convertRecord(raw);
-                listener.onMessage(record);
-            } catch (RuntimeException e) {
+                        if (cancelSubscriptionOnError.test(e)) {
 
-                if (cancelSubscriptionOnError.test(e)) {
+                            cancel();
+                            errorHandler.handleError(e);
 
-                    cancel();
-                    errorHandler.handleError(e);
+                            return;
+                        }
 
-                    return;
+                        errorHandler.handleError(e);
+                    }
                 }
-
-                errorHandler.handleError(e);
             }
-        }
+        });
     }
 
     private V convertRecord(ByteRecord record) {
