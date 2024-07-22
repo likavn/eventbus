@@ -55,33 +55,29 @@ public class BusBootRedisConfiguration {
     }
 
     @Bean
-    public RLock rLock(StringRedisTemplate busStringRedisTemplate, DefaultRedisScript<Boolean> lockRedisScript) {
-        checkRedisVersion(busStringRedisTemplate);
+    public RLock rLock(StringRedisTemplate busStringRedisTemplate, BusProperties busProperties, DefaultRedisScript<Boolean> lockRedisScript) {
+        checkRedisVersion(busStringRedisTemplate, busProperties);
         return new RLock(busStringRedisTemplate, lockRedisScript);
     }
 
     /**
      * 校验 Redis 版本号，是否满足最低的版本号要求！
      */
-    private static void checkRedisVersion(StringRedisTemplate busStringRedisTemplate) {
+    private static void checkRedisVersion(StringRedisTemplate busStringRedisTemplate, BusProperties busProperties) {
         // 获得 Redis 版本
         Properties info = busStringRedisTemplate.execute((RedisCallback<Properties>) RedisServerCommands::info);
         Assert.notEmpty(info, "Redis 版本信息为空！");
         assert info != null;
         String version = info.getProperty("redis_version");
-        // 校验最低版本必须大于等于 6.2
-        if (version.contains("-")) {
-            version = version.substring(0, version.indexOf("-"));
-        }
+        busProperties.getRedis().setRedisVersion(version);
+        // 校验最低版本必须大于等于 5.0.0
         boolean isValid = false;
         String[] versions = version.split("\\.");
-        String bigVersion = versions[0];
-        if (bigVersion.compareTo("6") >= 0
-                && (bigVersion.compareTo("7") >= 0 || (versions.length >= 2 && versions[1].compareTo("2") >= 0))) {
+        if (versions[0].compareTo("5") >= 0) {
             isValid = true;
         }
         if (!isValid) {
-            throw new IllegalStateException(String.format("您当前的 Redis 版本为 %s，小于最低要求的 6.2 版本！", version));
+            throw new IllegalStateException(String.format("您当前的 Redis 版本为 %s，小于最低要求的 5.0 版本！", version));
         }
     }
 

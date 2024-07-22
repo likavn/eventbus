@@ -45,6 +45,7 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
     private final StringRedisTemplate redisTemplate;
     private final List<RedisListener> redisSubscribers;
     private final DefaultRedisScript<Long> script;
+    private boolean isMinVersion62 = false;
     private CronTask task;
     private final TaskRegistry taskRegistry;
 
@@ -60,9 +61,20 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
 
         // 及时消息订阅
         this.redisSubscribers = RedisListener.fullRedisSubscriber(subscribers, busProperties.getServiceId());
-
+        String redisVersion = busProperties.getRedis().getRedisVersion();
+        // 判断最低版本是否大于等于 6.2
+        if (redisVersion.contains("-")) {
+            redisVersion = redisVersion.substring(0, redisVersion.indexOf("-"));
+        }
+        String[] versions = redisVersion.split("\\.");
+        String bigVersion = versions[0];
+        if (bigVersion.compareTo("6") >= 0
+                && (bigVersion.compareTo("7") >= 0 || (versions.length >= 2 && versions[1].compareTo("2") >= 0))) {
+            isMinVersion62 = true;
+        }
         // 过期消息处理脚本
-        this.script = new DefaultRedisScript<>("return redis.call('XTRIM', KEYS[1],'MINID', ARGV[1]);", Long.class);
+        String cmd = isMinVersion62 ? "'MINID'" : "'MAXLEN', '~'";
+        this.script = new DefaultRedisScript<>("return redis.call('XTRIM', KEYS[1]," + cmd + ", ARGV[1]);", Long.class);
     }
 
     @Override
@@ -91,7 +103,17 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
             if (!lock) {
                 return;
             }
-            Long deleteCount = redisTemplate.execute(script, Collections.singletonList(streamKey), minId);
+            String param;
+            if (isMinVersion62) {
+                param = minId;
+            } else {
+                Long streamExpiredLength = busProperties.getRedis().getStreamExpiredLength();
+                param = null == streamExpiredLength ? null : streamExpiredLength.toString();
+            }
+            if (null == param) {
+                return;
+            }
+            Long deleteCount = redisTemplate.execute(script, Collections.singletonList(streamKey), param);
             log.debug("clean expired：streamKey={}, deleteCount={}", streamKey, deleteCount);
         } catch (Exception e) {
             log.error("clean expired：streamKey={}", streamKey, e);

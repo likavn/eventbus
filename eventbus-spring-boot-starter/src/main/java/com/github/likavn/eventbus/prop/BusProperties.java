@@ -61,5 +61,13 @@ public class BusProperties extends BusConfig {
          * stream 过期时间，6.2及以上版本支持，单位：小时，默认 5 天
          */
         private Long streamExpiredHours = 24 * 5L;
+        /**
+         * stream 过期时间，5.0~<6.2版本支持，单位：条，默认：10000条
+         */
+        private Long streamExpiredLength = 10000L;
+        /**
+         * redis版本号，不用配置，系统自动设定
+         */
+        private String redisVersion;
     }
 }
