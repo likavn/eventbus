@@ -100,7 +100,7 @@ eventbus:
 
 使用Redis5.0 新功能Stream，Redis Stream 提供了消息的持久化和主备复制功能，可以让任何客户端访问任何时刻的数据，并且能记住每一个客户端的访问位置，还能保证消息不丢失。默认使用非阻塞轮询拉取Stream中的消息，可配置使用阻塞模式拉取消息。
 
-注意：redis 5.0~<6.2的版本删除过期消息是通过截取stream长度实现的，默认stream长度为10000，>=6.2版本时可配置消息的超时时间，默认保留5天内的消息数据。
+注意：redis 5.0~<6.2的版本删除过期消息是通过截取stream长度实现的，默认保留stream中的数据长度为10000条，>=6.2版本时可配置消息的超时时间，默认保留5天内的消息数据。
 
 需要在pom.xml单独引入，如下：
 
@@ -486,26 +486,26 @@ public class DemoDeliverThrowableInterceptor implements DeliverThrowableIntercep
 
 
 | 节点        | key                       | 数据类型 | 备注                                                         |
-| ----------- | ------------------------- | -------- |------------------------------------------------------------|
+| ----------- | ------------------------- | -------- | ------------------------------------------------------------ |
 | eventbus    |                           |          | eventbus配置                                                 |
-| eventbus    | serviceId                 | string   | 服务ID/消息来源ID,可以不用设置，默认等于spring.application.name             |
-| eventbus    | type                      | string   | 消息引擎类别（redis、rabbitmq、rocketmq）                            |
-| eventbus    | concurrency               | int      | 定义异步消息接收并发级别，默认值为1                                         |
-| eventbus    | delayConcurrency          | int      | 定义接收延时消息并发级别，默认值为2                                         |
-| eventbus    | msgBatchSize              | int      | 单次获取消息数量，默认16条                                             |
-| eventbus    | testConnect               |          | mq服务节点联通性配置                                                |
-| testConnect | pollSecond                | int      | 轮询检测时间间隔，单位：秒，默认：35秒进行检测一次                                 |
-| testConnect | loseConnectMaxMilliSecond | int      | 丢失连接最长时间大于等于次值设置监听容器为连接断开，单位：秒，默认：120秒                     |
-| eventbus    | fail                      |          | 消息投递失败时配置信息                                                |
-| fail        | retryCount                | int      | 消息投递失败时，一定时间内再次进行投递的次数，默认3次                                |
-| fail        | nextTime                  | int      | 下次触发时间，单位：秒，默认10秒 ，（rocketMq的18个延时消息级别）                    |
+| eventbus    | serviceId                 | string   | 服务ID/消息来源ID,可以不用设置，默认等于spring.application.name |
+| eventbus    | type                      | string   | 消息引擎类别（redis、rabbitmq、rocketmq）                    |
+| eventbus    | concurrency               | int      | 定义异步消息接收并发级别，默认值为1                          |
+| eventbus    | delayConcurrency          | int      | 定义接收延时消息并发级别，默认值为2                          |
+| eventbus    | msgBatchSize              | int      | 单次获取消息数量，默认16条                                   |
+| eventbus    | testConnect               |          | mq服务节点联通性配置                                         |
+| testConnect | pollSecond                | int      | 轮询检测时间间隔，单位：秒，默认：35秒进行检测一次           |
+| testConnect | loseConnectMaxMilliSecond | int      | 丢失连接最长时间大于等于次值设置监听容器为连接断开，单位：秒，默认：120秒 |
+| eventbus    | fail                      |          | 消息投递失败时配置信息                                       |
+| fail        | retryCount                | int      | 消息投递失败时，一定时间内再次进行投递的次数，默认3次        |
+| fail        | nextTime                  | int      | 下次触发时间，单位：秒，默认10秒 ，（rocketMq的18个延时消息级别） |
 | eventbus    | redis                     |          | redis配置                                                    |
 | redis       | pollBlock                 | boolean  | 是否为阻塞轮询，开启阻塞轮询会占用redis连接的线程池。占用线程数量=消费者并发总数，默认为：否，不开启阻塞和轮询 |
-| redis       | pollThreadPoolSize        | int      | 非阻塞轮询时的轮询线程池大小，默认为：5                                       |
-| redis       | deliverTimeout            | int      | 消息超时时间，超时消息未被确认，才会被重新投递，默认：5分钟                             |
-| redis       | pendingMessagesBatchSize  | int      | 未确认消息，重新投递时每次最多拉取多少条待确认消息数据，默认：100条                        |
-| redis       | streamExpiredHours        | int      | stream 过期时间，6.2及以上版本支持，单位：小时，默认：5 天                        |
-| redis       | streamExpiredLength       | int      | stream 过期时间，5.0~<6.2版本支持，单位：条，默认：10000条                    |
+| redis       | pollThreadPoolSize        | int      | 非阻塞轮询时的轮询线程池大小，默认为：5                      |
+| redis       | deliverTimeout            | int      | 消息超时时间，超时消息未被确认，才会被重新投递，默认：5分钟  |
+| redis       | pendingMessagesBatchSize  | int      | 未确认消息，重新投递时每次最多拉取多少条待确认消息数据，默认：100条 |
+| redis       | streamExpiredHours        | int      | stream 过期时间，6.2及以上版本支持，单位：小时，默认：5 天   |
+| redis       | streamExpiredLength       | int      | stream 过期数据截取，值为当前保留的消息数，5.0~<6.2版本支持，单位：条，默认：10000条 |
 
 ## 接口信息
 

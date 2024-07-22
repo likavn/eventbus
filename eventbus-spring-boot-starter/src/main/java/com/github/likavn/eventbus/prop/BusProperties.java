@@ -62,7 +62,7 @@ public class BusProperties extends BusConfig {
          */
         private Long streamExpiredHours = 24 * 5L;
         /**
-         * stream 过期时间，5.0~<6.2版本支持，单位：条，默认：10000条
+         * stream 过期数据截取，值为当前保留的消息数，5.0~<6.2版本支持，单位：条，默认：10000条
          */
         private Long streamExpiredLength = 10000L;
         /**
