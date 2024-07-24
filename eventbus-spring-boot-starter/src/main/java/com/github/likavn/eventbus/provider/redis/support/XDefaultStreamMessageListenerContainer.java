@@ -1,43 +1,50 @@
-/**
- * Copyright 2023-2033, likavn (likavn@163.com).
- * <p>
+package com.github.likavn.eventbus.provider.redis.support;
+/*
+ * Copyright 2018-2020 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.provider.redis.support;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.core.convert.TypeDescriptor;
-import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.stream.*;
-import org.springframework.data.redis.core.RedisCallback;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StreamOperations;
-import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.data.redis.stream.*;
-import org.springframework.util.Assert;
-import org.springframework.util.ErrorHandler;
-import org.springframework.util.ObjectUtils;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
+import java.util.function.BiFunction;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.Record;
+import org.springframework.data.redis.connection.stream.StreamOffset;
+import org.springframework.data.redis.connection.stream.StreamReadOptions;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StreamOperations;
+import org.springframework.data.redis.stream.Cancelable;
+import org.springframework.data.redis.stream.StreamListener;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer;
+import org.springframework.data.redis.stream.Subscription;
+import org.springframework.data.redis.stream.Task;
+import org.springframework.util.Assert;
+import org.springframework.util.ErrorHandler;
 
 /**
- * Simple {@link Executor} based {@link StreamMessageListenerContainer} implementation for running {@link Task tasks} to
+ * Simple {@link Executor} based {@link org.springframework.data.redis.stream.StreamMessageListenerContainer} implementation for running {@link Task tasks} to
  * poll on Redis Streams.
  * <p/>
  * This message container creates long-running tasks that are executed on {@link Executor}.
@@ -46,12 +53,12 @@ import java.util.function.Function;
  * @author Christoph Strobl
  * @since 2.2
  */
-@SuppressWarnings("all")
 class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implements StreamMessageListenerContainer<K, V> {
 
     private final Object lifecycleMonitor = new Object();
 
     private final Executor taskExecutor;
+
     private final Executor taskExcExecutor;
     private final ErrorHandler errorHandler;
     private final StreamReadOptions readOptions;
@@ -64,10 +71,11 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
     private boolean running = false;
 
     /**
-     * Create a new {@link com.github.likavn.eventbus.provider.redis.support.XDefaultStreamMessageListenerContainer}.
+     * Create a new {@link XDefaultStreamMessageListenerContainer}.
      *
      * @param connectionFactory must not be {@literal null}.
      * @param containerOptions  must not be {@literal null}.
+     * @param taskExcExecutor
      */
     XDefaultStreamMessageListenerContainer(RedisConnectionFactory connectionFactory,
                                            StreamMessageListenerContainerOptions<K, V> containerOptions, Executor taskExcExecutor) {
@@ -82,8 +90,8 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         this.template = createRedisTemplate(connectionFactory, containerOptions);
         this.containerOptions = containerOptions;
 
-        if (containerOptions.hasHashMapper()) {
-            this.streamOperations = this.template.opsForStream(containerOptions.getRequiredHashMapper());
+        if (containerOptions.getHashMapper() != null) {
+            this.streamOperations = this.template.opsForStream(containerOptions.getHashMapper());
         } else {
             this.streamOperations = this.template.opsForStream();
         }
@@ -150,11 +158,14 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
             if (this.running) {
                 return;
             }
-            subscriptions.stream()
-                    .filter(it -> !it.isActive())
-                    .map(TaskSubscription.class::cast)
-                    .map(TaskSubscription::getTask)
+
+            subscriptions.stream() //
+                    .filter(it -> !it.isActive()) //
+                    .filter(it -> it instanceof TaskSubscription) //
+                    .map(TaskSubscription.class::cast) //
+                    .map(TaskSubscription::getTask) //
                     .forEach(taskExecutor::execute);
+
             running = true;
         }
     }
@@ -169,7 +180,9 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         synchronized (lifecycleMonitor) {
 
             if (this.running) {
+
                 subscriptions.forEach(Cancelable::cancel);
+
                 running = false;
             }
         }
@@ -205,38 +218,16 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         return doRegister(getReadTask(streamRequest, listener));
     }
 
-    private StreamPollTask<K, V> getReadTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener) {
+    @SuppressWarnings("unchecked")
+    private XStreamPollTask<K, V> getReadTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener) {
 
-        Function<ReadOffset, List<ByteRecord>> readFunction = getReadFunction(streamRequest);
-        Function<ByteRecord, V> deserializerToUse = getDeserializer();
+        BiFunction<K, ReadOffset, List<? extends Record<?, ?>>> readFunction = getReadFunction(streamRequest);
 
-        TypeDescriptor targetType = TypeDescriptor
-                .valueOf(containerOptions.hasHashMapper() ? containerOptions.getTargetType() : MapRecord.class);
-
-        return new StreamPollTask<>(streamRequest, listener, errorHandler, targetType, readFunction, deserializerToUse, taskExcExecutor);
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private Function<ByteRecord, V> getDeserializer() {
-
-        Function<ByteRecord, MapRecord<K, Object, Object>> deserializer = streamOperations::deserializeRecord;
-
-        if (containerOptions.getHashMapper() == null) {
-            return (Function) deserializer;
-        }
-
-        return source -> {
-
-            MapRecord<K, Object, Object> intermediate = deserializer.apply(source);
-            return (V) streamOperations.map(intermediate, this.containerOptions.getTargetType());
-        };
+        return new XStreamPollTask<>(streamRequest, listener, errorHandler, (BiFunction) readFunction, taskExcExecutor);
     }
 
     @SuppressWarnings("unchecked")
-    private Function<ReadOffset, List<ByteRecord>> getReadFunction(StreamReadRequest<K> streamRequest) {
-
-        byte[] rawKey = ((RedisSerializer<K>) template.getKeySerializer())
-                .serialize(streamRequest.getStreamOffset().getKey());
+    private BiFunction<K, ReadOffset, List<? extends Record<?, ?>>> getReadFunction(StreamReadRequest<K> streamRequest) {
 
         if (streamRequest instanceof StreamMessageListenerContainer.ConsumerStreamReadRequest) {
 
@@ -246,15 +237,23 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
                     : this.readOptions;
             Consumer consumer = consumerStreamRequest.getConsumer();
 
-            return (offset) -> template.execute((RedisCallback<List<ByteRecord>>) connection -> connection.streamCommands()
-                    .xReadGroup(consumer, readOptions, StreamOffset.create(rawKey, offset)));
+            if (this.containerOptions.getHashMapper() != null) {
+                return (key, offset) -> streamOperations.read(this.containerOptions.getTargetType(), consumer, readOptions,
+                        StreamOffset.create(key, offset));
+            }
+
+            return (key, offset) -> streamOperations.read(consumer, readOptions, StreamOffset.create(key, offset));
         }
 
-        return (offset) -> template.execute((RedisCallback<List<ByteRecord>>) connection -> connection.streamCommands()
-                .xRead(readOptions, StreamOffset.create(rawKey, offset)));
+        if (this.containerOptions.getHashMapper() != null) {
+            return (key, offset) -> streamOperations.read(this.containerOptions.getTargetType(), readOptions,
+                    StreamOffset.create(key, offset));
+        }
+
+        return (key, offset) -> streamOperations.read(readOptions, StreamOffset.create(key, offset));
     }
 
-    private Subscription doRegister(StreamPollTask task) {
+    private Subscription doRegister(XStreamPollTask task) {
 
         Subscription subscription = new TaskSubscription(task);
 
@@ -296,15 +295,13 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
      * @author Mark Paluch
      * @since 2.2
      */
+    @EqualsAndHashCode
+    @RequiredArgsConstructor
     static class TaskSubscription implements Subscription {
 
-        private final StreamPollTask task;
+        private final Task task;
 
-        protected TaskSubscription(StreamPollTask task) {
-            this.task = task;
-        }
-
-        StreamPollTask getTask() {
+        Task getTask() {
             return task;
         }
 
@@ -334,23 +331,6 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         public void cancel() throws DataAccessResourceFailureException {
             task.cancel();
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o)
-                return true;
-            if (o == null || getClass() != o.getClass())
-                return false;
-
-            TaskSubscription that = (TaskSubscription) o;
-
-            return ObjectUtils.nullSafeEquals(task, that.task);
-        }
-
-        @Override
-        public int hashCode() {
-            return ObjectUtils.nullSafeHashCode(task);
-        }
     }
 
     /**
@@ -366,13 +346,14 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         private final Log logger;
 
         LoggingErrorHandler() {
-            this.logger = LogFactory.getLog(LoggingErrorHandler.class);
+            this.logger = LogFactory.getLog(XDefaultStreamMessageListenerContainer.LoggingErrorHandler.class);
         }
 
         /*
          * (non-Javadoc)
          * @see org.springframework.util.ErrorHandler#handleError(java.lang.Throwable)
          */
+        @Override
         public void handleError(Throwable t) {
 
             if (this.logger.isErrorEnabled()) {

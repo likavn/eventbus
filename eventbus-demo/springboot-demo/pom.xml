@@ -11,7 +11,7 @@
     <artifactId>springboot-demo</artifactId>
     <properties>
         <!--SpringBoot版本-->
-        <spring-boot.version>2.5.15</spring-boot.version>
+        <spring-boot.version>2.3.0.RELEASE</spring-boot.version>
         <maven.deploy.skip>true</maven.deploy.skip>
         <fastjson2.version>2.0.48</fastjson2.version>
         <fastjson.version>1.2.48</fastjson.version>

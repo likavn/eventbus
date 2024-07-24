@@ -22,13 +22,15 @@ import org.springframework.data.redis.connection.stream.ReadOffset;
 import java.util.Optional;
 
 /**
+ *
+ * 未变更
  * Strategy to determine the first and subsequent {@link ReadOffset}.
  *
  * @author Mark Paluch
  * @since 2.2
  */
 @SuppressWarnings("all")
-enum ReadOffsetStrategy {
+enum XReadOffsetStrategy {
 
     /**
      * Use the last seen message Id.
@@ -76,12 +78,12 @@ enum ReadOffsetStrategy {
     };
 
     /**
-     * Return a {@link ReadOffsetStrategy} given the initial {@link ReadOffset}.
+     * Return a {@link XReadOffsetStrategy} given the initial {@link ReadOffset}.
      *
      * @param offset must not be {@literal null}.
-     * @return the {@link ReadOffsetStrategy}.
+     * @return the {@link XReadOffsetStrategy}.
      */
-    static ReadOffsetStrategy getStrategy(ReadOffset offset) {
+    static XReadOffsetStrategy getStrategy(ReadOffset offset) {
 
         if (ReadOffset.latest().equals(offset)) {
             return Latest;

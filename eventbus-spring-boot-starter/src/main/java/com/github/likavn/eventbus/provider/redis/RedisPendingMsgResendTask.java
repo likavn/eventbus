@@ -84,7 +84,7 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
             // 获取锁,并锁定一定间隔时长，此处故意不释放锁，防止重复执行
             boolean lock = false;
             try {
-                lock = rLock.getLock(lockKey, POLLING_INTERVAL);
+                lock = rLock.getLock(lockKey, POLLING_INTERVAL * 2);
                 if (!lock) {
                     return;
                 }
@@ -93,7 +93,11 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
                 log.error("pending消息重发异常", e);
             } finally {
                 if (lock) {
-                    rLock.releaseLock(lockKey);
+                    try {
+                        rLock.releaseLock(lockKey);
+                    } catch (Exception e) {
+                        log.error("pending.releaseLock", e);
+                    }
                 }
             }
         });
