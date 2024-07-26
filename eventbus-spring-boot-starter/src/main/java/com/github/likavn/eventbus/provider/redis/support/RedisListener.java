@@ -44,7 +44,7 @@ public final class RedisListener extends Listener {
 
     public RedisListener(Listener subscriber, String subscribePrefix) {
         super(subscriber.getServiceId(), subscriber.getCode(),
-                subscriber.getConcurrency(), subscriber.getType(), subscriber.getTrigger(), subscriber.getFailTrigger());
+                subscriber.getConcurrency(), subscriber.getType(), subscriber.getTrigger(), subscriber.getFailTrigger(), subscriber.getPolling());
         this.streamKey = String.format(subscribePrefix, subscriber.getTopic());
         this.group = null != subscriber.getTrigger() ? subscriber.getTrigger().getDeliverId() : subscriber.getServiceId();
     }

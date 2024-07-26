@@ -17,6 +17,7 @@ package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.annotation.DelayListener;
 import com.github.likavn.eventbus.core.annotation.Fail;
+import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.constant.BusConstant;
@@ -112,6 +113,7 @@ public class ListenerRegistry {
             return;
         }
         Fail fail = primitiveMethod.getAnnotation(Fail.class);
+        Polling polling = primitiveMethod.getAnnotation(Polling.class);
         if (null == fail) {
             fail = primitiveClass.getAnnotation(Fail.class);
         }
@@ -124,7 +126,7 @@ public class ListenerRegistry {
             String serviceId = Func.isEmpty(interf.getServiceId()) ? config.getServiceId() : interf.getServiceId();
             Integer concurrency = getConcurrency(interf.getConcurrency());
             interf.getCodes().forEach(code -> {
-                Listener listener = new Listener(serviceId, code, concurrency, MsgType.TIMELY, trigger, failTrigger);
+                Listener listener = new Listener(serviceId, code, concurrency, MsgType.TIMELY, trigger, failTrigger, polling);
                 putTimelyMap(listener);
             });
         }
@@ -137,6 +139,7 @@ public class ListenerRegistry {
             listener.setFailTrigger(failTrigger);
             MsgDelayListener interf = (MsgDelayListener) obj;
             listener.setConcurrency(config.getDelayConcurrency());
+            listener.setPolling(polling);
             // 添加到延迟触发器订阅者映射表中
             putDelayMap(Func.getDeliverId(primitiveClass, BusConstant.ON_MESSAGE), listener);
         }
@@ -216,6 +219,7 @@ public class ListenerRegistry {
         List<String> codes;
         Integer concurrency;
 
+        Polling polling = primitiveMethod.getAnnotation(Polling.class);
         // 检查订阅方法是否注解了Listener注解
         com.github.likavn.eventbus.core.annotation.Listener listener
                 = primitiveMethod.getAnnotation(com.github.likavn.eventbus.core.annotation.Listener.class);
@@ -250,7 +254,7 @@ public class ListenerRegistry {
             // 设置并发控制值，若未指定则使用默认值
             concurrency = getConcurrency(concurrency);
             // 创建订阅者实例
-            Listener createListener = new Listener(serviceId, code, concurrency, msgType, trigger, failTrigger);
+            Listener createListener = new Listener(serviceId, code, concurrency, msgType, trigger, failTrigger, polling);
             if (msgType.isTimely()) {
                 // 如果是及时消息，则添加到及时触发器订阅者映射表中
                 putTimelyMap(createListener);

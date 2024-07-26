@@ -1,14 +1,13 @@
 package com.github.likavn.eventbus.demo.listener;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
+import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import com.github.likavn.eventbus.demo.domain.TMsg;
 import com.github.likavn.eventbus.demo.domain.TestBody;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 
 /**
@@ -16,7 +15,7 @@ import org.springframework.stereotype.Service;
  * @date 2024/01/01
  **/
 @Slf4j
-@Controller
+@Service
 public class DemoMsgListener extends MsgListener<TestBody> {
     protected DemoMsgListener() {
         super(
@@ -27,11 +26,17 @@ public class DemoMsgListener extends MsgListener<TestBody> {
     }
 
     @Override
+    @Polling(count = 2, interval = "$count * $intervalTime + 5")
     @Fail(callMethod = "exceptionHandler", retryCount = 1, nextTime = 5)
     public void onMessage(Message<TestBody> message) {
         TestBody body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
         //   throw new RuntimeException("DemoMsgListener test");
+
+        if (message.getDeliverCount() > 1) {
+            // 终止轮询
+            Polling.Keep.over();
+        }
     }
 
     /**

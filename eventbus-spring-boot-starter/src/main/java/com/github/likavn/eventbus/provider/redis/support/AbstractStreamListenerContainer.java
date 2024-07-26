@@ -17,6 +17,7 @@ package com.github.likavn.eventbus.provider.redis.support;
 
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
+import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
 import com.github.likavn.eventbus.core.utils.PollThreadPoolExecutor;
@@ -67,36 +68,21 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
         if (Func.isEmpty(listeners)) {
             return;
         }
-        Executor excExecutor = null;
-        NamedThreadFactory factory = new NamedThreadFactory(this.getClass().getSimpleName() + "-");
-        // 创建线程池
-        Boolean isBlock = config.getRedis().getPollBlock();
-        int concurrency = listeners.stream().map(RedisListener::getConcurrency).reduce(Integer::sum).orElse(1);
-        // 根据配置创建不同的线程池
-        if (isBlock) {
-            pollExecutor = new ThreadPoolExecutor(concurrency, concurrency, 1,
-                    TimeUnit.MINUTES, new LinkedBlockingDeque<>(), factory);
-        } else {
-            int poolSize = Math.min(concurrency, config.getRedis().getPollThreadPoolSize());
+        boolean isBlock = config.getRedis().getPollBlock();
+        ThreadPoolExecutor[] executors = createExecutor(listeners, isBlock);
 
-            // 拉取消息的线程池
-            pollExecutor = new PollThreadPoolExecutor(1, 1, 1,
-                    TimeUnit.MINUTES, new LinkedBlockingDeque<>(concurrency), factory);
-
-            // 分发消息的线程池
-            excExecutor = new WaitThreadPoolExecutor(poolSize, poolSize, 1,
-                    TimeUnit.MINUTES, new LinkedBlockingDeque<>(concurrency), new NamedThreadFactory(this.getClass().getSimpleName() + ".exc-"));
-        }
-
+        // 阻塞轮询或延时任务轮询间隔都设置为2000ms
+        MsgType type = listeners.get(0).getType();
+        long pollTimeout = isBlock || type.isDelay() ? 2000 : 5;
         // 创建配置对象
         var options = StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder()
-                .executor(pollExecutor)
+                .executor(executors[0])
                 // 一次性最多拉取多少条消息
                 .batchSize(config.getMsgBatchSize())
                 // 消息消费异常的handler
                 .errorHandler(t -> log.error("[Eventbus error] ", t))
                 // 超时时间，设置为0，表示不超时（超时后会抛出异常）
-                .pollTimeout(Duration.ofMillis(isBlock ? 2000 : 5))
+                .pollTimeout(Duration.ofMillis(pollTimeout))
                 // 序列化器
                 .serializer(new StringRedisSerializer())
                 .targetType(String.class)
@@ -105,11 +91,39 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
         RedisConnectionFactory connectionFactory = redisTemplate.getConnectionFactory();
         Assert.notNull(connectionFactory, "RedisConnectionFactory must not be null!");
         container = isBlock ? StreamMessageListenerContainer.create(connectionFactory, options)
-                : new XDefaultStreamMessageListenerContainer<>(connectionFactory, options, excExecutor);
+                : new XDefaultStreamMessageListenerContainer<>(connectionFactory, options, executors[1]);
         // 添加消费者
         createConsumer(container, listeners);
         // 启动监听
         container.start();
+    }
+
+    /**
+     * 创建线程池
+     *
+     * @param listeners listeners
+     * @return 线程池
+     */
+    private ThreadPoolExecutor[] createExecutor(List<RedisListener> listeners, boolean isBlock) {
+        NamedThreadFactory factory = new NamedThreadFactory(this.getClass().getSimpleName() + "-");
+        // 创建线程池
+        int concurrency = listeners.stream().map(RedisListener::getConcurrency).reduce(Integer::sum).orElse(1);
+        // 根据配置创建不同的线程池
+        if (isBlock) {
+            ThreadPoolExecutor executor = new ThreadPoolExecutor(concurrency, concurrency, 1, TimeUnit.MINUTES, new LinkedBlockingDeque<>(), factory);
+            return new ThreadPoolExecutor[]{executor};
+        } else {
+            int poolSize = Math.min(concurrency, config.getRedis().getPollThreadPoolSize());
+
+            // 拉取消息的线程池
+            ThreadPoolExecutor executor = new PollThreadPoolExecutor(1, 1, 1,
+                    TimeUnit.MINUTES, new LinkedBlockingDeque<>(concurrency), factory);
+
+            // 分发消息的线程池
+            ThreadPoolExecutor excExecutor = new WaitThreadPoolExecutor(poolSize, poolSize, 1,
+                    TimeUnit.MINUTES, new LinkedBlockingDeque<>(concurrency), new NamedThreadFactory(this.getClass().getSimpleName() + ".exc-"));
+            return new ThreadPoolExecutor[]{executor, excExecutor};
+        }
     }
 
     /**
@@ -170,6 +184,11 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
     public void destroy() {
         if (null != container) {
             container.stop();
+        }
+
+        // 轮询线程关闭
+        if (pollExecutor instanceof PollThreadPoolExecutor) {
+            ((PollThreadPoolExecutor) pollExecutor).terminated();
         }
         pollExecutor.purge();
     }

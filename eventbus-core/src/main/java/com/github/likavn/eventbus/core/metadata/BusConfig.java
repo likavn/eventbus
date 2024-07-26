@@ -27,27 +27,27 @@ import lombok.ToString;
 @Data
 public class BusConfig {
     /**
-     * 服务ID/消息来源ID
+     * 服务ID/消息来源ID，可以不用配置，默认为：spring.application.name
      */
     protected String serviceId;
 
     /**
-     * 消息引擎类别（redis、rabbitmq、rocketmq、pulsar）
+     * 消息引擎类别（redis、rabbitmq、rocketmq）
      */
     protected String type;
 
     /**
-     * 定义接收并发级别，默认值为1。
+     * 异步消息接收并发数，默认为：1
      */
     protected Integer concurrency = 1;
 
     /**
-     * 定义接收延时消息并发级别，默认值为2。
+     * 延时消息接收并发数，默认为：2
      */
     protected Integer delayConcurrency = 2;
 
     /**
-     * 单次获取消息数量，默认16条
+     * 单次获取消息数量，默认：16条
      */
     protected Integer msgBatchSize = 16;
 
@@ -68,12 +68,12 @@ public class BusConfig {
     @ToString
     public static class TestConnect {
         /**
-         * 轮询检测时间间隔，单位：秒
+         * 轮询检测时间间隔，单位：秒，默认：35秒进行检测一次
          */
         private Long pollSecond = 35L;
 
         /**
-         * 丢失连接最长时间大于等于次值设置监听容器为连接断开，单位：秒
+         * 丢失连接最长时间大于等于次值设置监听容器为连接断开，单位：秒，默认：120秒
          */
         private Long loseConnectMaxMilliSecond = 120L;
     }
@@ -85,12 +85,12 @@ public class BusConfig {
     @ToString
     public static class Fail {
         /**
-         * 消息投递失败时，一定时间内再次进行投递的次数，默认3次
+         * 消息投递失败时，一定时间内再次进行投递的次数，默认：3次
          */
         private Integer retryCount = 3;
 
         /**
-         * 下次触发时间，单位：秒，默认10秒
+         * 下次触发时间，单位：秒，默认10秒 ，（rocketMq为18个延时消息级别）
          */
         private Long nextTime = 10L;
     }

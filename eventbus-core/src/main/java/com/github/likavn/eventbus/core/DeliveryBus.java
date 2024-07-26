@@ -16,6 +16,7 @@
 package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
+import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
@@ -24,6 +25,7 @@ import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
+import com.github.likavn.eventbus.core.utils.CalculateUtil;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.extern.slf4j.Slf4j;
 
@@ -142,6 +144,8 @@ public class DeliveryBus {
         }
         try {
             trigger.invoke(request);
+            // 轮询处理
+            polling(subscriber, request);
             interceptorConfig.deliverSuccessExecute(request);
         } catch (Exception exception) {
             failHandle(subscriber, request, exception);
@@ -203,6 +207,36 @@ public class DeliveryBus {
     private void failReTry(Request<?> request, Fail fail) {
         // 获取下次投递失败时间
         long delayTime = (null != fail && fail.nextTime() > 0) ? fail.nextTime() : config.getFail().getNextTime();
+        request.setDelayTime(delayTime);
+        // 投递次数加一
+        request.setDeliverCount(request.getDeliverCount() + 1);
+        msgSender.sendDelayMessage(request);
+    }
+
+    /**
+     * 轮询投递
+     *
+     * @param subscriber subscriber
+     * @param request    req
+     */
+    private void polling(Listener subscriber, Request<?> request) {
+        Polling polling = subscriber.getPolling();
+        // 已轮询次数大于轮询次数，则不进行轮询投递
+        // 是否已退出轮询
+        if (null == polling
+                || request.getDeliverCount() > polling.count()
+                || Polling.Keep.isOver()) {
+            return;
+        }
+        Polling.Keep.clear();
+        Long delayTime = request.getDelayTime();
+        Integer deliverCount = request.getDeliverCount();
+
+        String interval = polling.interval();
+        interval = interval.replace("$count", String.valueOf(deliverCount))
+                .replace("$intervalTime", String.valueOf(null == delayTime ? 0 : delayTime));
+        // 获取下次投递失败时间
+        delayTime = CalculateUtil.fixEvalExpression(interval);
         request.setDelayTime(delayTime);
         // 投递次数加一
         request.setDeliverCount(request.getDeliverCount() + 1);

@@ -17,13 +17,13 @@ package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.support.task.Task;
+import com.github.likavn.eventbus.core.support.task.Timer;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
 import com.github.likavn.eventbus.core.utils.WaitThreadPoolExecutor;
 import lombok.Getter;
 
 import java.util.Map;
-import java.util.Timer;
 import java.util.concurrent.*;
 
 /**
@@ -94,6 +94,13 @@ public class TaskRegistry {
         }
         task.cancel();
         taskMap.remove(task.getName());
+    }
+
+    /**
+     * 刷新指定的任务。
+     */
+    public void refresh() {
+        timer.heapify();
     }
 
     /**

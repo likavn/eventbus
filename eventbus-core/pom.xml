@@ -16,7 +16,6 @@
         <fastjson.version>1.2.48</fastjson.version>
         <gson.version>2.7</gson.version>
         <jackson.version>2.9.6</jackson.version>
-        <hutool.version>4.6.17</hutool.version>
     </properties>
     <dependencies>
         <dependency>

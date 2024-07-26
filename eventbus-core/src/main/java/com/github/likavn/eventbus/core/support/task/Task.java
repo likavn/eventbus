@@ -21,7 +21,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
-import java.util.TimerTask;
 
 /**
  * 一个抽象的定时任务类，继承自TimerTask，并且包含了任务名称、任务执行逻辑、以及任务调度的一些逻辑。
@@ -40,12 +39,6 @@ public abstract class Task extends TimerTask {
     private String name;
 
     private Runnable runnable;
-
-    /**
-     * 下次执行任务的时间戳
-     */
-    @SuppressWarnings("all")
-    long nextExecutionTime;
 
     /**
      * 上次任务执行的时间
@@ -85,11 +78,8 @@ public abstract class Task extends TimerTask {
     public void run() {
         this.lastExecutionTime = new Date();
         try {
-            if (System.currentTimeMillis() < this.nextExecutionTime) {
-                return;
-            }
+            super.nextExecutionTime = nextExecutionTime();
             poolExecutor.execute(runnable);
-            this.nextExecutionTime = nextExecutionTime();
         } catch (Exception e) {
             log.error("task run error", e);
         }
@@ -114,6 +104,7 @@ public abstract class Task extends TimerTask {
     public void setNextExecutionTime(long nextExecutionTime) {
         if (0 < this.nextExecutionTime && this.nextExecutionTime < nextExecutionTime) {
             this.nextExecutionTime = nextExecutionTime;
+            this.taskRegistry.refresh();
         }
     }
 

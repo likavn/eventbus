@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.core.metadata.support;
 
+import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.utils.Func;
@@ -55,6 +56,11 @@ public class Listener {
      * 失败触发
      */
     private FailTrigger failTrigger;
+
+    /**
+     * 轮询配置
+     */
+    private Polling polling;
 
     public Listener(String serviceId, String code, int concurrency, MsgType type) {
         this.serviceId = serviceId;

@@ -26,14 +26,28 @@ import java.util.concurrent.TimeUnit;
  * @date 2024/01/01
  **/
 public class PollThreadPoolExecutor extends WaitThreadPoolExecutor {
-    public PollThreadPoolExecutor(int corePoolSize,
-                                  int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory) {
+    private volatile boolean running = true;
+
+    public PollThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory);
     }
 
     @Override
+    public synchronized void execute(Runnable r) {
+        running = true;
+        super.execute(r);
+    }
+
+    @Override
     protected void afterExecute(Runnable r, Throwable t) {
-        execute(r);
+        if (running) {
+            super.execute(r);
+        }
+    }
+
+    @Override
+    public void terminated() {
+        running = false;
     }
 
 }
