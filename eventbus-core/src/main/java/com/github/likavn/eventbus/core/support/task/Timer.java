@@ -450,8 +450,11 @@ public class Timer {
         return result;
     }
 
-    public void heapify(){
-        queue.heapify();
+    public void refresh(){
+        synchronized (queue) {
+            queue.heapify();
+            queue.notify();
+        }
     }
 }
 

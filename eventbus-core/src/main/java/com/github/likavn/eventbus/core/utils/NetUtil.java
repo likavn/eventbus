@@ -44,7 +44,6 @@ public class NetUtil {
         }
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-            flag:
             while (interfaces.hasMoreElements()) {
                 NetworkInterface networkInterface = interfaces.nextElement();
                 Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
@@ -52,7 +51,7 @@ public class NetUtil {
                     InetAddress adder = addresses.nextElement();
                     if (!adder.isLoopbackAddress() && !(adder.getHostAddress() + "").contains(":")) {
                         inetAddress = adder;
-                        break flag;
+                        return inetAddress;
                     }
                 }
             }

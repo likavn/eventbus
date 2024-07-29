@@ -100,7 +100,7 @@ public class TaskRegistry {
      * 刷新指定的任务。
      */
     public void refresh() {
-        timer.heapify();
+        timer.refresh();
     }
 
     /**

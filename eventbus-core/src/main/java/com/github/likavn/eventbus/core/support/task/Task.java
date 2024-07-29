@@ -78,8 +78,8 @@ public abstract class Task extends TimerTask {
     public void run() {
         this.lastExecutionTime = new Date();
         try {
-            super.nextExecutionTime = nextExecutionTime();
             poolExecutor.execute(runnable);
+            super.nextExecutionTime = nextExecutionTime();
         } catch (Exception e) {
             log.error("task run error", e);
         }
