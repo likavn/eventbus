@@ -96,9 +96,16 @@
     {
       "name": "eventbus.redis.poll-thread-pool-size",
       "type": "java.lang.Integer",
-      "description": "非阻塞轮询时的轮询线程池大小，默认为：5",
+      "description": "非阻塞轮询时，接收消息的线程池中线程的最大，默认为：5个",
       "sourceType": "com.github.likavn.eventbus.prop.BusProperties$RedisProperties",
       "defaultValue": 5
+    },
+    {
+      "name": "eventbus.redis.poll_thread_keep_alive_time",
+      "type": "java.lang.Integer",
+      "description": "非阻塞轮询时，接收消息的线程池中空闲线程存活时长，单位：秒，默认为：300s",
+      "sourceType": "com.github.likavn.eventbus.prop.BusProperties$RedisProperties",
+      "defaultValue": 300
     },
     {
       "name": "eventbus.redis.deliver-timeout",

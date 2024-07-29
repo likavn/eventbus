@@ -29,6 +29,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisServerCommands;
@@ -99,10 +100,10 @@ public class BusBootRedisConfiguration {
     @Bean
     public RedisMsgSender msgSender(StringRedisTemplate busStringRedisTemplate,
                                     BusConfig config,
-                                    InterceptorConfig interceptorConfig,
+                                    @Lazy InterceptorConfig interceptorConfig,
                                     @Qualifier("zsetAddRedisScript")
                                     DefaultRedisScript<Long> zsetAddRedisScript,
-                                    TaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, ListenerRegistry registry) {
+                                    TaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator,@Lazy ListenerRegistry registry) {
         return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig, zsetAddRedisScript, taskRegistry, requestIdGenerator, registry);
     }
 

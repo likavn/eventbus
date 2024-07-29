@@ -55,6 +55,7 @@ public class BsHelper {
     @Resource
     private MsgSender msgSender;
 
+    @Lazy
     @Resource
     private ListenerRegistry registry;
 
@@ -138,7 +139,6 @@ public class BsHelper {
         up.setDeliverCount(request.getDeliverCount());
         up.setExceptionMessage(throwable.getMessage());
         up.setExceptionStackTrace(getStackTrace(throwable));
-        System.out.println();
         up.setExceptionTime(now);
         up.setUpdateTime(now);
         consumerMapper.updateById(up);

@@ -31,6 +31,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 
 /**
  * rabbitMq实现配置
@@ -45,7 +46,7 @@ public class BusBootRabbitConfiguration {
 
     @Bean
     public MsgSender msgSender(RabbitTemplate rabbitTemplate, BusConfig config,
-                               InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, ListenerRegistry registry) {
+                               @Lazy InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator,@Lazy  ListenerRegistry registry) {
         return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig, requestIdGenerator, registry);
     }
 

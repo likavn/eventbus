@@ -30,6 +30,7 @@ import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 
 /**
  * rocketmq实现配置
@@ -39,13 +40,12 @@ import org.springframework.context.annotation.Configuration;
  * @since 2.2
  */
 @Configuration
-//@ConditionalOnBean(RocketMQTemplate.class)
 @ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rocketmq")
 public class BusBootRocketConfiguration {
 
     @Bean
     public MsgSender msgSender(RocketMQTemplate rocketMQTemplate, BusConfig busConfig,
-                               InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, ListenerRegistry registry) {
+                               @Lazy InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator,@Lazy ListenerRegistry registry) {
         return new RocketMsgSender(rocketMQTemplate, busConfig, interceptorConfig, requestIdGenerator, registry);
     }
 

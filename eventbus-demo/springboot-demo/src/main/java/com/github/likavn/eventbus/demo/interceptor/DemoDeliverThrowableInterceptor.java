@@ -4,6 +4,7 @@ import com.github.likavn.eventbus.core.api.interceptor.DeliverThrowableIntercept
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.demo.service.BsHelper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -15,6 +16,7 @@ import javax.annotation.Resource;
 @Slf4j
 @Component
 public class DemoDeliverThrowableInterceptor implements DeliverThrowableInterceptor {
+    @Lazy
     @Resource
     private BsHelper bsHelper;
 

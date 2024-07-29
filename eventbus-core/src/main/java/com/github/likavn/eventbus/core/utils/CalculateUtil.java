@@ -44,6 +44,7 @@ public class CalculateUtil {
      * @param expression exp
      * @return double
      */
+    @SuppressWarnings("all")
     public double evalExpression(String expression) {
         expression = trim(expression);
         Stack<Double> values = new Stack<>();

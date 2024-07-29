@@ -32,12 +32,6 @@ import java.util.Date;
  */
 @Slf4j
 public class CronTask extends Task {
-    /**
-     * 任务的cron表达式。
-     * 用于定义任务的执行时间表。
-     */
-    private String cron;
-
     private CronExpression cronExpression;
 
     /**
@@ -51,9 +45,8 @@ public class CronTask extends Task {
     public void initTask(String name, String cron, Runnable runnable) {
         init(name, runnable);
         Assert.isTrue(CronExpression.isValidExpression(cron), "cron表达式不合法");
-        this.cron = cron;
         try {
-            this.cronExpression = new CronExpression(this.cron);
+            this.cronExpression = new CronExpression(cron);
         } catch (ParseException e) {
             throw new EventBusException(e);
         }

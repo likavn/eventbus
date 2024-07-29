@@ -1,4 +1,3 @@
-package com.github.likavn.eventbus.provider.redis.support;
 /*
  * Copyright 2018-2020 the original author or authors.
  *
@@ -14,34 +13,26 @@ package com.github.likavn.eventbus.provider.redis.support;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.github.likavn.eventbus.provider.redis.support;
 
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.stream.*;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StreamOperations;
+import org.springframework.data.redis.stream.*;
+import org.springframework.util.Assert;
+import org.springframework.util.ErrorHandler;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.stream.Consumer;
-import org.springframework.data.redis.connection.stream.ReadOffset;
-import org.springframework.data.redis.connection.stream.Record;
-import org.springframework.data.redis.connection.stream.StreamOffset;
-import org.springframework.data.redis.connection.stream.StreamReadOptions;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StreamOperations;
-import org.springframework.data.redis.stream.Cancelable;
-import org.springframework.data.redis.stream.StreamListener;
-import org.springframework.data.redis.stream.StreamMessageListenerContainer;
-import org.springframework.data.redis.stream.Subscription;
-import org.springframework.data.redis.stream.Task;
-import org.springframework.util.Assert;
-import org.springframework.util.ErrorHandler;
 
 /**
  * Simple {@link Executor} based {@link org.springframework.data.redis.stream.StreamMessageListenerContainer} implementation for running {@link Task tasks} to
@@ -53,6 +44,7 @@ import org.springframework.util.ErrorHandler;
  * @author Christoph Strobl
  * @since 2.2
  */
+@SuppressWarnings("all")
 class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implements StreamMessageListenerContainer<K, V> {
 
     private final Object lifecycleMonitor = new Object();

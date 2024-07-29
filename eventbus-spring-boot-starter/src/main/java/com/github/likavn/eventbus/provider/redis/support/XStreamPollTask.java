@@ -1,5 +1,3 @@
-package com.github.likavn.eventbus.provider.redis.support;
-
 /*
  * Copyright 2018-2020 the original author or authors.
  *
@@ -15,15 +13,7 @@ package com.github.likavn.eventbus.provider.redis.support;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
+package com.github.likavn.eventbus.provider.redis.support;
 
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.redis.connection.stream.Consumer;
@@ -36,12 +26,22 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer.Stre
 import org.springframework.data.redis.stream.Task;
 import org.springframework.util.ErrorHandler;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+
 /**
  * {@link Task} that invokes a {@link BiFunction read function} to poll on a Redis Stream.
  *
  * @author Mark Paluch
  * @see 2.2
  */
+@SuppressWarnings("all")
 class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
     private final Executor taskExcExecutor;
     private final StreamReadRequest<K> request;

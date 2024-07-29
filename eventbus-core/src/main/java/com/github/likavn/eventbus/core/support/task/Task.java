@@ -102,7 +102,7 @@ public abstract class Task extends TimerTask {
      * @param nextExecutionTime 下次任务触发时间
      */
     public void setNextExecutionTime(long nextExecutionTime) {
-        if (0 < this.nextExecutionTime && this.nextExecutionTime < nextExecutionTime) {
+        if (0 < nextExecutionTime && nextExecutionTime < this.nextExecutionTime) {
             this.nextExecutionTime = nextExecutionTime;
             this.taskRegistry.refresh();
         }

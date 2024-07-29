@@ -46,9 +46,13 @@ public class BusProperties extends BusConfig {
          */
         private Boolean pollBlock = false;
         /**
-         * 非阻塞轮询时的轮询线程池大小，默认为：5
+         * 非阻塞轮询时，接收消息的线程池中线程最大数，默认为：5个
          */
         private Integer pollThreadPoolSize = 5;
+        /**
+         * 非阻塞轮询时，接收消息的线程池中空闲线程存活时长，单位：秒，默认为：300s
+         */
+        private Integer pollThreadKeepAliveTime = 300;
         /**
          * 消息超时时间，超时消息未被确认，才会被重新投递，单位：秒，默认：5分钟
          */

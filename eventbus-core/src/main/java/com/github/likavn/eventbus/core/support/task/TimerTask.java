@@ -11,6 +11,7 @@ import java.util.Timer;
  * @see Timer
  * @since 1.3
  */
+@SuppressWarnings("all")
 public abstract class TimerTask implements Runnable {
     /**
      * This object is used to control access to the TimerTask internals.

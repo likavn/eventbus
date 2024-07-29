@@ -461,6 +461,7 @@ public class Timer {
  * reschedules repeating tasks, and removes cancelled tasks and spent
  * non-repeating tasks from the queue.
  */
+@SuppressWarnings("all")
 class TimerThread extends Thread {
     /**
      * This flag is set to false by the reaper to inform us that there
@@ -549,6 +550,7 @@ class TimerThread extends Thread {
  * offers log(n) performance for the add, removeMin and rescheduleMin
  * operations, and constant time performance for the getMin operation.
  */
+@SuppressWarnings("all")
 class TaskQueue {
     /**
      * Priority queue represented as a balanced binary heap: the two children

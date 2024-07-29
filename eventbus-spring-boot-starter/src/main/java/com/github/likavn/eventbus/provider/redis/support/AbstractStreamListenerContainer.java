@@ -34,7 +34,6 @@ import org.springframework.util.Assert;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -70,13 +69,13 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
         }
         boolean isBlock = config.getRedis().getPollBlock();
         ThreadPoolExecutor[] executors = createExecutor(listeners, isBlock);
-
+        pollExecutor = executors[0];
         // 阻塞轮询或延时任务轮询间隔都设置为2000ms
         MsgType type = listeners.get(0).getType();
         long pollTimeout = isBlock || type.isDelay() ? 2000 : 5;
         // 创建配置对象
         var options = StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder()
-                .executor(executors[0])
+                .executor(pollExecutor)
                 // 一次性最多拉取多少条消息
                 .batchSize(config.getMsgBatchSize())
                 // 消息消费异常的handler
@@ -113,15 +112,16 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
             ThreadPoolExecutor executor = new ThreadPoolExecutor(concurrency, concurrency, 1, TimeUnit.MINUTES, new LinkedBlockingDeque<>(), factory);
             return new ThreadPoolExecutor[]{executor};
         } else {
-            int poolSize = Math.min(concurrency, config.getRedis().getPollThreadPoolSize());
+            BusProperties.RedisProperties redis = config.getRedis();
+            int poolSize = Math.min(concurrency, redis.getPollThreadPoolSize());
 
             // 拉取消息的线程池
             ThreadPoolExecutor executor = new PollThreadPoolExecutor(1, 1, 1,
                     TimeUnit.MINUTES, new LinkedBlockingDeque<>(concurrency), factory);
 
             // 分发消息的线程池
-            ThreadPoolExecutor excExecutor = new WaitThreadPoolExecutor(poolSize, poolSize, 1,
-                    TimeUnit.MINUTES, new LinkedBlockingDeque<>(concurrency), new NamedThreadFactory(this.getClass().getSimpleName() + ".exc-"));
+            ThreadPoolExecutor excExecutor = new WaitThreadPoolExecutor(1, poolSize, redis.getPollThreadKeepAliveTime(),
+                    TimeUnit.SECONDS, new LinkedBlockingDeque<>(concurrency), new NamedThreadFactory(this.getClass().getSimpleName() + ".exc-"));
             return new ThreadPoolExecutor[]{executor, excExecutor};
         }
     }

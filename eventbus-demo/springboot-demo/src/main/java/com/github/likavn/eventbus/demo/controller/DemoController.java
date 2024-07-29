@@ -10,6 +10,7 @@ import com.github.likavn.eventbus.demo.domain.TestBody;
 import com.github.likavn.eventbus.demo.listener.DemoMsgDelayListener;
 import com.github.likavn.eventbus.demo.service.BsHelper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -27,9 +28,11 @@ import java.util.concurrent.Executors;
 @RequestMapping("/eventbus")
 public class DemoController {
 
+    @Lazy
     @Resource
     private MsgSender msgSender;
 
+    @Lazy
     @Resource
     private MsgListenerContainer msgListenerContainer;
 
