@@ -15,6 +15,10 @@
  */
 package com.github.likavn.eventbus.core.annotation;
 
+import com.github.likavn.eventbus.core.utils.Assert;
+import com.github.likavn.eventbus.core.utils.CalculateUtil;
+import com.github.likavn.eventbus.core.utils.Func;
+
 import java.lang.annotation.*;
 
 /**
@@ -87,10 +91,37 @@ public @interface Polling {
         }
 
         /**
-         * 清除轮询状态。
+         * 清除轮询状态 并返回是否轮询标识。
+         *
+         * @return 是否轮询标识，如果是true则表示轮询结束，否则表示轮询未结束。
          */
-        public static void clear() {
+        public static boolean clear() {
+            boolean isOver = isOver();
             over.remove();
+            return isOver;
+        }
+    }
+
+    /**
+     * 验证轮询时间间隔的表达式是否正确。
+     *
+     * @author likavn
+     * @date 2024/01/01
+     */
+    class ValidatorInterval {
+        /**
+         * 验证轮询时间间隔的表达式是否正确。
+         *
+         * @param interval 轮询时间间隔的表达式
+         */
+        public static void isValid(String interval) {
+            if (Func.isEmpty(interval)) {
+                return;
+            }
+            interval = interval.replace("$count", "1")
+                    .replace("$intervalTime", "1");
+            double v = CalculateUtil.evalExpression(interval);
+            Assert.isTrue(v > 0, "interval must be greater than 0");
         }
     }
 }

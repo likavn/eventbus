@@ -223,18 +223,19 @@ public class DeliveryBus {
         Polling polling = subscriber.getPolling();
         // 已轮询次数大于轮询次数，则不进行轮询投递
         // 是否已退出轮询
+        boolean isOver = Polling.Keep.clear();
         if (null == polling
                 || request.getDeliverCount() > polling.count()
-                || Polling.Keep.isOver()) {
+                || isOver) {
             return;
         }
-        Polling.Keep.clear();
+
         Long delayTime = request.getDelayTime();
         Integer deliverCount = request.getDeliverCount();
 
         String interval = polling.interval();
         interval = interval.replace("$count", String.valueOf(deliverCount))
-                .replace("$intervalTime", String.valueOf(null == delayTime ? 0 : delayTime));
+                .replace("$intervalTime", String.valueOf(null == delayTime ? 1 : delayTime));
         // 获取下次投递失败时间
         delayTime = CalculateUtil.fixEvalExpression(interval);
         request.setDelayTime(delayTime);

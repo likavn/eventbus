@@ -19,7 +19,6 @@ import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.utils.Func;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -28,7 +27,6 @@ import lombok.NoArgsConstructor;
  * @date 2024/01/01
  **/
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class Listener {
     /**
@@ -67,6 +65,17 @@ public class Listener {
         this.code = code;
         this.concurrency = concurrency;
         this.type = type;
+    }
+
+    public Listener(String serviceId, String code, int concurrency, MsgType type, Trigger trigger, FailTrigger failTrigger, Polling polling) {
+        Polling.ValidatorInterval.isValid(null == polling ? null : polling.interval());
+        this.serviceId = serviceId;
+        this.code = code;
+        this.concurrency = concurrency;
+        this.type = type;
+        this.trigger = trigger;
+        this.failTrigger = failTrigger;
+        this.polling = polling;
     }
 
     public static Listener ofDelay(BusConfig config) {
