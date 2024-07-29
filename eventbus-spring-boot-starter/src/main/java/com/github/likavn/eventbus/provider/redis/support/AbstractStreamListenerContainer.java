@@ -214,7 +214,15 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
             }
             // 为剩余的订阅者（即组名在流上不存在的订阅者）创建新的消费者组
             if (!subs.isEmpty()) {
-                subs.forEach(t -> redisTemplate.opsForStream().createGroup(t.getStreamKey(), t.getGroup()));
+                subs.forEach(t -> {
+                    try {
+                        redisTemplate.opsForStream().createGroup(t.getStreamKey(), t.getGroup());
+                    } catch (Exception e) {
+                        if (!e.getMessage().contains("Group name already exists")) {
+                            throw e;
+                        }
+                    }
+                });
             }
         });
     }
