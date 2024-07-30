@@ -22,8 +22,8 @@ import com.github.likavn.eventbus.core.utils.Func;
 import java.lang.annotation.*;
 
 /**
- * 注解@Polling，用于标注在方法上，以控制消息订阅的轮询行为。
- * 轮询行为可以通过注解的属性count和interval进行配置。
+ * 定义了一个注解@Polling，用于标注在方法上以控制消息订阅的轮询行为。
+ * 轮询可以通过注解的属性count和interval进行配置。
  *
  * @author likavn
  * @date 2024/01/01
@@ -32,9 +32,8 @@ import java.lang.annotation.*;
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Polling {
-
     /**
-     * count属性定义了轮询的次数。默认值为-1，表示不进行轮询。
+     * 定义了轮询的次数。默认值为-1，表示不进行轮询。
      * 如果设置了具体的轮询次数，则方法会在接收到消息后按照指定次数进行轮询。
      * 可通过{@link Polling.Keep#over()}编码方式调用，提前结束轮询任务。
      *
@@ -43,9 +42,8 @@ public @interface Polling {
     int count() default -1;
 
     /**
-     * interval属性定义了轮询的时间间隔。时间间隔可以通过表达式(表达式只支持"+"、"*")进行配置
-     * 表达式中可以使用两个变量：
-     * count（当前轮询次数）和intervalTime（本次轮询与上次轮询的时间间隔，单位为秒）。
+     * 定义了轮询的时间间隔，支持表达式配置。
+     * 表达式中可以使用两个变量：count（当前轮询次数）和intervalTime（本次轮询与上次轮询的时间间隔，单位为秒）。
      * 这使得可以灵活地根据轮询次数和时间间隔来动态确定下一次轮询的时间。
      * 示例：
      * 1. interval=7，表示轮询间隔为7秒。
@@ -56,44 +54,34 @@ public @interface Polling {
     String interval() default "";
 
     /**
-     * Keep类提供了一种机制来控制是否继续轮询。
-     * 它通过ThreadLocal来存储一个布尔值，用于指示当前线程是否应该继续轮询。
-     * 这个类提供了三个静态方法来操作这个状态：
-     * isPoll()用于检查是否应该继续轮询，
-     * over()用于标记轮询结束，
-     * clear()用于清除轮询状态。
-     *
-     * @author likavn
-     * @date 2024/01/01
+     * Keep类提供了轮询控制的静态方法，用于标记轮询应该结束。
      */
-    @SuppressWarnings("all")
     class Keep {
         /**
-         * ThreadLocal用于存储一个布尔值，用于指示当前线程是否应该继续轮询。
-         * 默认值为true，表示应该继续轮询。
+         * 使用ThreadLocal存储轮询是否应该结束的标记。
          */
         private static final ThreadLocal<Boolean> over = new ThreadLocal<>();
 
         /**
-         * 检查是否应该继续轮询。
+         * 检查当前轮询是否应该结束。
          *
-         * @return 如果应该继续轮询则返回true，否则返回false。
+         * @return 如果轮询应该结束，则返回true；否则返回false。
          */
         public static boolean isOver() {
             return over.get() != null && over.get();
         }
 
         /**
-         * 标记轮询结束。
+         * 设置轮询应该结束的标记。
          */
         public static void over() {
             over.set(Boolean.TRUE);
         }
 
         /**
-         * 清除轮询状态 并返回是否轮询标识。
+         * 清除轮询结束的标记，并返回之前标记的状态。
          *
-         * @return 是否轮询标识，如果是true则表示轮询结束，否则表示轮询未结束。
+         * @return 如果之前标记为轮询结束，则返回true；否则返回false。
          */
         public static boolean clear() {
             boolean isOver = isOver();
@@ -103,16 +91,16 @@ public @interface Polling {
     }
 
     /**
-     * 验证轮询时间间隔的表达式是否正确。
+     * ValidatorInterval类提供了验证轮询时间间隔表达式的方法。
      *
      * @author likavn
      * @date 2024/01/01
      */
     class ValidatorInterval {
         /**
-         * 验证轮询时间间隔的表达式是否正确。
+         * 验证指定的轮询时间间隔表达式是否合法。
          *
-         * @param interval 轮询时间间隔的表达式
+         * @param interval 轮询时间间隔的表达式。
          */
         public static void isValid(String interval) {
             if (Func.isEmpty(interval)) {
@@ -125,4 +113,3 @@ public @interface Polling {
         }
     }
 }
-

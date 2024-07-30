@@ -39,13 +39,9 @@ import java.util.List;
 @Slf4j
 public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     /**
-     * 轮询时间间隔，单位：毫秒
-     */
-    private static final long POLL_MILLIS = 200L;
-    /**
      * 最大轮询时间间隔，单位：毫秒
      */
-    private static final long MAX_POLL_MILLIS = 1000L * 5;
+    private static final long POLL_MILLIS = 1000L * 5;
     /**
      * 最大消息推送数量，默认10万条
      */
@@ -116,10 +112,9 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
                     Arrays.asList(delayZetKey, delayStreamKey),
                     // 到当前时间之前的消息 + 推送数量
                     String.valueOf(System.currentTimeMillis()), String.valueOf(MAX_PUSH_COUNT));
-            if (null == nextCurrentTimeMillis) {
-                nextCurrentTimeMillis = System.currentTimeMillis() + MAX_POLL_MILLIS;
+            if (null != nextCurrentTimeMillis) {
+                setNextTriggerTimeMillis(nextCurrentTimeMillis);
             }
-            setNextTriggerTimeMillis(nextCurrentTimeMillis);
         } finally {
             if (lock) {
                 rLock.releaseLock(pollLockKey);

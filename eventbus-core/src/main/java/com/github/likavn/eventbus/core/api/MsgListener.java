@@ -21,6 +21,7 @@ import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.core.metadata.data.MsgBody;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
+import lombok.Getter;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
@@ -35,6 +36,7 @@ import java.util.List;
  * @author likavn
  * @date 2024/01/01
  */
+@Getter
 public abstract class MsgListener<T> {
     /**
      * 消息所属来源服务ID,服务名
@@ -133,18 +135,6 @@ public abstract class MsgListener<T> {
         this.serviceId = serviceId;
         this.codes = codes;
         this.concurrency = concurrency;
-    }
-
-    public String getServiceId() {
-        return serviceId;
-    }
-
-    public List<String> getCodes() {
-        return codes;
-    }
-
-    public Integer getConcurrency() {
-        return concurrency;
     }
 
     /**

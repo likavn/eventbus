@@ -40,7 +40,7 @@ public @interface Fail {
 
     /**
      * 消息投递失败时，一定时间内再次进行投递的次数
-     * <code>retry < 0</code> 时根据全局配置{@link BusConfig.Fail#getRetryCount()} 默认为3次
+     * <code>retryCount < 0</code> 时根据全局配置{@link BusConfig.Fail#getRetryCount()} 默认为3次
      */
     int retryCount() default -1;
 

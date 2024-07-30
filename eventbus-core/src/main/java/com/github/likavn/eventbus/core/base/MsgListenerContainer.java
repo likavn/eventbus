@@ -18,6 +18,7 @@ package com.github.likavn.eventbus.core.base;
 
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.utils.Func;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collection;
@@ -31,6 +32,11 @@ import java.util.Collection;
 @Slf4j
 public class MsgListenerContainer {
     private final Collection<Lifecycle> listeners;
+    /**
+     * -- GETTER --
+     *  获取当前监听组件状态
+     */
+    @Getter
     protected volatile boolean active = false;
 
     public MsgListenerContainer(Collection<Lifecycle> listeners) {
@@ -64,13 +70,6 @@ public class MsgListenerContainer {
             log.error("eventbus shutdown", e);
             throw new EventBusException(e);
         }
-    }
-
-    /**
-     * 获取当前监听组件状态
-     */
-    public boolean isActive() {
-        return active;
     }
 
     /**
