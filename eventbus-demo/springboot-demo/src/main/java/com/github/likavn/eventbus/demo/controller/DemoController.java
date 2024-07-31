@@ -15,9 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.websocket.server.PathParam;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 /**
  * @author likavn
@@ -39,7 +37,13 @@ public class DemoController {
     @Resource
     private BsHelper bsHelper;
 
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final ExecutorService executorService = new ThreadPoolExecutor(
+            10,
+            100,
+            0L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(1000),
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     /**
      * 测试消息

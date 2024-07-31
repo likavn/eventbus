@@ -33,7 +33,7 @@ import java.util.Enumeration;
 @UtilityClass
 public class NetUtil {
     // 用于缓存本地非回环IPv4地址，避免重复枚举网络接口
-    private static InetAddress cachedAddress;
+    private InetAddress cachedAddress;
 
     /**
      * 获取本地非回环IPv4地址
@@ -52,7 +52,7 @@ public class NetUtil {
                 Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
                 while (addresses.hasMoreElements()) {
                     InetAddress address = addresses.nextElement();
-                    if (!address.isLoopbackAddress() && address instanceof Inet4Address && !(address.getHostAddress() + "").contains(":")) {
+                    if (address instanceof Inet4Address && !address.isLoopbackAddress()) {
                         // 找到合适的地址，缓存并返回
                         cachedAddress = address;
                         return address;

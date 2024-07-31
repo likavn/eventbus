@@ -45,7 +45,7 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
     private final StringRedisTemplate redisTemplate;
     private final List<RedisListener> redisSubscribers;
     private final DefaultRedisScript<Long> script;
-    private boolean isMinVersion62 = false;
+    private boolean versionGE6_2 = false;
     private CronTask task;
     private final TaskRegistry taskRegistry;
 
@@ -70,10 +70,10 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
         String bigVersion = versions[0];
         if (bigVersion.compareTo("6") >= 0
                 && (bigVersion.compareTo("7") >= 0 || (versions.length >= 2 && versions[1].compareTo("2") >= 0))) {
-            isMinVersion62 = true;
+            versionGE6_2 = true;
         }
         // 过期消息处理脚本
-        String cmd = isMinVersion62 ? "'MINID'" : "'MAXLEN', '~'";
+        String cmd = versionGE6_2 ? "'MINID'" : "'MAXLEN', '~'";
         this.script = new DefaultRedisScript<>("return redis.call('XTRIM', KEYS[1]," + cmd + ", ARGV[1]);", Long.class);
     }
 
@@ -85,18 +85,16 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
 
     @Override
     public void run() {
-        // stream 过期时间，单位：小时
-        Long expiredHours = busProperties.getRedis().getStreamExpiredHours();
-        // 过期时间毫秒数
-        long expiredMillis = System.currentTimeMillis() - (1000L * 60 * 60 * expiredHours);
-        redisSubscribers.stream().map(RedisListener::getStreamKey).distinct().forEach(streamKey
-                -> cleanExpired(streamKey, expiredMillis + "-0"));
+        redisSubscribers.stream()
+                .map(RedisListener::getStreamKey)
+                .distinct()
+                .forEach(this::cleanExpired);
     }
 
     /**
      * 截取过期的消息
      */
-    private void cleanExpired(String streamKey, String minId) {
+    private void cleanExpired(String streamKey) {
         String lockKey = streamKey + ".deleteExpiredLock";
         boolean lock = rLock.getLock(lockKey);
         try {
@@ -104,8 +102,12 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
                 return;
             }
             String param;
-            if (isMinVersion62) {
-                param = minId;
+            if (versionGE6_2) {
+                // stream 过期时间，单位：小时
+                Long expiredHours = busProperties.getRedis().getStreamExpiredHours();
+                // 过期时间毫秒数
+                long expiredMillis = System.currentTimeMillis() - (1000L * 60 * 60 * expiredHours);
+                param = expiredMillis + "-0";
             } else {
                 Long streamExpiredLength = busProperties.getRedis().getStreamExpiredLength();
                 param = null == streamExpiredLength ? null : streamExpiredLength.toString();

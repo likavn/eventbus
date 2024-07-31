@@ -67,7 +67,7 @@ public @interface Polling {
         /**
          * 使用ThreadLocal存储轮询是否应该结束的标记。
          */
-        private static final ThreadLocal<Boolean> over = new ThreadLocal<>();
+        private static final ThreadLocal<Boolean> OVER = new ThreadLocal<>();
 
         /**
          * 检查当前轮询是否应该结束。
@@ -75,14 +75,14 @@ public @interface Polling {
          * @return 如果轮询应该结束，则返回true；否则返回false。
          */
         public boolean isOver() {
-            return over.get() != null && over.get();
+            return OVER.get() != null && OVER.get();
         }
 
         /**
          * 设置轮询应该结束的标记。
          */
         public void over() {
-            over.set(Boolean.TRUE);
+            OVER.set(Boolean.TRUE);
         }
 
         /**
@@ -92,7 +92,7 @@ public @interface Polling {
          */
         public boolean clear() {
             boolean isOver = isOver();
-            over.remove();
+            OVER.remove();
             return isOver;
         }
     }
