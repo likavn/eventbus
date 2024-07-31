@@ -18,6 +18,7 @@ package com.github.likavn.eventbus.core.annotation;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.CalculateUtil;
 import com.github.likavn.eventbus.core.utils.Func;
+import lombok.experimental.UtilityClass;
 
 import java.lang.annotation.*;
 
@@ -26,7 +27,8 @@ import java.lang.annotation.*;
  * 轮询可以通过注解的属性count和interval进行配置。
  *
  * @author likavn
- * @date 2024/01/01
+ * @date 2024/07/27
+ * @since 2.3.2
  **/
 @Documented
 @Target({ElementType.METHOD})
@@ -55,7 +57,12 @@ public @interface Polling {
 
     /**
      * Keep类提供了轮询控制的静态方法，用于标记轮询应该结束。
+     *
+     * @author likavn
+     * @date 2024/07/27
+     * @since 2.3.2
      */
+    @UtilityClass
     class Keep {
         /**
          * 使用ThreadLocal存储轮询是否应该结束的标记。
@@ -67,14 +74,14 @@ public @interface Polling {
          *
          * @return 如果轮询应该结束，则返回true；否则返回false。
          */
-        public static boolean isOver() {
+        public boolean isOver() {
             return over.get() != null && over.get();
         }
 
         /**
          * 设置轮询应该结束的标记。
          */
-        public static void over() {
+        public void over() {
             over.set(Boolean.TRUE);
         }
 
@@ -83,7 +90,7 @@ public @interface Polling {
          *
          * @return 如果之前标记为轮询结束，则返回true；否则返回false。
          */
-        public static boolean clear() {
+        public boolean clear() {
             boolean isOver = isOver();
             over.remove();
             return isOver;
@@ -94,15 +101,17 @@ public @interface Polling {
      * ValidatorInterval类提供了验证轮询时间间隔表达式的方法。
      *
      * @author likavn
-     * @date 2024/01/01
+     * @date 2024/07/27
+     * @since 2.3.2
      */
+    @UtilityClass
     class ValidatorInterval {
         /**
          * 验证指定的轮询时间间隔表达式是否合法。
          *
          * @param interval 轮询时间间隔的表达式。
          */
-        public static void isValid(String interval) {
+        public void isValid(String interval) {
             if (Func.isEmpty(interval)) {
                 return;
             }

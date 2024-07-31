@@ -23,8 +23,8 @@ import java.text.ParseException;
 import java.util.Date;
 
 /**
- * 基于cron表达式的任务类，继承自Task类。
- * 用于通过cron表达式定义任务的执行周期。
+ * CronTask类继承自Task类，用于实现基于Cron表达式定时执行的任务。
+ * 使用CronExpression来解析和计算任务的下一个执行时间。
  *
  * @author likavn
  * @date 2024/04/15
@@ -35,12 +35,12 @@ public class CronTask extends Task {
     private CronExpression cronExpression;
 
     /**
-     * CronTask构造函数。
+     * 初始化Cron任务。
      *
      * @param name     任务名称。
-     * @param cron     任务的cron表达式。必须是合法的cron表达式。
-     * @param runnable 任务要执行的操作。
-     * @throws IllegalArgumentException 如果cron表达式不合法，则抛出此异常。
+     * @param cron     Cron表达式，用于定义任务的执行周期。
+     * @param runnable 任务的具体执行逻辑。
+     * @throws EventBusException 如果Cron表达式解析失败，则抛出此异常。
      */
     public void initTask(String name, String cron, Runnable runnable) {
         init(name, runnable);
@@ -52,6 +52,14 @@ public class CronTask extends Task {
         }
     }
 
+    /**
+     * 创建并初始化一个Cron任务。
+     *
+     * @param name     任务名称。
+     * @param cron     Cron表达式。
+     * @param runnable 任务执行体。
+     * @return 初始化后的CronTask实例。
+     */
     public static CronTask create(String name, String cron, Runnable runnable) {
         CronTask task = new CronTask();
         task.initTask(name, cron, runnable);
@@ -59,9 +67,9 @@ public class CronTask extends Task {
     }
 
     /**
-     * 计算并返回任务的下一次执行时间。
+     * 计算任务的下一个执行时间。
      *
-     * @return 返回下一次执行时间的毫秒数。如果无法确定下一次执行时间，则返回0。
+     * @return 下一个执行时间的毫秒数，如果不存在下一个执行时间则返回0。
      */
     @Override
     public long nextExecutionTime() {
@@ -69,4 +77,3 @@ public class CronTask extends Task {
         return next != null ? next.getTime() : 0;
     }
 }
-

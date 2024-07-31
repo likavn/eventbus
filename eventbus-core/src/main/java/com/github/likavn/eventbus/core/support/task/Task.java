@@ -23,8 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Date;
 
 /**
- * 一个抽象的定时任务类，继承自TimerTask，并且包含了任务名称、任务执行逻辑、以及任务调度的一些逻辑。
- * 允许子类定制任务的执行周期。
+ * 任务类，抽象类，继承自TimerTask，用于定义和管理任务。
+ * 提供了任务初始化、执行、以及下次执行时间刷新等功能。
  *
  * @author likavn
  * @date 2024/04/15
@@ -32,36 +32,44 @@ import java.util.Date;
  */
 @Slf4j
 public abstract class Task extends TimerTask {
+
     /**
-     * 任务名称
+     * 任务名称。
      */
     @Getter
     private String name;
 
+    /**
+     * 任务执行的Runnable对象。
+     */
     private Runnable runnable;
 
     /**
-     * 上次任务执行的时间
+     * 上次任务执行的时间。
      */
     protected Date lastExecutionTime;
 
     /**
-     * 任务注册
+     * 任务注册表，用于管理任务。
      */
-    TaskRegistry taskRegistry;
+    private TaskRegistry taskRegistry;
+
     /**
-     * 线程池执行器，用于执行任务
+     * 任务执行的线程池。
      */
     private WaitThreadPoolExecutor poolExecutor;
 
+    /**
+     * 标志任务是否已初始化。
+     */
     @Getter
     private boolean initialized = false;
 
     /**
-     * Task类的构造函数。
+     * 初始化任务。
      *
-     * @param name     任务的名称。
-     * @param runnable 任务的执行逻辑。
+     * @param name     任务名称。
+     * @param runnable 任务执行体。
      */
     protected void init(String name, Runnable runnable) {
         this.name = name;
@@ -71,8 +79,8 @@ public abstract class Task extends TimerTask {
     }
 
     /**
-     * 重写run方法，以实现任务的执行逻辑。
-     * 主要逻辑包括：检查是否到了任务执行的时间，如果到了则计算下一次执行时间并提交任务到线程池执行。
+     * 任务执行的方法。
+     * 将任务提交给线程池执行，并更新下次执行时间。
      */
     @Override
     public void run() {
@@ -86,9 +94,10 @@ public abstract class Task extends TimerTask {
     }
 
     /**
-     * 设置任务注册器。
+     * 设置任务注册表。
+     * 通过任务注册表获取线程池，并注册当前任务。
      *
-     * @param taskRegistry registry
+     * @param taskRegistry 任务注册表。
      */
     public void setTaskRegistry(TaskRegistry taskRegistry) {
         this.poolExecutor = taskRegistry.getPoolExecutor();
@@ -96,12 +105,12 @@ public abstract class Task extends TimerTask {
     }
 
     /**
-     * 设置下次任务触发时间。
-     * 如果传入的时间早于当前设定的下次执行时间且这个时间差小于当前时间，则不进行设置。
+     * 刷新下次执行时间。
+     * 如果传入的下次执行时间早于当前设定的下次执行时间，则更新下次执行时间，并通知任务注册表刷新。
      *
-     * @param nextExecutionTime 下次任务触发时间
+     * @param nextExecutionTime 下次执行时间。
      */
-    public void setNextExecutionTime(long nextExecutionTime) {
+    public void refreshNextExecutionTime(long nextExecutionTime) {
         if (0 < nextExecutionTime && nextExecutionTime < this.nextExecutionTime) {
             this.nextExecutionTime = nextExecutionTime;
             this.taskRegistry.refresh();
@@ -109,11 +118,10 @@ public abstract class Task extends TimerTask {
     }
 
     /**
-     * 计算并返回下一次执行的时间。
-     * 该方法为抽象方法，需要在子类中具体实现，以根据特定逻辑计算下一次任务的执行时间。
+     * 计算并返回下次任务执行的时间。
+     * 该方法为抽象方法，由子类实现具体的计算逻辑。
      *
-     * @return 返回一个long类型的值，代表下一次执行的具体时间（通常为毫秒或纳秒精度的时间戳）。
+     * @return 下次任务执行的时间。
      */
     public abstract long nextExecutionTime();
 }
-

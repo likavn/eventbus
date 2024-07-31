@@ -85,7 +85,7 @@ public class RedisMsgSender extends AbstractSenderAdapter {
         }
         Task task = taskRegistry.getTask(RedisMsgDelayListener.class.getName());
         if (null != task) {
-            task.setNextExecutionTime(timeMillis);
+            task.refreshNextExecutionTime(timeMillis);
         }
     }
 }

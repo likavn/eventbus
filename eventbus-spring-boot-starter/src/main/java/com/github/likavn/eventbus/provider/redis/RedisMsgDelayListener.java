@@ -126,7 +126,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
      * 重置轮询时间
      */
     public void setNextTriggerTimeMillis(long timeMillis) {
-        this.task.setNextExecutionTime(timeMillis);
+        this.task.refreshNextExecutionTime(timeMillis);
     }
 
     @Override

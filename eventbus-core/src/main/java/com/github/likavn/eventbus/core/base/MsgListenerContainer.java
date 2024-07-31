@@ -34,7 +34,7 @@ public class MsgListenerContainer {
     private final Collection<Lifecycle> listeners;
     /**
      * -- GETTER --
-     *  获取当前监听组件状态
+     * 获取当前监听组件状态
      */
     @Getter
     protected volatile boolean active = false;
