@@ -53,8 +53,8 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 <!-- 必须引入 eventbus-spring-boot-starter组件-->
 <dependency>
     <groupId>com.github.likavn</groupId>
-    <artifactId>eventbus-spring-boot-starter</artifactId>
-    <version>2.3.2</version>
+  <artifactId>eventbus-spring-boot-starter</artifactId>
+  <version>2.3.3</version>
 </dependency>
 ```
 
