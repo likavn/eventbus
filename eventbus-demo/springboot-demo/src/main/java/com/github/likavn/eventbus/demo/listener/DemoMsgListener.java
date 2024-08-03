@@ -2,6 +2,7 @@ package com.github.likavn.eventbus.demo.listener;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
 import com.github.likavn.eventbus.core.annotation.Polling;
+import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
@@ -26,6 +27,7 @@ public class DemoMsgListener extends MsgListener<TestBody> {
     }
 
     @Override
+    @ToDelay(delayTime = 3, firstDeliver = true)
     @Polling(count = 2, interval = "$count * $intervalTime + 5")
     @Fail(callMethod = "exceptionHandler", retryCount = 1, nextTime = 5)
     public void onMessage(Message<TestBody> message) {
@@ -33,7 +35,7 @@ public class DemoMsgListener extends MsgListener<TestBody> {
         log.info("接收数据: {}", message.getRequestId());
         //   throw new RuntimeException("DemoMsgListener test");
 
-        if (message.getDeliverCount() > 1) {
+        if (message.getDeliverCount() > 2) {
             // 终止轮询
             Polling.Keep.over();
         }

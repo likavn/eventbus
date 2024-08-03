@@ -7,14 +7,13 @@ import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import com.github.likavn.eventbus.demo.domain.TMsg;
 import com.github.likavn.eventbus.demo.domain.TestBody;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * @author likavn
  * @date 2024/01/01
  **/
 @Slf4j
-@Component
+//@Component
 public class DemoMsgListener2 extends MsgListener<TestBody> {
     protected DemoMsgListener2() {
         super(MsgConstant.DEMO_MSG_LISTENER);

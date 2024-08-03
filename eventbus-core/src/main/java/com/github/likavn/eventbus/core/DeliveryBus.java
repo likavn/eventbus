@@ -17,6 +17,7 @@ package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
 import com.github.likavn.eventbus.core.annotation.Polling;
+import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
@@ -44,10 +45,7 @@ public class DeliveryBus {
     private final MsgSender msgSender;
     private final ListenerRegistry registry;
 
-    public DeliveryBus(InterceptorConfig interceptorConfig,
-                       BusConfig config,
-                       MsgSender msgSender,
-                       ListenerRegistry registry) {
+    public DeliveryBus(InterceptorConfig interceptorConfig, BusConfig config, MsgSender msgSender, ListenerRegistry registry) {
         this.interceptorConfig = interceptorConfig;
         this.config = config;
         this.msgSender = msgSender;
@@ -81,8 +79,7 @@ public class DeliveryBus {
      * @param request    请求对象
      */
     public void deliverTimely(Listener subscriber, Request<?> request) {
-        if (null != request.getDeliverId()
-                && (!subscriber.getTrigger().getDeliverId().equals(request.getDeliverId()))) {
+        if (null != request.getDeliverId() && (!subscriber.getTrigger().getDeliverId().equals(request.getDeliverId()))) {
             return;
         }
         // 发送消息给订阅者
@@ -132,23 +129,79 @@ public class DeliveryBus {
     }
 
     /**
-     * 投递消息
+     * 执行消息投递到指定的监听器
+     * 主要功能包括触发监听器的相应操作，并处理投递过程中可能出现的异常
+     *
+     * @param subscriber 监听器对象，用于接收消息并执行相应操作
+     * @param request    请求对象，包含投递所需的信息
      */
     private void deliver(Listener subscriber, Request<?> request) {
+        // 获取监听器的触发条件
         Trigger trigger = subscriber.getTrigger();
+        // 如果请求中没有指定投递ID，则使用触发条件中的投递ID
         if (null == request.getDeliverId()) {
             request.setDeliverId(trigger.getDeliverId());
         }
+        // 如果开启了调试日志，则记录消息内容
         if (log.isDebugEnabled()) {
             log.debug("deliver msg：{}", Func.toJson(request));
         }
         try {
-            trigger.invoke(request);
-            // 轮询处理
-            polling(subscriber, request);
-            interceptorConfig.deliverSuccessExecute(request);
+            // 触发监听器，根据触发条件执行相应操作
+            trigger(subscriber, trigger, request);
         } catch (Exception exception) {
+            // 处理投递失败的情况
             failHandle(subscriber, request, exception);
+        }
+    }
+
+    /**
+     * 触发事件通知
+     * 本方法负责根据监听器的延迟配置，决定是否立即触发请求，或者进行延迟处理
+     * 首次投递时，会无视延迟配置，直接触发请求
+     * 非首次投递且存在延迟配置时，会根据配置决定是否进行延迟处理或轮询处理
+     *
+     * @param subscriber 监听器实例，用于接收事件通知
+     * @param trigger    触发器，用于执行请求
+     * @param request    请求对象，包含事件的具体信息
+     * @throws InvocationTargetException 当触发请求失败时抛出此异常
+     * @throws IllegalAccessException    当访问权限受限时抛出此异常
+     */
+    private void trigger(Listener subscriber, Trigger trigger, Request<?> request) throws InvocationTargetException, IllegalAccessException {
+        // 获取监听器的延迟配置
+        ToDelay toDelay = subscriber.getToDelay();
+        // 判断是否是首次投递，或者是没有延迟配置的情况
+        boolean firstDeliver = null != toDelay && toDelay.firstDeliver();
+        // 减少投递次数，以正确处理延迟投递逻辑，投递次数以实际投递次数为准
+        boolean isChangeDeliverCount = false;
+        // 标记是否已进行投递
+        boolean isDeliver = false;
+        // 如果是首次投递，触发请求
+        if (firstDeliver
+                || null == toDelay
+                || request.getDeliverCount() > 1) {
+            // 如果不是首次投递且投递次数大于1，减少投递次数
+            if (!firstDeliver && request.getDeliverCount() > 1) {
+                isChangeDeliverCount = true;
+                request.setDeliverCount(request.getDeliverCount() - 1);
+            }
+            // 执行请求
+            trigger.invoke(request);
+            isDeliver = true;
+        }
+        // 执行延迟处理
+        if (!toDelay(subscriber, request)) {
+            // 如果存在延迟配置
+            // 执行轮询处理
+            polling(subscriber, request);
+        }
+        // 记录投递成功
+        if (isDeliver) {
+            interceptorConfig.deliverSuccessExecute(request);
+        }
+        // 如果调整了投递次数，恢复原来的投递次数
+        if (isChangeDeliverCount) {
+            request.setDeliverCount(request.getDeliverCount() + 1);
         }
     }
 
@@ -224,9 +277,7 @@ public class DeliveryBus {
         // 已轮询次数大于轮询次数，则不进行轮询投递
         // 是否已退出轮询
         boolean isOver = Polling.Keep.clear();
-        if (null == polling
-                || request.getDeliverCount() > polling.count()
-                || isOver) {
+        if (null == polling || request.getDeliverCount() > polling.count() || isOver) {
             return;
         }
 
@@ -234,13 +285,34 @@ public class DeliveryBus {
         Integer deliverCount = request.getDeliverCount();
 
         String interval = polling.interval();
-        interval = interval.replace("$count", String.valueOf(deliverCount))
-                .replace("$intervalTime", String.valueOf(null == delayTime ? 1 : delayTime));
+        interval = interval.replace("$count", String.valueOf(deliverCount)).replace("$intervalTime", String.valueOf(null == delayTime ? 1 : delayTime));
         // 获取下次投递失败时间
         delayTime = CalculateUtil.fixEvalExpression(interval);
         request.setDelayTime(delayTime);
         // 投递次数加一
         request.setDeliverCount(request.getDeliverCount() + 1);
         msgSender.sendDelayMessage(request);
+    }
+
+    /**
+     * 及时消息转换为延时消息
+     *
+     * @param subscriber subscriber
+     * @param request    req
+     */
+    private boolean toDelay(Listener subscriber, Request<?> request) {
+        if (subscriber.getType().isDelay()) {
+            return false;
+        }
+        ToDelay toDelay = subscriber.getToDelay();
+        if (null == toDelay || request.getDeliverCount() > 1) {
+            return false;
+        }
+        // 下次投递时间
+        request.setDelayTime(toDelay.delayTime());
+        // 投递次数加一
+        request.setDeliverCount(request.getDeliverCount() + 1);
+        msgSender.sendDelayMessage(request);
+        return true;
     }
 }

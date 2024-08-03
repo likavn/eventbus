@@ -6,14 +6,13 @@ import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.domain.TMsg;
 import com.github.likavn.eventbus.demo.domain.TestBody;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * @author likavn
  * @date 2024/01/01
  **/
 @Slf4j
-@Component
+//@Component
 public class DemoMsgListener3 extends MsgListener<TestBody> {
 
     @Override

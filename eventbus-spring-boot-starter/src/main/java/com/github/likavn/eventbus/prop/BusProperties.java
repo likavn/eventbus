@@ -69,6 +69,11 @@ public class BusProperties extends BusConfig {
          * stream 过期数据截取，值为当前保留的消息数，5.0~<6.2版本支持，单位：条，默认：10000条
          */
         private Long streamExpiredLength = 10000L;
+
+        /**
+         * 是否删除延迟消息，默认为：否
+         */
+        private Boolean deleteDelayMsg = false;
         /**
          * redis版本号，不用配置，系统自动设定
          */

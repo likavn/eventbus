@@ -89,6 +89,9 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     @Override
     protected void deliver(RedisListener subscriber, Record<String, String> msg) {
         deliveryBus.deliverDelay(msg.getValue());
+        if (config.getRedis().getDeleteDelayMsg()) {
+            redisTemplate.opsForStream().delete(subscriber.getStreamKey(), msg.getId());
+        }
     }
 
     @Override
