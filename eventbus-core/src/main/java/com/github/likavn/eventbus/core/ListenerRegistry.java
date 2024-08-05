@@ -260,6 +260,7 @@ public class ListenerRegistry {
                 // 如果是及时消息，则添加到及时触发器订阅者映射表中
                 putTimelyMap(createListener);
             } else {
+                createListener.setToDelay(null);
                 // 如果是延迟消息，则添加到延迟触发器订阅者映射表中
                 putDelayMap(trigger.getDeliverId(), createListener);
             }

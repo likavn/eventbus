@@ -71,7 +71,7 @@ public class BusProperties extends BusConfig {
         private Long streamExpiredLength = 10000L;
 
         /**
-         * 是否立刻删除延迟消息，默认为：是
+         * 接收并处理完成延时消息后，是否立刻删除延迟消息，默认为：是
          */
         private Boolean deleteDelayStreamMsg = true;
         /**

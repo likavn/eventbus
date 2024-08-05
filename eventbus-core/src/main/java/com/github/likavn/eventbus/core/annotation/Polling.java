@@ -15,10 +15,12 @@
  */
 package com.github.likavn.eventbus.core.annotation;
 
+import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.CalculateUtil;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.annotation.*;
 
@@ -105,6 +107,7 @@ public @interface Polling {
      * @date 2024/07/27
      * @since 2.3.2
      */
+    @Slf4j
     @UtilityClass
     class ValidatorInterval {
         /**
@@ -117,9 +120,14 @@ public @interface Polling {
                 return;
             }
             interval = interval.replace("$count", "1")
+                    .replace("$deliverCount", "1")
                     .replace("$intervalTime", "1");
-            double v = CalculateUtil.evalExpression(interval);
-            Assert.isTrue(v > 0, "interval must be greater than 0");
+            try {
+                double v = CalculateUtil.evalExpression(interval);
+                Assert.isTrue(v > 0, "interval must be greater than 0");
+            } catch (Exception e) {
+                throw new EventBusException("interval must be a valid expression", e);
+            }
         }
     }
 }

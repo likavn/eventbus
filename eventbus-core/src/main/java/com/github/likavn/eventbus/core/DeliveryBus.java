@@ -182,15 +182,16 @@ public class DeliveryBus {
             trigger.invoke(request);
             isDeliver = true;
         }
+        // 记录投递成功
+        if (isDeliver) {
+            interceptorConfig.deliverSuccessExecute(request);
+        }
+
         // 执行延迟处理
         if (!toDelay(subscriber, request)) {
             // 如果存在延迟配置
             // 执行轮询处理
             polling(subscriber, request);
-        }
-        // 记录投递成功
-        if (isDeliver) {
-            interceptorConfig.deliverSuccessExecute(request);
         }
     }
 
@@ -220,9 +221,11 @@ public class DeliveryBus {
         // 每次投递消息异常时都会调用
         interceptorConfig.deliverThrowableEveryExecute(request, throwable);
         // 获取有效的投递次数
-        int deliverCount = (null != fail && fail.retryCount() >= 0) ? fail.retryCount() : config.getFail().getRetryCount();
-        if (request.getDeliverCount() <= deliverCount) {
+        int retryCount = (null != fail && fail.retryCount() >= 0) ? fail.retryCount() : config.getFail().getRetryCount();
+        int failRetryCount = request.getFailRetryCount();
+        if (failRetryCount < retryCount) {
             // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
+            request.setFailRetryCount(failRetryCount + 1);
             failReTry(request, fail);
             return;
         }

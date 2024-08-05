@@ -58,6 +58,11 @@ public class Request<T> extends Topic implements Message<T> {
     private Integer pollingCount;
 
     /**
+     * 消费者接收失败后时，发起失败重试的次数
+     */
+    private Integer failRetryCount;
+
+    /**
      * 消息类型,默认及时消息
      */
     private MsgType type;
@@ -103,6 +108,16 @@ public class Request<T> extends Topic implements Message<T> {
     @Override
     public Integer getDeliverCount() {
         return null == this.deliverCount ? 1 : this.deliverCount;
+    }
+
+    @Override
+    public Integer getPollingCount() {
+        return null == this.pollingCount ? 0 : this.pollingCount;
+    }
+
+    @Override
+    public Integer getFailRetryCount() {
+        return null == this.failRetryCount ? 0 : this.failRetryCount;
     }
 
     @Override
