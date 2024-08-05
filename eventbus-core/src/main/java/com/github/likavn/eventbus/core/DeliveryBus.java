@@ -172,19 +172,12 @@ public class DeliveryBus {
         ToDelay toDelay = subscriber.getToDelay();
         // 判断是否是首次投递，或者是没有延迟配置的情况
         boolean firstDeliver = null != toDelay && toDelay.firstDeliver();
-        // 减少投递次数，以正确处理延迟投递逻辑，投递次数以实际投递次数为准
-        boolean isChangeDeliverCount = false;
         // 标记是否已进行投递
         boolean isDeliver = false;
         // 如果是首次投递，触发请求
         if (firstDeliver
                 || null == toDelay
                 || request.getDeliverCount() > 1) {
-            // 如果不是首次投递且投递次数大于1，减少投递次数
-            if (!firstDeliver && request.getDeliverCount() > 1) {
-                isChangeDeliverCount = true;
-                request.setDeliverCount(request.getDeliverCount() - 1);
-            }
             // 执行请求
             trigger.invoke(request);
             isDeliver = true;
@@ -198,10 +191,6 @@ public class DeliveryBus {
         // 记录投递成功
         if (isDeliver) {
             interceptorConfig.deliverSuccessExecute(request);
-        }
-        // 如果调整了投递次数，恢复原来的投递次数
-        if (isChangeDeliverCount) {
-            request.setDeliverCount(request.getDeliverCount() + 1);
         }
     }
 
@@ -260,10 +249,7 @@ public class DeliveryBus {
     private void failReTry(Request<?> request, Fail fail) {
         // 获取下次投递失败时间
         long delayTime = (null != fail && fail.nextTime() > 0) ? fail.nextTime() : config.getFail().getNextTime();
-        request.setDelayTime(delayTime);
-        // 投递次数加一
-        request.setDeliverCount(request.getDeliverCount() + 1);
-        msgSender.sendDelayMessage(request);
+        sendDelayMessage(request, delayTime);
     }
 
     /**
@@ -274,24 +260,30 @@ public class DeliveryBus {
      */
     private void polling(Listener subscriber, Request<?> request) {
         Polling polling = subscriber.getPolling();
+        if (null == polling) {
+            return;
+        }
         // 已轮询次数大于轮询次数，则不进行轮询投递
         // 是否已退出轮询
         boolean isOver = Polling.Keep.clear();
-        if (null == polling || request.getDeliverCount() > polling.count() || isOver) {
+        if (isOver) {
             return;
         }
-
+        int pollingCount = null == request.getPollingCount() ? 0 : request.getPollingCount();
+        if (pollingCount >= polling.count()) {
+            return;
+        }
+        pollingCount++;
         Long delayTime = request.getDelayTime();
-        Integer deliverCount = request.getDeliverCount();
-
         String interval = polling.interval();
-        interval = interval.replace("$count", String.valueOf(deliverCount)).replace("$intervalTime", String.valueOf(null == delayTime ? 1 : delayTime));
+        interval = interval.replace("$count", String.valueOf(pollingCount))
+                .replace("$deliverCount", String.valueOf(request.getDeliverCount()))
+                .replace("$intervalTime", String.valueOf(null == delayTime ? 1 : delayTime));
         // 获取下次投递失败时间
         delayTime = CalculateUtil.fixEvalExpression(interval);
-        request.setDelayTime(delayTime);
-        // 投递次数加一
-        request.setDeliverCount(request.getDeliverCount() + 1);
-        msgSender.sendDelayMessage(request);
+
+        request.setPollingCount(pollingCount);
+        sendDelayMessage(request, delayTime);
     }
 
     /**
@@ -305,14 +297,29 @@ public class DeliveryBus {
             return false;
         }
         ToDelay toDelay = subscriber.getToDelay();
-        if (null == toDelay || request.getDeliverCount() > 1) {
+        if (null == toDelay) {
             return false;
         }
-        // 下次投递时间
-        request.setDelayTime(toDelay.delayTime());
-        // 投递次数加一
+        if (request.getDeliverCount() > 1) {
+            return false;
+        }
+        sendDelayMessage(request, toDelay.delayTime());
+        return true;
+    }
+
+    /**
+     * 发送延迟消息
+     * <p>
+     * 注意：此方法用于处理需要延迟投递的消息，通过更新消息的投递信息来实现延迟投递效果
+     *
+     * @param request   消息请求对象，包含消息内容及投递相关信息
+     * @param delayTime 延迟时间，表示距离下一次投递的时间间隔
+     */
+    private void sendDelayMessage(Request<?> request, Long delayTime) {
+        // 设置下一次投递的时间，即当前时间加上延迟时间
+        request.setDelayTime(delayTime);
+        // 投递次数加一，表示消息已经尝试投递过一次
         request.setDeliverCount(request.getDeliverCount() + 1);
         msgSender.sendDelayMessage(request);
-        return true;
     }
 }

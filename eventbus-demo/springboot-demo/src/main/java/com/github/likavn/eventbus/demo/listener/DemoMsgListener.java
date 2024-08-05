@@ -28,16 +28,17 @@ public class DemoMsgListener extends MsgListener<TestBody> {
 
     @Override
     @ToDelay(delayTime = 3, firstDeliver = true)
-    @Polling(count = 2, interval = "$count * $intervalTime + 5")
+    @Polling(count = 2, interval = "$intervalTime * 1.5 + $count")
     @Fail(callMethod = "exceptionHandler", retryCount = 1, nextTime = 5)
     public void onMessage(Message<TestBody> message) {
         TestBody body = message.getBody();
-        log.info("接收数据: {}", message.getRequestId());
+        log.info("接收数据,第{}次接收，:RequestId:{}", message.getDeliverCount(), message.getRequestId());
         //   throw new RuntimeException("DemoMsgListener test");
 
-        if (message.getDeliverCount() > 2) {
+        if (message.getDeliverCount() > 5) {
             // 终止轮询
             Polling.Keep.over();
+            log.info("终止轮询");
         }
     }
 

@@ -134,6 +134,13 @@
       "description": "stream 过期数据截取，值为当前保留的消息数，5.0~<6.2版本支持，单位：条，默认：10000条",
       "sourceType": "com.github.likavn.eventbus.prop.BusProperties$RedisProperties",
       "defaultValue": 10000
+    },
+    {
+      "name": "eventbus.redis.delete-delay-stream-msg",
+      "type": "java.lang.Boolean",
+      "description": "是否立刻删除延迟消息，默认为：是",
+      "sourceType": "com.github.likavn.eventbus.prop.BusProperties$RedisProperties",
+      "defaultValue": true
     }
   ],
   "hints": []

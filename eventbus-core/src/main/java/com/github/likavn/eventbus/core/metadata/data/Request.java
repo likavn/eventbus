@@ -53,6 +53,11 @@ public class Request<T> extends Topic implements Message<T> {
     private Integer deliverCount;
 
     /**
+     * 消费者轮询次数
+     */
+    private Integer pollingCount;
+
+    /**
      * 消息类型,默认及时消息
      */
     private MsgType type;

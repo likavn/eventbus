@@ -71,9 +71,9 @@ public class BusProperties extends BusConfig {
         private Long streamExpiredLength = 10000L;
 
         /**
-         * 是否删除延迟消息，默认为：否
+         * 是否立刻删除延迟消息，默认为：是
          */
-        private Boolean deleteDelayMsg = false;
+        private Boolean deleteDelayStreamMsg = true;
         /**
          * redis版本号，不用配置，系统自动设定
          */
