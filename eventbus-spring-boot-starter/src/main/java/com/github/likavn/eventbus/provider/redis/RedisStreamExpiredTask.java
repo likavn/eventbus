@@ -121,7 +121,11 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
             log.error("clean expired：streamKey={}", streamKey, e);
         } finally {
             if (lock) {
-                rLock.releaseLock(lockKey);
+                try {
+                    rLock.releaseLock(lockKey);
+                } catch (Exception e) {
+                    log.error("cleanExpired release lock error", e);
+                }
             }
         }
     }

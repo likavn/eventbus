@@ -22,6 +22,7 @@ import com.github.likavn.eventbus.core.metadata.data.Message;
  * 延时消息监听器
  * 注：只能订阅本服务{@link BusConfig#getServiceId()}下的延时消息
  *
+ * @param <T> 消息体的数据类型
  * @author likavn
  * @date 2024/01/01
  */
@@ -30,7 +31,7 @@ public interface MsgDelayListener<T> {
     /**
      * 处理器
      *
-     * @param message 消息体
+     * @param message 消息体，包含延时消息的数据和元信息
      */
     void onMessage(Message<T> message);
 

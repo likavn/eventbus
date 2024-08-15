@@ -2,6 +2,7 @@ package com.github.likavn.eventbus.demo.listener;
 
 import com.github.likavn.eventbus.core.annotation.Fail;
 import com.github.likavn.eventbus.core.annotation.Polling;
+import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
@@ -22,20 +23,25 @@ public class DemoMsgListener extends MsgListener<TestBody> {
                 // 订阅的消息编码
                 MsgConstant.DEMO_MSG_LISTENER,
                 // 并发数
-                2);
+                1);
     }
 
     @Override
-    @Polling(count = 2, interval = "$count * $intervalTime + 5")
-    @Fail(callMethod = "exceptionHandler", retryCount = 1, nextTime = 5)
-    public void onMessage(Message<TestBody> message) {
-        TestBody body = message.getBody();
-        log.info("接收数据: {}", message.getRequestId());
-        //   throw new RuntimeException("DemoMsgListener test");
+    @ToDelay(delayTime = 3)
+    @Polling(count = 3, interval = "5")
+    @Fail(callMethod = "exceptionHandler", retryCount = 3, nextTime = 5)
+    public void onMessage(Message<TestBody> msg) {
+        TestBody body = msg.getBody();
+        log.info("接收数据,第{}次投递，轮询{}次，失败重试{}次:RequestId:{}", msg.getDeliverCount(), msg.getPollingCount(), msg.getFailRetryCount(), msg.getRequestId());
+        //  throw new RuntimeException("DemoMsgListener test");
+        if (msg.getDeliverCount() == 3) {
+         //   throw new RuntimeException("DemoMsgListener test");
+        }
 
-        if (message.getDeliverCount() > 1) {
+        if (msg.getPollingCount() >= 2) {
             // 终止轮询
             Polling.Keep.over();
+            log.info("终止轮询");
         }
     }
 

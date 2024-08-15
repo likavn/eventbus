@@ -57,6 +57,11 @@ public class BsData {
      * 消息体，必须包含无参构造函数
      */
     private String body;
+
+    /**
+     * 发送者IP
+     */
+    private String ipAddress;
     /**
      * 创建时间
      */

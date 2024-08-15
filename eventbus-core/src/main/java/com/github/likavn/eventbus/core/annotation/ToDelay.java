@@ -15,35 +15,37 @@
  */
 package com.github.likavn.eventbus.core.annotation;
 
-import com.github.likavn.eventbus.core.metadata.BusConfig;
+import com.github.likavn.eventbus.core.metadata.data.Message;
 
 import java.lang.annotation.*;
 
 /**
- * 延时消息订阅注解
- * 注：只能订阅本服务{@link BusConfig#getServiceId()}下的延时消息
+ * ToDelay 注解用于接收异步消息的方法上，使得当前消息转成延时消息
  *
  * @author likavn
- * @date 2024/01/01
- **/
+ * @date 2024/07/27
+ * @since 2.3.4
+ */
 @Documented
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface DelayListener {
-    /**
-     * 消息类型，用于区分不同的消息类型。
-     */
-    String[] codes();
+public @interface ToDelay {
 
     /**
-     * 定义并发级别，默认值为-1。
+     * 延迟时间,单位：秒
+     * 该方法用于定义 ToDelay 注解的延迟时间属性
      *
-     * @return 返回并发级别的整数值。设置-1表示未设置，默认{@link BusConfig#getConcurrency()}。
+     * @return 延迟时间 返回延迟执行的时间，单位为秒
      */
-    int concurrency() default -1;
+    long delayTime();
 
     /**
-     * 消息投递失败异常处理注解
+     * 是否需要首次执行
+     * 该方法用于定义 ToDelay 注解的延迟时间属性，
+     * 默认：false (第一次获取到消息时不执行接收方法:{@link com.github.likavn.eventbus.core.api.MsgListener#onMessage(Message)})
+     *
+     * @return 第一次是否接收执行
      */
-    Fail fail() default @Fail();
+    boolean firstDeliver() default false;
 }
+

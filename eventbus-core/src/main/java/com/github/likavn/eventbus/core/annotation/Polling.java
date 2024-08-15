@@ -15,10 +15,12 @@
  */
 package com.github.likavn.eventbus.core.annotation;
 
+import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.CalculateUtil;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.annotation.*;
 
@@ -45,8 +47,9 @@ public @interface Polling {
 
     /**
      * 定义了轮询的时间间隔，支持表达式配置。
-     * 表达式中可以使用两个变量：count（当前轮询次数）和intervalTime（本次轮询与上次轮询的时间间隔，单位为秒）。
+     * 表达式中可以使用三个变量：count（当前轮询次数）、deliverCount（当前投递次数）和intervalTime（本次轮询与上次轮询的时间间隔，单位为秒）。
      * 这使得可以灵活地根据轮询次数和时间间隔来动态确定下一次轮询的时间。
+     * 引用变量时使用"$"+变量名，例如"$count"。
      * 示例：
      * 1. interval=7，表示轮询间隔为7秒。
      * 2. interval=$count*$intervalTime，表示轮询间隔为当前轮询次数与上次轮询的时间间隔的乘积。
@@ -104,6 +107,7 @@ public @interface Polling {
      * @date 2024/07/27
      * @since 2.3.2
      */
+    @Slf4j
     @UtilityClass
     class ValidatorInterval {
         /**
@@ -116,9 +120,14 @@ public @interface Polling {
                 return;
             }
             interval = interval.replace("$count", "1")
+                    .replace("$deliverCount", "1")
                     .replace("$intervalTime", "1");
-            double v = CalculateUtil.evalExpression(interval);
-            Assert.isTrue(v > 0, "interval must be greater than 0");
+            try {
+                double v = CalculateUtil.evalExpression(interval);
+                Assert.isTrue(v > 0, "interval must be greater than 0");
+            } catch (Exception e) {
+                throw new EventBusException("interval must be a valid expression", e);
+            }
         }
     }
 }

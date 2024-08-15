@@ -37,19 +37,19 @@ public class BusConfig {
     protected String type;
 
     /**
-     * 异步消息接收并发数，默认为：1
+     * 消息接收并发数，默认为：3
      */
-    protected Integer concurrency = 1;
-
-    /**
-     * 延时消息接收并发数，默认为：2
-     */
-    protected Integer delayConcurrency = 2;
+    protected Integer concurrency = 3;
 
     /**
      * 单次获取消息数量，默认：16条
      */
     protected Integer msgBatchSize = 16;
+
+    /**
+     * 是否在发送本服务（发送消息的serviceId）及时消息时将及时消息投递到延时队列，默认为：true
+     */
+    protected Boolean sendTimelyToDelay = true;
 
     /**
      * 节点联通性配置

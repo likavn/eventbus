@@ -65,6 +65,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     private final String delayStreamKey;
     private final TaskRegistry taskRegistry;
     private PeriodTask task;
+    private volatile boolean isLock = false;
 
     public RedisMsgDelayListener(StringRedisTemplate stringRedisTemplate,
                                  TaskRegistry taskRegistry,
@@ -83,12 +84,15 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
 
     @Override
     protected List<RedisListener> getListeners() {
-        return RedisListener.redisDelaySubscriber(config.getServiceId(), config.getDelayConcurrency());
+        return RedisListener.redisDelaySubscriber(config.getServiceId(), config.getConcurrency());
     }
 
     @Override
     protected void deliver(RedisListener subscriber, Record<String, String> msg) {
         deliveryBus.deliverDelay(msg.getValue());
+        if (Boolean.TRUE.equals(config.getRedis().getDeleteDelayStreamMsg())) {
+            redisTemplate.opsForStream().delete(subscriber.getStreamKey(), msg.getId());
+        }
     }
 
     @Override
@@ -102,10 +106,9 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
      * 循环获取延时队列到期消息
      */
     private void pollTask() {
-        boolean lock = false;
         try {
-            lock = rLock.getLock(pollLockKey);
-            if (!lock) {
+            isLock = rLock.getLock(pollLockKey);
+            if (!isLock) {
                 return;
             }
             Long nextCurrentTimeMillis = stringRedisTemplate.execute(pushMsgStreamRedisScript,
@@ -116,7 +119,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
                 setNextTriggerTimeMillis(nextCurrentTimeMillis);
             }
         } finally {
-            if (lock) {
+            if (isLock) {
                 rLock.releaseLock(pollLockKey);
             }
         }
@@ -131,6 +134,13 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
 
     @Override
     public void destroy() {
+        if (isLock) {
+            try {
+                rLock.releaseLock(pollLockKey);
+            } catch (Exception e) {
+                log.error("release pollLockKey error", e);
+            }
+        }
         super.destroy();
         taskRegistry.removeTask(task);
     }

@@ -16,6 +16,8 @@
 package com.github.likavn.eventbus.core.utils;
 
 
+import lombok.Getter;
+
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -25,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author likavn
  * @date 2024/01/01
  */
+@Getter
 public class NamedThreadFactory implements ThreadFactory {
 
     /**
@@ -49,5 +52,19 @@ public class NamedThreadFactory implements ThreadFactory {
     @Override
     public Thread newThread(Runnable r) {
         return new Thread(null, r, prefix + threadNumber.getAndIncrement());
+    }
+
+    /**
+     * 增加一个可用资源，采用原子操作保证线程安全。
+     */
+    public int increment() {
+        return threadNumber.getAndIncrement();
+    }
+
+    /**
+     * 减少一个可用资源，采用原子操作保证线程安全。
+     */
+    public int decrement() {
+        return threadNumber.getAndDecrement();
     }
 }

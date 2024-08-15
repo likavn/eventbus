@@ -15,8 +15,10 @@
  */
 package com.github.likavn.eventbus.provider.redis.support;
 
+import com.github.likavn.eventbus.core.utils.GroupedThreadPoolExecutor;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -31,11 +33,14 @@ import org.springframework.util.ErrorHandler;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 /**
- * Simple {@link Executor} based {@link org.springframework.data.redis.stream.StreamMessageListenerContainer} implementation for running {@link Task tasks} to
+ * Simple {@link Executor} based {@link StreamMessageListenerContainer} implementation for running {@link Task tasks} to
  * poll on Redis Streams.
  * <p/>
  * This message container creates long-running tasks that are executed on {@link Executor}.
@@ -44,6 +49,7 @@ import java.util.function.BiFunction;
  * @author Christoph Strobl
  * @since 2.2
  */
+@Slf4j
 @SuppressWarnings("all")
 class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implements StreamMessageListenerContainer<K, V> {
 
@@ -51,7 +57,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
 
     private final Executor taskExecutor;
 
-    private final Executor taskExcExecutor;
+    private final GroupedThreadPoolExecutor taskExcExecutor;
     private final ErrorHandler errorHandler;
     private final StreamReadOptions readOptions;
     private final RedisTemplate<K, ?> template;
@@ -70,7 +76,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
      * @param taskExcExecutor
      */
     XDefaultStreamMessageListenerContainer(RedisConnectionFactory connectionFactory,
-                                           StreamMessageListenerContainerOptions<K, V> containerOptions, Executor taskExcExecutor) {
+                                           StreamMessageListenerContainerOptions<K, V> containerOptions, GroupedThreadPoolExecutor taskExcExecutor) {
 
         Assert.notNull(connectionFactory, "RedisConnectionFactory must not be null!");
         Assert.notNull(containerOptions, "StreamMessageListenerContainerOptions must not be null!");
@@ -151,15 +157,35 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
                 return;
             }
 
-            subscriptions.stream() //
+            List<XStreamPollTask> tasks = subscriptions.stream() //
                     .filter(it -> !it.isActive()) //
                     .filter(it -> it instanceof TaskSubscription) //
                     .map(TaskSubscription.class::cast) //
                     .map(TaskSubscription::getTask) //
-                    .forEach(taskExecutor::execute);
-
-            running = true;
+                    .collect(Collectors.toList());
+            taskExecutor.execute(() -> {
+                running = true;
+                doloop(tasks);
+            });
         }
+    }
+
+    public void doloop(List<XStreamPollTask> tasks) {
+        BlockingDeque<XStreamPollTask> blockingTasks = new LinkedBlockingDeque<>(tasks);
+        taskExcExecutor.setAfterConsumer(t -> {
+            blockingTasks.add((XStreamPollTask) t.getTask().getData());
+        });
+        while (running && !Thread.interrupted()) {
+            try {
+                XStreamPollTask task = blockingTasks.take();
+                if (task.pull()) {
+                    blockingTasks.add(task);
+                }
+            } catch (InterruptedException e) {
+                log.error("XDefaultStreamMessageListenerContainer.stop", e);
+            }
+        }
+        stop();
     }
 
     /*
@@ -207,15 +233,19 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
      */
     @Override
     public Subscription register(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener) {
-        return doRegister(getReadTask(streamRequest, listener));
+        throw new UnsupportedOperationException();
+    }
+
+    public Subscription register(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener, RedisListener redisListener) {
+        return doRegister(getReadTask(streamRequest, listener, redisListener));
     }
 
     @SuppressWarnings("unchecked")
-    private XStreamPollTask<K, V> getReadTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener) {
+    private XStreamPollTask<K, V> getReadTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener, RedisListener redisListener) {
 
         BiFunction<K, ReadOffset, List<? extends Record<?, ?>>> readFunction = getReadFunction(streamRequest);
 
-        return new XStreamPollTask<>(streamRequest, listener, errorHandler, (BiFunction) readFunction, taskExcExecutor);
+        return new XStreamPollTask<>(streamRequest, listener, errorHandler, (BiFunction) readFunction, taskExcExecutor, redisListener);
     }
 
     @SuppressWarnings("unchecked")
@@ -291,9 +321,9 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
     @RequiredArgsConstructor
     static class TaskSubscription implements Subscription {
 
-        private final Task task;
+        private final XStreamPollTask task;
 
-        Task getTask() {
+        XStreamPollTask getTask() {
             return task;
         }
 

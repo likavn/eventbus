@@ -15,9 +15,7 @@
  */
 package com.github.likavn.eventbus.core;
 
-import com.github.likavn.eventbus.core.annotation.DelayListener;
-import com.github.likavn.eventbus.core.annotation.Fail;
-import com.github.likavn.eventbus.core.annotation.Polling;
+import com.github.likavn.eventbus.core.annotation.*;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.constant.BusConstant;
@@ -114,6 +112,7 @@ public class ListenerRegistry {
         }
         Fail fail = primitiveMethod.getAnnotation(Fail.class);
         Polling polling = primitiveMethod.getAnnotation(Polling.class);
+        Concurrency concurrencyAnn = primitiveMethod.getAnnotation(Concurrency.class);
         if (null == fail) {
             fail = primitiveClass.getAnnotation(Fail.class);
         }
@@ -124,9 +123,11 @@ public class ListenerRegistry {
         if (obj instanceof MsgListener) {
             MsgListener<?> interf = (MsgListener<?>) obj;
             String serviceId = Func.isEmpty(interf.getServiceId()) ? config.getServiceId() : interf.getServiceId();
-            Integer concurrency = getConcurrency(interf.getConcurrency());
+            // 获取并发数
+            Integer concurrency = getConcurrency(concurrencyAnn, interf.getConcurrency());
+            ToDelay toDelay = primitiveMethod.getAnnotation(ToDelay.class);
             interf.getCodes().forEach(code -> {
-                Listener listener = new Listener(serviceId, code, concurrency, MsgType.TIMELY, trigger, failTrigger, polling);
+                Listener listener = new Listener(serviceId, code, concurrency, MsgType.TIMELY, trigger, failTrigger, polling, toDelay);
                 putTimelyMap(listener);
             });
         }
@@ -138,7 +139,9 @@ public class ListenerRegistry {
             listener.setTrigger(trigger);
             listener.setFailTrigger(failTrigger);
             MsgDelayListener interf = (MsgDelayListener) obj;
-            listener.setConcurrency(config.getDelayConcurrency());
+
+            // 获取并发数
+            listener.setConcurrency(getConcurrency(concurrencyAnn));
             listener.setPolling(polling);
             // 添加到延迟触发器订阅者映射表中
             putDelayMap(Func.getDeliverId(primitiveClass, BusConstant.ON_MESSAGE), listener);
@@ -153,6 +156,14 @@ public class ListenerRegistry {
      */
     private Integer getConcurrency(Integer defaultConcurrency) {
         return null == defaultConcurrency || defaultConcurrency < 1 ? config.getConcurrency() : defaultConcurrency;
+    }
+
+    private Integer getConcurrency(Concurrency concurrencyAnn) {
+        return (null != concurrencyAnn && concurrencyAnn.concurrency() > 0) ? concurrencyAnn.concurrency() : config.getConcurrency();
+    }
+
+    private Integer getConcurrency(Concurrency concurrencyAnn, Integer defaultConcurrency) {
+        return (null != concurrencyAnn && concurrencyAnn.concurrency() > 0) ? concurrencyAnn.concurrency() : getConcurrency(defaultConcurrency);
     }
 
     /**
@@ -218,11 +229,10 @@ public class ListenerRegistry {
         Fail fail;
         List<String> codes;
         Integer concurrency;
-
-        Polling polling = primitiveMethod.getAnnotation(Polling.class);
         // 检查订阅方法是否注解了Listener注解
         com.github.likavn.eventbus.core.annotation.Listener listener
                 = primitiveMethod.getAnnotation(com.github.likavn.eventbus.core.annotation.Listener.class);
+        Concurrency concurrencyAnn = primitiveMethod.getAnnotation(Concurrency.class);
         if (null != listener) {
             // 如果注解存在，则设置消息类型为TIMELY（及时）
             msgType = MsgType.TIMELY;
@@ -235,7 +245,7 @@ public class ListenerRegistry {
             // 从注解中获取失败处理方式、错误码列表和并发控制设置
             fail = listener.fail();
             codes = Arrays.asList(listener.codes());
-            concurrency = listener.concurrency();
+            concurrency = getConcurrency(concurrencyAnn, listener.concurrency());
         } else {
             // 检查是否注解了DelayListener注解
             DelayListener delayListener = primitiveMethod.getAnnotation(DelayListener.class);
@@ -243,22 +253,22 @@ public class ListenerRegistry {
             fail = delayListener.fail();
             codes = Arrays.asList(delayListener.codes());
             // 若未指定，则使用默认的并发控制值
-            concurrency = config.getDelayConcurrency();
+            concurrency = getConcurrency(concurrencyAnn, delayListener.concurrency());
         }
 
         // 创建失败触发器，用于处理订阅执行失败的情况
         FailTrigger failTrigger = new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
-
+        Polling polling = primitiveMethod.getAnnotation(Polling.class);
+        ToDelay toDelay = primitiveMethod.getAnnotation(ToDelay.class);
         // 遍历错误码列表，为每个错误码创建并注册一个订阅者
         for (String code : codes) {
-            // 设置并发控制值，若未指定则使用默认值
-            concurrency = getConcurrency(concurrency);
             // 创建订阅者实例
-            Listener createListener = new Listener(serviceId, code, concurrency, msgType, trigger, failTrigger, polling);
+            Listener createListener = new Listener(serviceId, code, concurrency, msgType, trigger, failTrigger, polling, toDelay);
             if (msgType.isTimely()) {
                 // 如果是及时消息，则添加到及时触发器订阅者映射表中
                 putTimelyMap(createListener);
             } else {
+                createListener.setToDelay(null);
                 // 如果是延迟消息，则添加到延迟触发器订阅者映射表中
                 putDelayMap(trigger.getDeliverId(), createListener);
             }
@@ -272,6 +282,7 @@ public class ListenerRegistry {
      * @param listener listener
      */
     private void putTimelyMap(Listener listener) {
+        listener.isValid();
         String deliverId = listener.getTrigger().getDeliverId();
         Assert.isTrue(!timelyMap.containsKey(deliverId), "listenerMap deliverId=" + deliverId + "存在相同的消息处理器");
         log.debug("ListenerRegistry 注册消息监听器deliverId={}", deliverId);
@@ -285,6 +296,7 @@ public class ListenerRegistry {
      * @param listener  listener
      */
     private void putDelayMap(String deliverId, Listener listener) {
+        listener.isValid();
         Assert.isTrue(!delayMap.containsKey(deliverId), "subscribeDelay deliverId=" + deliverId + "存在相同的延时消息处理器");
         log.debug("ListenerRegistry 注册消息监听器deliverId={}", deliverId);
         delayMap.put(deliverId, listener);

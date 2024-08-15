@@ -21,12 +21,13 @@ import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
-import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Assert;
+import com.github.likavn.eventbus.core.utils.NetUtil;
 import com.github.likavn.eventbus.demo.entity.BsConsumer;
 import com.github.likavn.eventbus.demo.entity.BsData;
 import com.github.likavn.eventbus.demo.mapper.BsConsumerMapper;
 import com.github.likavn.eventbus.demo.mapper.BsDataMapper;
+import lombok.Getter;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +36,6 @@ import javax.annotation.Resource;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author likavn
@@ -66,42 +64,42 @@ public class BsHelper {
      */
     @Transactional(rollbackFor = Exception.class)
     public void sendMessage(Request<String> request) {
-        LocalDateTime now = LocalDateTime.now();
         BsData data = BsData.builder().requestId(request.getRequestId())
                 .serviceId(request.getServiceId())
                 .code(request.getCode())
-                .body(request.getBody())
-                .createTime(now)
                 .type(request.getType().getValue())
+                .body(request.getBody())
+                .ipAddress(NetUtil.getHostAddr())
+                .createTime(LocalDateTime.now())
                 .build();
         dataMapper.insert(data);
-
-        String code = request.getCode();
-        List<String> deliverIds = new ArrayList<>();
-        if (request.getType().isDelay()) {
-            deliverIds.add(request.getDeliverId());
-        } else {
-            List<Listener> subscribers = registry.getTimelyListeners();
-            deliverIds = subscribers.stream().filter(subscriber
-                            -> subscriber.getCode().equals(code))
-                    .map(t -> t.getTrigger().getDeliverId()).collect(Collectors.toList());
-        }
-
-        for (String deliverId : deliverIds) {
-            BsConsumer consumer = BsConsumer.builder()
-                    .requestId(request.getRequestId())
-                    // 消息接收处理器（消费者ID）
-                    .deliverId(deliverId)
-                    .deliverCount(request.getDeliverCount())
-                    .delayTime(request.getDelayTime())
-                    .type(request.getType().getValue())
-                    // 消息状态,待处理
-                    .status(ConsumerStatus.PROCESSING.value)
-                    .build();
-            consumer.setCreateTime(now);
-            consumer.setUpdateTime(now);
-            consumerMapper.insert(consumer);
-        }
+//        String code = request.getCode();
+//        List<String> deliverIds = new ArrayList<>();
+//        if (request.getType().isDelay()) {
+//            deliverIds.add(request.getDeliverId());
+//        } else {
+//            List<Listener> subscribers = registry.getTimelyListeners();
+//            deliverIds = subscribers.stream().filter(subscriber
+//                            -> subscriber.getCode().equals(code))
+//                    .map(t -> t.getTrigger().getDeliverId()).collect(Collectors.toList());
+//        }
+//
+//        List<BsConsumer> consumers = new ArrayList<>(deliverIds.size());
+//        for (String deliverId : deliverIds) {
+//            BsConsumer consumer = BsConsumer.builder()
+//                    .requestId(request.getRequestId())
+//                    // 消息接收处理器（消费者ID）
+//                    .deliverId(deliverId)
+//                    .deliverCount(request.getDeliverCount())
+//                    .delayTime(request.getDelayTime())
+//                    .type(request.getType().getValue())
+//                    // 消息状态,待处理
+//                    .status(ConsumerStatus.PROCESSING.value)
+//                    .build();
+//            consumer.setCreateTime(now);
+//            consumer.setUpdateTime(now);
+//        }
+//        consumerMapper.insert(consumers);
     }
 
     /**
@@ -109,18 +107,21 @@ public class BsHelper {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deliverSuccess(Request<String> request) {
-        BsConsumer consumer = getBsConsumerByReqIdAndDeliveryId(request.getRequestId(), request.getDeliverId());
-        if (null == consumer) {
+        BsConsumer consumer = getBsConsumerByReqIdAndDeliveryId(request);
+        LocalDateTime now = LocalDateTime.now();
+        consumer.setSuccessTime(now);
+        consumer.setDelayTime(request.getDelayTime());
+        consumer.setStatus(ConsumerStatus.SUCCESS.value);
+        consumer.setDeliverCount(request.getDeliverCount());
+        consumer.setPollingCount(request.getPollingCount());
+        consumer.setFailRetryCount(request.getFailRetryCount());
+        consumer.setToDelay(request.getToDelay());
+        consumer.setUpdateTime(now);
+        if (null != consumer.getId()) {
+            consumerMapper.updateById(consumer);
             return;
         }
-        BsConsumer up = new BsConsumer();
-        LocalDateTime now = LocalDateTime.now();
-        up.setId(consumer.getId());
-        up.setSuccessTime(now);
-        up.setStatus(ConsumerStatus.SUCCESS.value);
-        up.setDeliverCount(request.getDeliverCount());
-        up.setUpdateTime(now);
-        consumerMapper.updateById(up);
+        consumerMapper.insert(consumer);
     }
 
     /**
@@ -128,28 +129,53 @@ public class BsHelper {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deliverException(Request<String> request, Throwable throwable) {
-        BsConsumer consumer = getBsConsumerByReqIdAndDeliveryId(request.getRequestId(), request.getDeliverId());
-        if (null == consumer) {
+        BsConsumer consumer = getBsConsumerByReqIdAndDeliveryId(request);
+        LocalDateTime now = LocalDateTime.now();
+        consumer.setStatus(ConsumerStatus.EXCEPTION.value);
+        consumer.setDelayTime(request.getDelayTime());
+        consumer.setDeliverCount(request.getDeliverCount());
+        consumer.setPollingCount(request.getPollingCount());
+        consumer.setFailRetryCount(request.getFailRetryCount());
+        consumer.setToDelay(request.getToDelay());
+        consumer.setExceptionMessage(throwable.getMessage());
+        consumer.setExceptionStackTrace(getStackTrace(throwable));
+        consumer.setExceptionTime(now);
+        consumer.setUpdateTime(now);
+        if (null != consumer.getId()) {
+            consumerMapper.updateById(consumer);
             return;
         }
-        BsConsumer up = new BsConsumer();
-        LocalDateTime now = LocalDateTime.now();
-        up.setId(consumer.getId());
-        up.setStatus(ConsumerStatus.EXCEPTION.value);
-        up.setDeliverCount(request.getDeliverCount());
-        up.setExceptionMessage(throwable.getMessage());
-        up.setExceptionStackTrace(getStackTrace(throwable));
-        up.setExceptionTime(now);
-        up.setUpdateTime(now);
-        consumerMapper.updateById(up);
+        consumerMapper.insert(consumer);
     }
 
-    private BsConsumer getBsConsumerByReqIdAndDeliveryId(String requestId, String deliverId) {
-        return consumerMapper.selectOne(Wrappers.<BsConsumer>lambdaQuery()
+    private BsConsumer getBsConsumerByReqIdAndDeliveryId(Request<String> request) {
+        BsConsumer consumer = consumerMapper.selectOne(Wrappers.<BsConsumer>lambdaQuery()
                 .select(BsConsumer::getId)
-                .eq(BsConsumer::getRequestId, requestId)
-                .eq(BsConsumer::getDeliverId, deliverId)
+                .eq(BsConsumer::getRequestId, request.getRequestId())
+                .eq(BsConsumer::getDeliverId, request.getDeliverId())
                 .last("limit 1"));
+        if (null != consumer) {
+            return consumer;
+        }
+        return buildConsumer(request);
+    }
+
+    private BsConsumer buildConsumer(Request<String> request) {
+        BsConsumer consumer = BsConsumer.builder()
+                .requestId(request.getRequestId())
+                // 消息接收处理器（消费者ID）
+                .deliverId(request.getDeliverId())
+                .deliverCount(request.getDeliverCount())
+                .ipAddress(NetUtil.getHostAddr())
+                .delayTime(request.getDelayTime())
+                .type(request.getType().getValue())
+                // 消息状态,待处理
+                .status(ConsumerStatus.PROCESSING.value)
+                .build();
+        LocalDateTime now = LocalDateTime.now();
+        consumer.setCreateTime(now);
+        consumer.setUpdateTime(now);
+        return consumer;
     }
 
     /**
@@ -189,6 +215,7 @@ public class BsHelper {
     /**
      * 消费状态
      */
+    @Getter
     public enum ConsumerStatus {
         /**
          * 待消费
@@ -209,9 +236,6 @@ public class BsHelper {
             this.value = value;
         }
 
-        public Integer getValue() {
-            return value;
-        }
     }
 
     public static String getStackTrace(final Throwable throwable) {

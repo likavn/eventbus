@@ -57,6 +57,11 @@ public class BsConsumer {
     private Integer deliverCount;
 
     /**
+     * 消费者IP
+     */
+    private String ipAddress;
+
+    /**
      * 延时时间，单位：秒
      */
     private Long delayTime;
@@ -70,6 +75,21 @@ public class BsConsumer {
      * 消息接收状态：0待处理、1处理成功、2处理失败
      */
     private Integer status;
+
+    /**
+     * 消费者轮询次数
+     */
+    private Integer pollingCount;
+
+    /**
+     * 消费者接收失败后时，发起失败重试的次数
+     */
+    private Integer failRetryCount;
+
+    /**
+     * 是否已转为延迟消息
+     */
+    private Boolean toDelay;
 
     /**
      * 接收消息处理成功时间

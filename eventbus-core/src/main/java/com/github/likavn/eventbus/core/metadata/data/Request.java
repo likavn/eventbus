@@ -53,6 +53,16 @@ public class Request<T> extends Topic implements Message<T> {
     private Integer deliverCount;
 
     /**
+     * 消费者轮询次数
+     */
+    private Integer pollingCount;
+
+    /**
+     * 消费者接收失败后时，发起失败重试的次数
+     */
+    private Integer failRetryCount;
+
+    /**
      * 消息类型,默认及时消息
      */
     private MsgType type;
@@ -61,6 +71,11 @@ public class Request<T> extends Topic implements Message<T> {
      * 延时消息的延时时间，单位：秒
      */
     private Long delayTime;
+
+    /**
+     * 是否已转为延迟消息
+     */
+    private Boolean toDelay;
 
     /**
      * 业务消息体
@@ -101,6 +116,16 @@ public class Request<T> extends Topic implements Message<T> {
     }
 
     @Override
+    public Integer getPollingCount() {
+        return null == this.pollingCount ? 0 : this.pollingCount;
+    }
+
+    @Override
+    public Integer getFailRetryCount() {
+        return null == this.failRetryCount ? 0 : this.failRetryCount;
+    }
+
+    @Override
     public T getBody() {
         return this.body;
     }
@@ -108,17 +133,5 @@ public class Request<T> extends Topic implements Message<T> {
     @Override
     public String topic() {
         return Func.getTopic(serviceId, code);
-    }
-
-    public void setRequestId(String requestId) {
-        this.requestId = requestId;
-    }
-
-    public void setDeliverCount(Integer deliverCount) {
-        this.deliverCount = deliverCount;
-    }
-
-    public void setBody(T body) {
-        this.body = body;
     }
 }

@@ -56,7 +56,9 @@ public class PollThreadPoolExecutor extends WaitThreadPoolExecutor {
      */
     @Override
     public synchronized void execute(Runnable r) {
-        running = true;
+        if (!running) {
+            running = true;
+        }
         super.execute(r);
     }
 

@@ -51,6 +51,20 @@ public interface Message<T> {
     Integer getDeliverCount();
 
     /**
+     * 获取消息轮询次数
+     *
+     * @return 消息轮询次数
+     */
+    Integer getPollingCount();
+
+    /**
+     * 获取消费者接收失败后，发起的失败重试次数
+     *
+     * @return 返回重试的次数
+     */
+    Integer getFailRetryCount();
+
+    /**
      * 获取消息体
      *
      * @return 消息体

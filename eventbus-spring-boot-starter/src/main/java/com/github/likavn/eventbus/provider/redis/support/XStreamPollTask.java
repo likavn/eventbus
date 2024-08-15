@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.provider.redis.support;
 
+import com.github.likavn.eventbus.core.utils.GroupedThreadPoolExecutor;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.ReadOffset;
@@ -30,7 +31,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
@@ -43,7 +43,7 @@ import java.util.function.Predicate;
  */
 @SuppressWarnings("all")
 class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
-    private final Executor taskExcExecutor;
+    private final GroupedThreadPoolExecutor taskExcExecutor;
     private final StreamReadRequest<K> request;
     private final StreamListener<K, V> listener;
     private final ErrorHandler errorHandler;
@@ -51,10 +51,12 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
     private final BiFunction<K, ReadOffset, List<V>> readFunction;
 
     private final XStreamPollTask.PollState pollState;
+
+    private GroupedThreadPoolExecutor.GTask task;
     private volatile boolean isInEventLoop = false;
 
     XStreamPollTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener, ErrorHandler errorHandler,
-                    BiFunction<K, ReadOffset, List<V>> readFunction, Executor taskExcExecutor) {
+                    BiFunction<K, ReadOffset, List<V>> readFunction, GroupedThreadPoolExecutor taskExcExecutor, RedisListener redisListener) {
         this.taskExcExecutor = taskExcExecutor;
         this.request = streamRequest;
         this.listener = listener;
@@ -62,6 +64,12 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
         this.cancelSubscriptionOnError = streamRequest.getCancelSubscriptionOnError();
         this.readFunction = readFunction;
         this.pollState = createPollState(streamRequest);
+
+        this.task = new GroupedThreadPoolExecutor.GTask();
+        String groupName = null == redisListener.getTrigger() ? redisListener.getServiceId() : redisListener.getTrigger().getDeliverId();
+        this.task.setName(groupName);
+        this.task.setConcurrency(redisListener.getConcurrency());
+        this.task.setData(this);
     }
 
     private static XStreamPollTask.PollState createPollState(StreamReadRequest<?> streamRequest) {
@@ -130,37 +138,52 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
         }
     }
 
-    private void doLoop(K key) {
+    public boolean pull() {
+        pollState.starting();
 
-      //  do {
+        try {
 
-            try {
+            isInEventLoop = true;
+            pollState.running();
+            return doLoop(request.getStreamOffset().getKey());
+        } finally {
+            isInEventLoop = false;
+        }
+    }
 
-                // allow interruption
-                Thread.sleep(0);
-                List<V> read = readFunction.apply(key, ReadOffset.lastConsumed());
+    private boolean doLoop(K key) {
 
-                this.taskExcExecutor.execute(() -> {
-                    for (V message : read) {
+        //  do {
+        try {
 
-                        listener.onMessage(message);
-                        pollState.updateReadOffset(message.getId().getValue());
-                    }
-                });
-            } catch (InterruptedException e) {
-
-                cancel();
-                Thread.currentThread().interrupt();
-            } catch (RuntimeException e) {
-
-                if (cancelSubscriptionOnError.test(e)) {
-                    cancel();
-                }
-
-                errorHandler.handleError(e);
+            // allow interruption
+            Thread.sleep(0);
+            List<V> read = readFunction.apply(key, ReadOffset.lastConsumed());
+            if (read.isEmpty()) {
+                return true;
             }
+            this.taskExcExecutor.execute(task.target(() -> {
+                for (V message : read) {
+
+                    listener.onMessage(message);
+                    pollState.updateReadOffset(message.getId().getValue());
+                }
+            }));
+        } catch (InterruptedException e) {
+
             cancel();
-    //    } while (pollState.isSubscriptionActive());
+            Thread.currentThread().interrupt();
+        } catch (RuntimeException e) {
+
+            if (cancelSubscriptionOnError.test(e)) {
+                cancel();
+            }
+
+            errorHandler.handleError(e);
+        }
+        cancel();
+        return false;
+        //    } while (pollState.isSubscriptionActive());
     }
 
     @Override
@@ -228,14 +251,14 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
         }
 
         /**
-         * Set the state to {@link org.springframework.data.redis.stream.Task.State#STARTING}.
+         * Set the state to {@link State#STARTING}.
          */
         void starting() {
             state = State.STARTING;
         }
 
         /**
-         * Switch the state to {@link org.springframework.data.redis.stream.Task.State#RUNNING}.
+         * Switch the state to {@link State#RUNNING}.
          */
         void running() {
 
@@ -249,7 +272,7 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
         }
 
         /**
-         * Set the state to {@link org.springframework.data.redis.stream.Task.State#CANCELLED} and re-arm the
+         * Set the state to {@link State#CANCELLED} and re-arm the
          * {@link #awaitStart(long, TimeUnit) await synchronizer}.
          */
         void cancel() {

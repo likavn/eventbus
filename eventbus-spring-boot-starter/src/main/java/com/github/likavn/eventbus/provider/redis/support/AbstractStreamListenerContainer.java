@@ -18,18 +18,15 @@ package com.github.likavn.eventbus.provider.redis.support;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.MsgType;
-import com.github.likavn.eventbus.core.utils.Func;
-import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
-import com.github.likavn.eventbus.core.utils.PollThreadPoolExecutor;
-import com.github.likavn.eventbus.core.utils.WaitThreadPoolExecutor;
+import com.github.likavn.eventbus.core.utils.*;
 import com.github.likavn.eventbus.prop.BusProperties;
 import lombok.extern.slf4j.Slf4j;
-import lombok.var;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
 import org.springframework.util.Assert;
 
 import java.time.Duration;
@@ -68,13 +65,14 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
             return;
         }
         boolean isBlock = config.getRedis().getPollBlock();
-        ThreadPoolExecutor[] executors = createExecutor(listeners, isBlock);
-        pollExecutor = executors[0];
+        Object[] executors = createExecutor(listeners, isBlock);
+        pollExecutor = (ThreadPoolExecutor) executors[0];
         // 阻塞轮询或延时任务轮询间隔都设置为2000ms
         MsgType type = listeners.get(0).getType();
         long pollTimeout = isBlock || type.isDelay() ? 2000 : 5;
         // 创建配置对象
-        var options = StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder()
+        StreamMessageListenerContainerOptions<String, ObjectRecord<String, String>> options
+                = StreamMessageListenerContainerOptions.builder()
                 .executor(pollExecutor)
                 // 一次性最多拉取多少条消息
                 .batchSize(config.getMsgBatchSize())
@@ -90,7 +88,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
         RedisConnectionFactory connectionFactory = redisTemplate.getConnectionFactory();
         Assert.notNull(connectionFactory, "RedisConnectionFactory must not be null!");
         container = isBlock ? StreamMessageListenerContainer.create(connectionFactory, options)
-                : new XDefaultStreamMessageListenerContainer<>(connectionFactory, options, executors[1]);
+                : new XDefaultStreamMessageListenerContainer<>(connectionFactory, options, (GroupedThreadPoolExecutor) executors[1]);
         // 添加消费者
         createConsumer(container, listeners);
         // 启动监听
@@ -103,7 +101,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      * @param listeners listeners
      * @return 线程池
      */
-    private ThreadPoolExecutor[] createExecutor(List<RedisListener> listeners, boolean isBlock) {
+    private Object[] createExecutor(List<RedisListener> listeners, boolean isBlock) {
         NamedThreadFactory factory = new NamedThreadFactory(this.getClass().getSimpleName() + "-");
         // 创建线程池
         int concurrency = listeners.stream().map(RedisListener::getConcurrency).reduce(Integer::sum).orElse(1);
@@ -120,29 +118,47 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
                     TimeUnit.MINUTES, new LinkedBlockingDeque<>(concurrency), factory);
 
             // 分发消息的线程池
-            ThreadPoolExecutor excExecutor = new WaitThreadPoolExecutor(1, poolSize, redis.getPollThreadKeepAliveTime(),
-                    TimeUnit.SECONDS, new LinkedBlockingDeque<>(concurrency), new NamedThreadFactory(this.getClass().getSimpleName() + ".exc-"));
-            return new ThreadPoolExecutor[]{executor, excExecutor};
+            GroupedThreadPoolExecutor excExecutor = new GroupedThreadPoolExecutor(1, 1000 * redis.getPollThreadKeepAliveTime(),
+                    new NamedThreadFactory(this.getClass().getSimpleName() + ".exc-"));
+            return new Object[]{executor, excExecutor};
         }
     }
 
     /**
-     * 注册消费者
+     * 创建消费者并将其注册到消息监听器容器中
+     * 此方法首先获取当前主机地址，然后为每个Redis监听器创建一个消费者，并配置相应的流偏移量
+     * 如果容器是特定类型（XDefaultStreamMessageListenerContainer），会使用一种特定的方式注册消费者
+     * 否则，将使用通用方式使容器接收消息
      *
-     * @param container 监听容器
-     * @param listeners listeners
+     * @param container 消息监听器容器，用于管理消费者和处理消息
+     * @param listeners 一个或多个Redis事件监听器，每个监听器代表一个消息流的监听点
      */
     private void createConsumer(StreamMessageListenerContainer<String, ObjectRecord<String, String>> container, List<RedisListener> listeners) {
+        // 获取当前设备的主机地址，用于标识消息的消费点
         String hostAddress = Func.getHostAddress();
-        // 初始化组
+        // 初始化监听器组，这一步可能涉及到创建或更新Redis中的消费者组
         createGroup(listeners);
+        // 遍历每个Redis监听器，为每个流创建并配置消费者
         for (RedisListener listener : listeners) {
-            Func.pollRun(listener.getConcurrency(), () ->
-                    container.receive(
-                            Consumer.from(listener.getGroup(), hostAddress),
-                            StreamOffset.create(listener.getStreamKey(), ReadOffset.lastConsumed()),
-                            // 使用监听容器对象开始监听消费（使用的是手动确认方式）
-                            msg -> deliverMsg(listener, msg)));
+            // 根据监听器的并发级别启动消费者线程
+            Func.pollRun(listener.getConcurrency(), () -> {
+                // 从监听器的组信息和当前主机地址创建一个消费者实例
+                Consumer consumer = Consumer.from(listener.getGroup(), hostAddress);
+                // 创建流偏移量，指定从最后已消费的消息之后开始读取
+                StreamOffset<String> offset = StreamOffset.create(listener.getStreamKey(), ReadOffset.lastConsumed());
+                // 如果容器是XDefaultStreamMessageListenerContainer类型，则使用特定方法注册消费者
+                if (container instanceof XDefaultStreamMessageListenerContainer) {
+                    // 使用构建者模式配置消费者的读取请求，并注册到容器中
+                    // 指定消费策略，包括不自动确认消息和处理消息的回调函数
+                    ((XDefaultStreamMessageListenerContainer<String, ObjectRecord<String, String>>) container).register(StreamMessageListenerContainer
+                                    .StreamReadRequest.builder(offset).consumer(consumer).autoAcknowledge(false).build(),
+                            msg -> deliverMsg(listener, msg), listener);
+                    return;
+                }
+                // 如果容器不是特定类型，则通过接收方法使容器接收消息
+                // 这种方式适用于更广泛的容器类型
+                container.receive(consumer, offset, msg -> deliverMsg(listener, msg));
+            });
         }
     }
 

@@ -20,41 +20,20 @@ import com.github.likavn.eventbus.core.metadata.BusConfig;
 import java.lang.annotation.*;
 
 /**
- * 及时消息订阅注解
- * <p>
- * 用于标记对及时消息的监听方法，可以通过此注解定制消息处理的详细行为，如所属服务、消息类型和并发级别等。
+ * 并发级别注解，优先级最高
  *
  * @author likavn
- * @date 2024/01/01
- **/
+ * @date 2023/7/19
+ * @since 2.3.4
+ */
 @Documented
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Listener {
-
-    /**
-     * 消息所属来源服务ID或服务名。默认订阅本服务{@link BusConfig#getServiceId()}配置的ID
-     *
-     * @see BusConfig#getServiceId()
-     */
-    String serviceId() default "";
-
-    /**
-     * 消息类型，用于区分不同的消息类型。
-     */
-    String[] codes();
-
+public @interface Concurrency {
     /**
      * 定义并发级别，默认值为-1。
      *
      * @return 返回并发级别的整数值。设置-1表示未设置，默认{@link BusConfig#getConcurrency()}。
      */
     int concurrency() default -1;
-
-    /**
-     * 消息投递失败异常处理注解
-     * <p>
-     * 用于定义当消息投递失败时的处理策略。
-     */
-    Fail fail() default @Fail();
 }

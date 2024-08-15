@@ -16,9 +16,12 @@
 package com.github.likavn.eventbus.core.metadata.support;
 
 import com.github.likavn.eventbus.core.annotation.Polling;
+import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
+import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -28,6 +31,7 @@ import lombok.NoArgsConstructor;
  **/
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class Listener {
     /**
      * 消息所属来源服务ID,服务名
@@ -43,7 +47,7 @@ public class Listener {
      */
     private int concurrency;
     /**
-     * 消息类型
+     * 监听器类型
      */
     private MsgType type = MsgType.TIMELY;
     /**
@@ -60,6 +64,11 @@ public class Listener {
      */
     private Polling polling;
 
+    /**
+     * 异步消息转延时消息配置
+     */
+    private ToDelay toDelay;
+
     public Listener(String serviceId, String code, int concurrency, MsgType type) {
         this.serviceId = serviceId;
         this.code = code;
@@ -67,19 +76,16 @@ public class Listener {
         this.type = type;
     }
 
-    public Listener(String serviceId, String code, int concurrency, MsgType type, Trigger trigger, FailTrigger failTrigger, Polling polling) {
+
+    public void isValid() {
         Polling.ValidatorInterval.isValid(null == polling ? null : polling.interval());
-        this.serviceId = serviceId;
-        this.code = code;
-        this.concurrency = concurrency;
-        this.type = type;
-        this.trigger = trigger;
-        this.failTrigger = failTrigger;
-        this.polling = polling;
+        if (null != toDelay) {
+            Assert.isTrue(toDelay.delayTime() > 0, "@ToDelay.delayTime must be greater than 0");
+        }
     }
 
     public static Listener ofDelay(BusConfig config) {
-        return new Listener(config.getServiceId(), null, config.getDelayConcurrency(), MsgType.DELAY);
+        return new Listener(config.getServiceId(), null, config.getConcurrency(), MsgType.DELAY);
     }
 
     public String getTopic() {

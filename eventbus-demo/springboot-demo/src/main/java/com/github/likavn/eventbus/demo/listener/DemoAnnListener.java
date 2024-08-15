@@ -20,7 +20,7 @@ public class DemoAnnListener {
             // 订阅的消息编码
             codes = MsgConstant.DEMO_ANN_LISTENER,
             // 并发
-            concurrency = 3,
+            concurrency = 1,
             // 异常处理
             fail = @Fail(
                     // 调用方法
