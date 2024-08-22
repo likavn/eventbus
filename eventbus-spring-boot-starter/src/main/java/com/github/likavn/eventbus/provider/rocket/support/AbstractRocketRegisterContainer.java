@@ -59,15 +59,17 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
             consumers.forEach(DefaultMQPushConsumer::resume);
             return;
         }
-
-        List<Listener> listeners = getListeners();
-        if (Func.isEmpty(listeners)) {
-            return;
+        try {
+            List<Listener> listeners = getListeners();
+            if (Func.isEmpty(listeners)) {
+                return;
+            }
+            // register
+            listeners.forEach(this::registerPushConsumer);
+            starts(consumers);
+        } catch (Exception e) {
+            System.exit(1);
         }
-
-        // register
-        listeners.forEach(this::registerPushConsumer);
-        starts(consumers);
     }
 
     /**

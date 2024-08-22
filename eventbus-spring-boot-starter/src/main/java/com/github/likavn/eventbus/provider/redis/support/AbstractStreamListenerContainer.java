@@ -60,38 +60,56 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
             container.start();
             return;
         }
+        try {
+            appStartup();
+        } catch (Exception e) {
+            System.exit(1);
+        }
+    }
+
+    /**
+     * 应用启动时执行的Redis监听器初始化方法
+     * 初始化包括创建执行器、配置监听容器等操作
+     */
+    private void appStartup() {
+        // 获取配置的Redis监听器列表
         List<RedisListener> listeners = getListeners();
+        // 如果监听器列表为空，则直接返回
         if (Func.isEmpty(listeners)) {
             return;
         }
+        // 获取是否为阻塞轮询的配置
         boolean isBlock = config.getRedis().getPollBlock();
+        // 根据监听器列表和阻塞配置创建执行器
         Object[] executors = createExecutor(listeners, isBlock);
+        // 保存线程池执行器，用于后续的配置
         pollExecutor = (ThreadPoolExecutor) executors[0];
-        // 阻塞轮询或延时任务轮询间隔都设置为2000ms
+        // 根据是否为阻塞轮询和监听器类型设置轮询间隔
         MsgType type = listeners.get(0).getType();
         long pollTimeout = isBlock || type.isDelay() ? 2000 : 5;
-        // 创建配置对象
+        // 开始构建监听容器的配置对象
         StreamMessageListenerContainerOptions<String, ObjectRecord<String, String>> options
                 = StreamMessageListenerContainerOptions.builder()
                 .executor(pollExecutor)
-                // 一次性最多拉取多少条消息
+                // 设置一次性最多拉取的消息数量
                 .batchSize(config.getMsgBatchSize())
-                // 消息消费异常的handler
+                // 设置消息消费异常的处理程序
                 .errorHandler(t -> log.error("[Eventbus error] ", t))
-                // 超时时间，设置为0，表示不超时（超时后会抛出异常）
+                // 设置轮询超时时间，如果设置为0，则表示不超时
                 .pollTimeout(Duration.ofMillis(pollTimeout))
-                // 序列化器
+                // 设置序列化器
                 .serializer(new StringRedisSerializer())
+                // 设置目标类型为String
                 .targetType(String.class)
                 .build();
-        // 根据配置对象创建监听容器对象
+        // 根据配置对象创建监听容器
         RedisConnectionFactory connectionFactory = redisTemplate.getConnectionFactory();
         Assert.notNull(connectionFactory, "RedisConnectionFactory must not be null!");
         container = isBlock ? StreamMessageListenerContainer.create(connectionFactory, options)
                 : new XDefaultStreamMessageListenerContainer<>(connectionFactory, options, (GroupedThreadPoolExecutor) executors[1]);
-        // 添加消费者
+        // 为监听容器添加消费者
         createConsumer(container, listeners);
-        // 启动监听
+        // 启动监听容器，开始监听Redis消息
         container.start();
     }
 

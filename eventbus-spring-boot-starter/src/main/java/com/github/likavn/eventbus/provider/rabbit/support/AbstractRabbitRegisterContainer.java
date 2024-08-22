@@ -47,6 +47,7 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
     private final List<Channel> channels = Collections.synchronizedList(new ArrayList<>());
     protected final BusConfig config;
     private String exchangeName = null;
+    private boolean applicationStarted = false;
 
     protected AbstractRabbitRegisterContainer(CachingConnectionFactory connectionFactory, BusConfig config) {
         this.connectionFactory = connectionFactory;
@@ -67,35 +68,46 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
     }
 
     /**
-     * 注册监听器并创建相应的消息消费者。
-     * 该方法首先会获取所有监听器，如果监听器列表为空，则直接返回。
-     * 接着，根据第一个监听器的类型创建一个交换器。
-     * 最后，为每个监听器创建一个消息消费者，消费者数量由监听器的并发度决定。
+     * 同步地注册事件监听器。此方法确保同一时间只有一个线程可以注册。
+     * 它首先获取所有监听器的列表，如果没有监听器，则直接返回。
+     * 然后，根据第一个监听器的类型创建交换机。
+     * 最后，为每个监听器创建消费者，如果出错则抛出EventBusException异常。
+     * 如果在应用启动前捕获到异常且应用尚未启动，则终止应用。
      */
     @Override
     public synchronized void register() {
-        List<Listener> listeners = getListeners();
-        // 判断监听器列表是否为空，为空则直接返回
-        if (Func.isEmpty(listeners)) {
-            return;
-        }
         try {
-            // 获取第一个监听器的消息类型，并基于此类型创建交换器
+            // 获取事件监听器列表
+            List<Listener> listeners = getListeners();
+            // 如果监听器列表为空，则直接返回
+            if (Func.isEmpty(listeners)) {
+                return;
+            }
+            // 获取第一个监听器的类型，用于创建交换机
             MsgType msgType = listeners.get(0).getType();
+            // 根据监听器类型创建交换机
             createExchange(msgType);
 
-            // 为每个监听器创建消费者，消费者数量由监听器的并发度决定
+            // 对每个监听器，根据其并发级别创建消费者
             listeners.forEach(listener -> Func.pollRun(listener.getConcurrency(), () -> {
                 try {
+                    // 创建消费者的过程可能会抛出IOException
                     createConsumer(listener);
                 } catch (IOException e) {
-                    // 将IOException转换为EventBusException抛出
+                    // 将IOException包装为EventBusException并抛出
                     throw new EventBusException(e);
                 }
             }));
         } catch (Exception e) {
+            // 如果应用尚未启动且捕获到异常，则终止应用
+            if (!applicationStarted) {
+                System.exit(1);
+            }
+            // 将捕获到的异常包装为EventBusException并抛出
             throw new EventBusException(e);
         }
+        // 设置应用启动状态为true
+        applicationStarted = true;
     }
 
     /**

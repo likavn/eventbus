@@ -46,7 +46,7 @@ public class BusBootRabbitConfiguration {
 
     @Bean
     public MsgSender msgSender(RabbitTemplate rabbitTemplate, BusConfig config,
-                               @Lazy InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator,@Lazy  ListenerRegistry registry) {
+                               @Lazy InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, @Lazy ListenerRegistry registry) {
         return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig, requestIdGenerator, registry);
     }
 
@@ -57,8 +57,8 @@ public class BusBootRabbitConfiguration {
     }
 
     @Bean
-    public RabbitMsgDelayListener rabbitMsgDelayListener(CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus) {
-        return new RabbitMsgDelayListener(connectionFactory, config, deliveryBus);
+    public RabbitMsgDelayListener rabbitMsgDelayListener(CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
+        return new RabbitMsgDelayListener(connectionFactory, config, deliveryBus, registry);
     }
 
     @Bean

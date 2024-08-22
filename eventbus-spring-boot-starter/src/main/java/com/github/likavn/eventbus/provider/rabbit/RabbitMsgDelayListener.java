@@ -16,6 +16,7 @@
 package com.github.likavn.eventbus.provider.rabbit;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.provider.rabbit.support.AbstractRabbitRegisterContainer;
@@ -35,7 +36,8 @@ public class RabbitMsgDelayListener extends AbstractRabbitRegisterContainer {
 
     public RabbitMsgDelayListener(CachingConnectionFactory connectionFactory,
                                   BusConfig config,
-                                  DeliveryBus deliveryBus) {
+                                  DeliveryBus deliveryBus,
+                                  ListenerRegistry registry) {
         super(connectionFactory, config);
         this.deliveryBus = deliveryBus;
     }

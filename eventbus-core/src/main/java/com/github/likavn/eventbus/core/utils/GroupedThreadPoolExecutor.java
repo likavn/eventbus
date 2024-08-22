@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -28,25 +29,6 @@ public class GroupedThreadPoolExecutor {
     @Setter
     private Consumer<WorkerThread> afterConsumer;
 
-    public static void main(String[] args) {
-        GroupedThreadPoolExecutor executor = new GroupedThreadPoolExecutor(1, 1000 * 5, new NamedThreadFactory("test-thread-pool-"));
-        AtomicInteger time = new AtomicInteger(0);
-
-        for (int i = 1; i <= 2; i++) {
-            int index = i;
-            new Thread(() -> Stream.of(new Byte[100]).parallel().forEach(t -> {
-                int timeNum = time.incrementAndGet();
-                GTask task = new GTask();
-                task.setName("task-" + index);
-                task.setConcurrency(1);
-                task.target(() -> {
-                    System.out.println("task-" + index + "->" + timeNum + "，threadName->" + Thread.currentThread().getName());
-                });
-                executor.execute(task);
-            })).start();
-        }
-    }
-
     public GroupedThreadPoolExecutor(int corePoolSize, int keepAliveTimeMillis, NamedThreadFactory threadFactory) {
         this.corePoolSize = corePoolSize;
         this.keepAliveTimeMillis = keepAliveTimeMillis;
@@ -56,25 +38,61 @@ public class GroupedThreadPoolExecutor {
     public boolean execute(GTask task) {
         task.isValid();
         takeThread(task).execute();
-        return getState(task).getSurplusCount() > 0;
+        return getState(task).getLeftCount() > 0;
     }
 
-    @SuppressWarnings("all")
+    public static void main(String[] args) throws InterruptedException {
+        GroupedThreadPoolExecutor executor = new GroupedThreadPoolExecutor(
+                1, 1000 * 5, new NamedThreadFactory("test-thread-pool-"));
+        AtomicInteger time = new AtomicInteger(0);
+        AtomicInteger executeNum = new AtomicInteger(0);
+        AtomicInteger index = new AtomicInteger(0);
+
+        int pollNum = 100;
+        int streamSize = 100;
+        int realNum = pollNum * streamSize;
+        CountDownLatch latch = new CountDownLatch(Math.toIntExact(realNum));
+        Stream.of(new Byte[pollNum]).parallel().forEach(t -> {
+            index.incrementAndGet();
+            new Thread(() -> Stream.of(new Byte[streamSize]).parallel().forEach(t1 -> {
+                //   int timeNum = time.incrementAndGet();
+                GroupedThreadPoolExecutor.GTask task = new GroupedThreadPoolExecutor.GTask();
+                task.setName("task-" + index.get());
+                task.setConcurrency(2);
+                //     System.out.println("task-" + index + "->" + timeNum + "，threadName->" + Thread.currentThread().getName());
+                task.target(() -> {
+                    //    System.out.println("execute name->" + task.getName() + "   " + Thread.currentThread().getName());
+                    executeNum.incrementAndGet();
+                    latch.countDown();
+                });
+                executor.execute(task);
+            })).start();
+        });
+        latch.await();
+        if (executeNum.get() == realNum) {
+            System.out.println("成功...  " + executeNum.get());
+        } else {
+            System.out.println("失败...  " + executeNum.get() + ",相差：" + (realNum - executeNum.get()));
+        }
+    }
+
     private WorkerThread takeThread(GTask task) {
         State state = getState(task);
         // 按分组进行分段式锁控制
-        synchronized (state) {
-            while (state.getSurplusCount() < 1) {
-                synchronized (state.lock) {
-                    try {
-                        state.lock.wait(1000);
-                    } catch (InterruptedException e) {
-                        throw new EventBusException(e);
-                    }
+        state.lock();
+        try {
+            while (state.getLeftCount() < 1) {
+                synchronized (state.update) {
+                    state.update.wait(1000);
                 }
             }
             state.decrement();
+        } catch (InterruptedException e) {
+            throw new EventBusException(e);
+        } finally {
+            state.unlock();
         }
+
         mainLock.lock();
         WorkerThread workThread = freePools.poll();
         try {
@@ -85,9 +103,7 @@ public class GroupedThreadPoolExecutor {
             }
             busyPools.add(workThread);
         } catch (Exception e) {
-            synchronized (state.lock) {
-                state.increment();
-            }
+            state.increment();
             throw new EventBusException(e);
         } finally {
             mainLock.unlock();
@@ -103,19 +119,16 @@ public class GroupedThreadPoolExecutor {
     }
 
     public void afterExecute(WorkerThread worker, Throwable t) {
-        System.out.println("afterExecute getLock= " + worker.getName());
+        //   System.out.println("afterExecute getLock= " + worker.getName());
         mainLock.lock();
         try {
-            System.out.println("afterExecute locked= " + worker.getName());
+            //   System.out.println("afterExecute locked= " + worker.getName());
             freePools.add(worker);
             busyPools.remove(worker);
             State state = getState(worker.getTask());
-            System.out.println("afterExecute locked increment bf= " + worker.getName() + "    " + state.getSurplusCount());
+            //      System.out.println("afterExecute locked increment bf= " + worker.getName() + "    " + state.getSurplusCount());
+            //     System.out.println("afterExecute locked increment af= " + worker.getName() + "    " + state.getSurplusCount());
             state.increment();
-            System.out.println("afterExecute locked increment af= " + worker.getName() + "    " + state.getSurplusCount());
-            synchronized (state.lock) {
-                state.lock.notify();
-            }
         } finally {
             mainLock.unlock();
         }
@@ -143,6 +156,7 @@ public class GroupedThreadPoolExecutor {
     private void workerThreadExit(WorkerThread thread) {
         mainLock.lock();
         try {
+            System.out.println("准备销毁线程..." + thread.getName() + " ,freePools size=" + freePools.size() + ",busyPools size=" + busyPools.size() + ",currentCorePoolSize=" + currentCorePoolSize.get());
             // 从空闲池中移除指定的工作线程
             boolean removed = freePools.removeIf(t -> t.equals(thread));
             // 如果线程被成功移除，则减小核心线程池大小并中断线程
@@ -197,7 +211,7 @@ public class GroupedThreadPoolExecutor {
                     state = new State();
                     state.setGroupName(task.getName());
                     state.setConcurrency(task.getConcurrency());
-                    state.setSurplusCount(new AtomicInteger(task.getConcurrency()));
+                    state.setLeftCount(task.getConcurrency());
                     stateMap.put(task.getName(), state);
                 }
             }
@@ -269,7 +283,7 @@ public class GroupedThreadPoolExecutor {
     @AllArgsConstructor
     private static class State {
         // 定义一个锁对象，用于控制并发访问，确保线程安全。
-        final Object lock = new Object();
+        private final ReentrantLock lock = new ReentrantLock();
 
         // groupName表示资源所属的组名。
         private String groupName;
@@ -277,30 +291,49 @@ public class GroupedThreadPoolExecutor {
         // concurrency表示并发数，即允许同时访问资源的线程数量。
         private int concurrency;
 
-        // surplusCount用于记录剩余的可用资源数量，采用AtomicInteger保证线程安全。
-        private AtomicInteger surplusCount;
+        // leftCount用于记录剩余的可用资源数量，采用AtomicInteger保证线程安全。
+        private int leftCount;
+
+        final Object update = new Object();
 
         /**
          * 获取当前剩余可用资源的数量。
          *
          * @return 剩余资源数量。
          */
-        public int getSurplusCount() {
-            return surplusCount.get();
+        public int leftCount() {
+            synchronized (update) {
+                return leftCount;
+            }
         }
 
         /**
          * 增加一个可用资源，采用原子操作保证线程安全。
          */
         public void increment() {
-            surplusCount.incrementAndGet();
+            synchronized (update) {
+                leftCount++;
+                update.notify();
+                //   System.out.println("返回线程increment name=" + getGroupName() + "  " + leftCount());
+            }
         }
 
         /**
          * 减少一个可用资源，采用原子操作保证线程安全。
          */
         public void decrement() {
-            surplusCount.decrementAndGet();
+            synchronized (update) {
+                leftCount--;
+                //  System.out.println("占用线程increment name=" + getGroupName() + "  " + leftCount());
+            }
+        }
+
+        public void lock() {
+            lock.lock();
+        }
+
+        public void unlock() {
+            lock.unlock();
         }
     }
 
@@ -310,7 +343,10 @@ public class GroupedThreadPoolExecutor {
      * <p>
      * 注：此处不能重写hashCode和equals方法，否则会导致线程池的线程管理机制失效
      */
+    @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
     public class WorkerThread extends Thread {
+        @EqualsAndHashCode.Include
+        private final String id;
 
         // 标识该线程是否为核心线程
         private final boolean core;
@@ -333,6 +369,7 @@ public class GroupedThreadPoolExecutor {
          */
         public WorkerThread(NamedThreadFactory factory, boolean core) {
             super(factory.getPrefix() + factory.increment());
+            this.id = getName();
             this.core = core;
             this.lastRunTimeMillis = System.currentTimeMillis();
             start();
