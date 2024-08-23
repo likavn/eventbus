@@ -78,4 +78,12 @@ public class RabbitConstant {
      * 1.服务serviceId;
      */
     public static final String DELAY_QUEUE = SUFFIX + "delayQueue.%s";
+
+    /**
+     * 延时队列名V2版本
+     * 参数：
+     * <p>
+     * 1.服务serviceId;
+     */
+    public static final String DELAY_QUEUE_V2 = SUFFIX + "delayQueue.%s@%s";
 }

@@ -48,4 +48,11 @@ public abstract class Topic implements Serializable {
      * @return topic
      */
     public abstract String topic();
+
+    /**
+     * 获取延时消息topic
+     *
+     * @return topic
+     */
+    public abstract String delayTopic();
 }

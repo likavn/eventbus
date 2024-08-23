@@ -35,7 +35,7 @@ public class DemoMsgListener extends MsgListener<TestBody> {
         log.info("接收数据,第{}次投递，轮询{}次，失败重试{}次:RequestId:{}", msg.getDeliverCount(), msg.getPollingCount(), msg.getFailRetryCount(), msg.getRequestId());
         //  throw new RuntimeException("DemoMsgListener test");
         if (msg.getDeliverCount() == 3) {
-         //   throw new RuntimeException("DemoMsgListener test");
+            throw new RuntimeException("DemoMsgListener test");
         }
 
         if (msg.getPollingCount() >= 2) {

@@ -135,6 +135,7 @@ public class ListenerRegistry {
         else {
             Listener listener = new Listener();
             listener.setServiceId(config.getServiceId());
+            listener.setCode(trigger.getDeliverId());
             listener.setType(MsgType.DELAY);
             listener.setTrigger(trigger);
             listener.setFailTrigger(failTrigger);
@@ -187,8 +188,7 @@ public class ListenerRegistry {
             }
 
             // 获取并检查注解是否存在
-            com.github.likavn.eventbus.core.annotation.Listener listener
-                    = primitiveMethod.getAnnotation(com.github.likavn.eventbus.core.annotation.Listener.class);
+            com.github.likavn.eventbus.core.annotation.Listener listener = primitiveMethod.getAnnotation(com.github.likavn.eventbus.core.annotation.Listener.class);
             DelayListener delayListener = primitiveMethod.getAnnotation(DelayListener.class);
 
             if (null == listener && null == delayListener) {
@@ -230,8 +230,7 @@ public class ListenerRegistry {
         List<String> codes;
         Integer concurrency;
         // 检查订阅方法是否注解了Listener注解
-        com.github.likavn.eventbus.core.annotation.Listener listener
-                = primitiveMethod.getAnnotation(com.github.likavn.eventbus.core.annotation.Listener.class);
+        com.github.likavn.eventbus.core.annotation.Listener listener = primitiveMethod.getAnnotation(com.github.likavn.eventbus.core.annotation.Listener.class);
         Concurrency concurrencyAnn = primitiveMethod.getAnnotation(Concurrency.class);
         if (null != listener) {
             // 如果注解存在，则设置消息类型为TIMELY（及时）
@@ -370,5 +369,17 @@ public class ListenerRegistry {
      */
     public List<Listener> getDelayListeners() {
         return new ArrayList<>(delayMap.values());
+    }
+
+    /**
+     * 获取所有消息订阅器
+     *
+     * @return listeners
+     */
+    public List<Listener> getFullListeners() {
+        return new ArrayList<Listener>() {{
+            addAll(getTimelyListeners());
+            addAll(getDelayListeners());
+        }};
     }
 }

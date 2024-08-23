@@ -16,7 +16,9 @@
 package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
+import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.support.task.PeriodTask;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
@@ -49,6 +51,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final RLock rLock;
+    private final ListenerRegistry registry;
     private final DeliveryBus deliveryBus;
     private final DefaultRedisScript<Long> pushMsgStreamRedisScript;
     /**
@@ -70,12 +73,13 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     public RedisMsgDelayListener(StringRedisTemplate stringRedisTemplate,
                                  TaskRegistry taskRegistry,
                                  BusProperties busProperties,
-                                 DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
+                                 DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, ListenerRegistry registry, DeliveryBus deliveryBus) {
         super(stringRedisTemplate, busProperties);
         this.stringRedisTemplate = stringRedisTemplate;
         this.taskRegistry = taskRegistry;
         this.pushMsgStreamRedisScript = pushMsgStreamRedisScript;
         this.rLock = rLock;
+        this.registry = registry;
         this.deliveryBus = deliveryBus;
         this.delayZetKey = String.format(RedisConstant.BUS_DELAY_PREFIX, busProperties.getServiceId());
         this.pollLockKey = String.format(RedisConstant.BUS_DELAY_LOCK_PREFIX, busProperties.getServiceId());
@@ -84,6 +88,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
 
     @Override
     protected List<RedisListener> getListeners() {
+        List<Listener> fullListeners = registry.getFullListeners();
         return RedisListener.redisDelaySubscriber(config.getServiceId(), config.getConcurrency());
     }
 

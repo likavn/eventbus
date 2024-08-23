@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.provider.redis.support;
 
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
@@ -69,6 +70,10 @@ public final class RedisListener extends Listener {
 
     public static List<RedisListener> redisListeners(List<Listener> listeners) {
         return listeners.stream().map(t -> new RedisListener(t, RedisConstant.BUS_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
+    }
+
+    public static List<RedisListener> redisListeners(ListenerRegistry registry) {
+        return registry.getFullListeners().stream().map(t -> new RedisListener(t, RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
     }
 
     public static List<RedisListener> redisDelaySubscriber(String serviceId) {

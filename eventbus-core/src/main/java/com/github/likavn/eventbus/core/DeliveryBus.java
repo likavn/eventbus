@@ -55,35 +55,35 @@ public class DeliveryBus {
     /**
      * 发送及时消息给订阅者
      *
-     * @param subscriber 订阅者
-     * @param body       内容的主体
+     * @param listener 订阅者
+     * @param body     内容的主体
      */
-    public void deliverTimely(Listener subscriber, byte[] body) {
-        deliverTimely(subscriber, Func.convertByBytes(body));
+    public void deliverTimely(Listener listener, byte[] body) {
+        deliverTimely(listener, Func.convertByBytes(body));
     }
 
     /**
      * 发送及时消息给订阅者
      *
-     * @param subscriber 订阅者
-     * @param body       内容的主体
+     * @param listener 订阅者
+     * @param body     内容的主体
      */
-    public void deliverTimely(Listener subscriber, String body) {
-        deliverTimely(subscriber, Func.convertByJson(body));
+    public void deliverTimely(Listener listener, String body) {
+        deliverTimely(listener, Func.convertByJson(body));
     }
 
     /**
      * 发送及时消息给订阅者
      *
-     * @param subscriber 订阅者
-     * @param request    请求对象
+     * @param listener 订阅者
+     * @param request  请求对象
      */
-    public void deliverTimely(Listener subscriber, Request<?> request) {
-        if (null != request.getDeliverId() && (!subscriber.getTrigger().getDeliverId().equals(request.getDeliverId()))) {
+    public void deliverTimely(Listener listener, Request<?> request) {
+        if (null != request.getDeliverId() && (!listener.getTrigger().getDeliverId().equals(request.getDeliverId()))) {
             return;
         }
         // 发送消息给订阅者
-        deliver(subscriber, request);
+        deliver(listener, request);
     }
 
     /**
@@ -100,48 +100,82 @@ public class DeliveryBus {
      *
      * @param body body
      */
+    public void deliverDelay(Listener listener, String body) {
+        deliverDelay(listener, Func.convertByJson(body));
+    }
+
+    /**
+     * 接收延时消息
+     *
+     * @param body body
+     */
     public void deliverDelay(byte[] body) {
         deliverDelay(Func.convertByBytes(body));
     }
 
     /**
      * 接收延时消息
-     * <p>
-     * 此方法主要用于处理和交付延时消息。它首先根据消息的类型（延时或及时）和消息中的标识符
-     * （deliverId或code）来查找相应的订阅者。如果找到订阅者，它将消息交付给订阅者处理；
-     * 如果未找到订阅者，它将记录错误日志。
      *
-     * @param request 包含消息内容和类型的信息，用于确定如何处理消息。
+     * @param body body
+     */
+    public void deliverDelay(Listener listener, byte[] body) {
+        deliverDelay(listener, Func.convertByBytes(body));
+    }
+
+    /**
+     * 该方法用于处理具有延迟特性的请求，它会根据请求对象自动选择合适的监听器
+     * 如果请求是延迟请求，则从延迟监听器中查找；否则从及时监听器中查找
+     * 此方法覆盖了默认情况下的延迟交付行为，即不使用自定义监听器
+     *
+     * @param request 请求对象，其中包含了交付ID和请求类型等信息
      */
     @SuppressWarnings("all")
     public void deliverDelay(Request request) {
-        // 获取延时订阅者
-        Listener subscriber = null;
-        if (request.getType().isDelay()) {
-            subscriber = registry.getDelayListener(request.getDeliverId());
-        } else {
-            subscriber = registry.getTimelyListener(request.getDeliverId());
-        }
+        deliverDelay(null, request);
+    }
 
-        // 如果订阅者为空，则打印错误日志并返回
-        if (null == subscriber) {
+    /**
+     * 该方法用于处理具有延迟特性的请求，允许传入自定义的监听器
+     * 如果提供的监听器有效且没有绑定触发条件，则忽略该监听器
+     * 否则，根据请求类型和监听器类型，查找并使用相应的监听器处理请求
+     * 这是对延迟消息交付的核心处理逻辑，处理了监听器的选择和错误情况
+     *
+     * @param listener 可选参数，用于指定自定义的监听器
+     * @param request  必填参数，包含了请求的所有必要信息
+     */
+    @SuppressWarnings("all")
+    public void deliverDelay(Listener listener, Request request) {
+        // 检查并处理传入监听器的特殊情况
+        if (null != listener && null == listener.getTrigger()) {
+            listener = null;
+        }
+        // 获取延时订阅者
+        if (null == listener) {
+            // 根据请求类型选择合适的监听器
+            if (request.getType().isDelay()) {
+                listener = registry.getDelayListener(request.getDeliverId());
+            } else {
+                listener = registry.getTimelyListener(request.getDeliverId());
+            }
+        }
+        // 处理未找到监听器的错误情况
+        if (null == listener) {
             log.error("delay msg handler not found deliverId={}", request.getDeliverId());
             return;
         }
-        // 交付消息给订阅者
-        deliver(subscriber, request);
+        deliver(listener, request);
     }
 
     /**
      * 执行消息投递到指定的监听器
      * 主要功能包括触发监听器的相应操作，并处理投递过程中可能出现的异常
      *
-     * @param subscriber 监听器对象，用于接收消息并执行相应操作
-     * @param request    请求对象，包含投递所需的信息
+     * @param listener 监听器对象，用于接收消息并执行相应操作
+     * @param request  请求对象，包含投递所需的信息
      */
-    private void deliver(Listener subscriber, Request<?> request) {
+    private void deliver(Listener listener, Request<?> request) {
         // 获取监听器的触发条件
-        Trigger trigger = subscriber.getTrigger();
+        Trigger trigger = listener.getTrigger();
         // 如果请求中没有指定投递ID，则使用触发条件中的投递ID
         if (null == request.getDeliverId()) {
             request.setDeliverId(trigger.getDeliverId());
@@ -152,10 +186,10 @@ public class DeliveryBus {
         }
         try {
             // 触发监听器，根据触发条件执行相应操作
-            trigger(subscriber, trigger, request);
+            trigger(listener, trigger, request);
         } catch (Exception exception) {
             // 处理投递失败的情况
-            failHandle(subscriber, request, exception);
+            failHandle(listener, request, exception);
         }
     }
 
@@ -163,17 +197,17 @@ public class DeliveryBus {
      * 触发事件给订阅者
      * 本方法负责根据订阅者的状态和请求的属性来决定是否立即触发事件，延迟触发，或者不触发
      *
-     * @param subscriber 事件的订阅者，实现了Listener接口
-     * @param trigger    事件触发器
-     * @param request    请求对象，包含了触发事件所需的信息
+     * @param listener 事件的订阅者，实现了Listener接口
+     * @param trigger  事件触发器
+     * @param request  请求对象，包含了触发事件所需的信息
      * @throws InvocationTargetException 如果触发事件的方法抛出异常
      * @throws IllegalAccessException    如果无法访问触发事件的方法
      */
-    private void trigger(Listener subscriber, Trigger trigger, Request<?> request) throws InvocationTargetException, IllegalAccessException {
+    private void trigger(Listener listener, Trigger trigger, Request<?> request) throws InvocationTargetException, IllegalAccessException {
         // 标记是否最终投递事件
         boolean isDeliver = false;
         // 获取订阅者的延迟投递策略
-        ToDelay toDelay = subscriber.getToDelay();
+        ToDelay toDelay = listener.getToDelay();
         // 如果订阅者没有设置延迟投递策略，则直接投递事件
         if (null == toDelay) {
             isDeliver = invoke(trigger, request);
@@ -193,8 +227,8 @@ public class DeliveryBus {
             interceptorConfig.deliverSuccessExecute(request);
         }
         // 如果订阅者不应该被延迟投递，则进行轮询操作
-        if (!toDelay(subscriber, request)) {
-            polling(subscriber, request);
+        if (!toDelay(listener, request)) {
+            polling(listener, request);
         }
     }
 
@@ -218,11 +252,11 @@ public class DeliveryBus {
     /**
      * 失败处理
      *
-     * @param subscriber subscriber
-     * @param request    request
-     * @param throwable  throwable
+     * @param listener  listener
+     * @param request   request
+     * @param throwable throwable
      */
-    private void failHandle(Listener subscriber, Request<?> request, Throwable throwable) {
+    private void failHandle(Listener listener, Request<?> request, Throwable throwable) {
         if (!(throwable instanceof InvocationTargetException)) {
             throw new EventBusException(throwable);
         }
@@ -231,7 +265,7 @@ public class DeliveryBus {
         // 发生异常时记录错误日志
         log.error("deliver error", throwable);
         // 获取订阅器的FailTrigger
-        FailTrigger failTrigger = subscriber.getFailTrigger();
+        FailTrigger failTrigger = listener.getFailTrigger();
         Fail fail = null;
         if (null != failTrigger) {
             // 如果FailTrigger不为空，则获取Fail对象
@@ -278,11 +312,11 @@ public class DeliveryBus {
     /**
      * 轮询投递
      *
-     * @param subscriber subscriber
-     * @param request    req
+     * @param listener listener
+     * @param request  req
      */
-    private void polling(Listener subscriber, Request<?> request) {
-        Polling polling = subscriber.getPolling();
+    private void polling(Listener listener, Request<?> request) {
+        Polling polling = listener.getPolling();
         if (null == polling) {
             return;
         }
@@ -315,17 +349,17 @@ public class DeliveryBus {
      * 此方法用于判断和转换及时消息为延时消息，根据订阅者的配置和请求的状态，
      * 决定是否将当前的及时消息转换为延时消息发送出去
      *
-     * @param subscriber 订阅者对象，包含消息的配置信息和目标主题
-     * @param request    请求对象，包含当前消息的详细信息和状态
+     * @param listener 订阅者对象，包含消息的配置信息和目标主题
+     * @param request  请求对象，包含当前消息的详细信息和状态
      * @return 返回是否成功转换为延时消息，true表示成功转换，false表示未转换或不符合转换条件
      */
-    private boolean toDelay(Listener subscriber, Request<?> request) {
+    private boolean toDelay(Listener listener, Request<?> request) {
         // 如果订阅者本身是延时类型的，则不需要转换
-        if (subscriber.getType().isDelay()) {
+        if (listener.getType().isDelay()) {
             return false;
         }
         // 获取订阅者配置的延时发送信息
-        ToDelay toDelay = subscriber.getToDelay();
+        ToDelay toDelay = listener.getToDelay();
         // 如果没有配置延时信息，则无法转换为延时消息
         if (null == toDelay) {
             return false;

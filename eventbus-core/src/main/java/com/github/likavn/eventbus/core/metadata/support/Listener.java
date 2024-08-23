@@ -91,4 +91,11 @@ public class Listener {
     public String getTopic() {
         return Func.getTopic(serviceId, code);
     }
+
+    public String getDelayTopic() {
+        if (type.isDelay()) {
+            return Func.getTopic(serviceId, code);
+        }
+        return Func.getDelayTopic(serviceId, code, trigger.getDeliverId());
+    }
 }

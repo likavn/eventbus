@@ -93,8 +93,8 @@ public class BusBootRedisConfiguration {
     public RedisMsgDelayListener redisMsgDelayListener(
             StringRedisTemplate busStringRedisTemplate, TaskRegistry taskRegistry,
             BusProperties busProperties,
-            @Qualifier("pushMsgStreamRedisScript") DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, DeliveryBus deliveryBus) {
-        return new RedisMsgDelayListener(busStringRedisTemplate, taskRegistry, busProperties, pushMsgStreamRedisScript, rLock, deliveryBus);
+            @Qualifier("pushMsgStreamRedisScript") DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock,ListenerRegistry registry, DeliveryBus deliveryBus) {
+        return new RedisMsgDelayListener(busStringRedisTemplate, taskRegistry, busProperties, pushMsgStreamRedisScript, rLock,registry, deliveryBus);
     }
 
     @Bean

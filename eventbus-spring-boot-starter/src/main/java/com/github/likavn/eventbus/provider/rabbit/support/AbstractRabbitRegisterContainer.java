@@ -48,10 +48,16 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
     protected final BusConfig config;
     private String exchangeName = null;
     private boolean applicationStarted = false;
+    private final MsgType msgType;
 
     protected AbstractRabbitRegisterContainer(CachingConnectionFactory connectionFactory, BusConfig config) {
+        this(connectionFactory, config, MsgType.TIMELY);
+    }
+
+    protected AbstractRabbitRegisterContainer(CachingConnectionFactory connectionFactory, BusConfig config, MsgType msgType) {
         this.connectionFactory = connectionFactory;
         this.config = config;
+        this.msgType = msgType;
     }
 
     public synchronized Connection getConnection() {
@@ -75,7 +81,7 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
      * 如果在应用启动前捕获到异常且应用尚未启动，则终止应用。
      */
     @Override
-    public synchronized void register() {
+    public void register() {
         try {
             // 获取事件监听器列表
             List<Listener> listeners = getListeners();
@@ -83,8 +89,6 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
             if (Func.isEmpty(listeners)) {
                 return;
             }
-            // 获取第一个监听器的类型，用于创建交换机
-            MsgType msgType = listeners.get(0).getType();
             // 根据监听器类型创建交换机
             createExchange(msgType);
 
@@ -123,20 +127,17 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
         channel.basicQos(config.getMsgBatchSize());
 
         // 生成并声明队列，队列名称基于监听器动态生成
-        String queueName = generateQueueName(listener);
+        String queueName = generateQueueName(msgType, listener);
         channel.queueDeclare(queueName, true, false, false, null);
 
         // 生成并绑定路由键，将队列与交换器绑定
-        String routingKey = generateRoutingKey(listener);
+        String routingKey = generateRoutingKey(msgType, listener);
         channel.queueBind(queueName, exchangeName, routingKey);
 
         // 消费者开始监听队列，处理消息
         channel.basicConsume(queueName, false, new DefaultConsumer(channel) {
             @Override
-            public void handleDelivery(String consumerTag,
-                                       Envelope envelope,
-                                       AMQP.BasicProperties properties,
-                                       byte[] body) throws IOException {
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 // 临时修改线程名称，以便于问题追踪
                 String oldName = Func.reThreadName(BusConstant.THREAD_NAME);
                 try {
@@ -163,11 +164,15 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
      * @param listener 监听器对象，包含消息类型、主题和触发器信息。
      * @return 根据消息类型生成的队列名称。
      */
-    private String generateQueueName(Listener listener) {
+    private String generateQueueName(MsgType msgType, Listener listener) {
         // 根据消息类型决定队列名称的格式
-        return listener.getType().isDelay() ?
-                String.format(RabbitConstant.DELAY_QUEUE, config.getServiceId()) :
-                String.format(RabbitConstant.QUEUE, listener.getTopic(), listener.getTrigger().getDeliverId());
+        if (msgType.isDelay()) {
+            if (null == listener.getTrigger()) {
+                return String.format(RabbitConstant.DELAY_QUEUE, config.getServiceId());
+            }
+            return String.format(RabbitConstant.DELAY_QUEUE_V2, listener.getTopic(), listener.getTrigger().getDeliverId());
+        }
+        return String.format(RabbitConstant.QUEUE, listener.getTopic(), listener.getTrigger().getDeliverId());
     }
 
     /**
@@ -177,11 +182,15 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
      * @param listener 监听器对象，包含监听的类型和主题信息。
      * @return 返回根据监听器类型和主题生成的路由键字符串。
      */
-    private String generateRoutingKey(Listener listener) {
+    private String generateRoutingKey(MsgType msgType, Listener listener) {
         // 根据监听器类型决定返回的路由键格式
-        return listener.getType().isDelay() ?
-                String.format(RabbitConstant.DELAY_ROUTING_KEY, config.getServiceId()) :
-                String.format(RabbitConstant.ROUTING_KEY, listener.getTopic());
+        if (msgType.isDelay()) {
+            if (null == listener.getTrigger()) {
+                return String.format(RabbitConstant.DELAY_ROUTING_KEY, config.getServiceId());
+            }
+            return String.format(RabbitConstant.DELAY_ROUTING_KEY, listener.getDelayTopic());
+        }
+        return String.format(RabbitConstant.ROUTING_KEY, listener.getTopic());
     }
 
     /**
@@ -211,7 +220,6 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
             this.exchangeName = exName;
         }
     }
-
 
     /**
      * 消费消息

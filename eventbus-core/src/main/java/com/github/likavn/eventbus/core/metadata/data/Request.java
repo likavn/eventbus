@@ -98,6 +98,7 @@ public class Request<T> extends Topic implements Message<T> {
         this.deliverId = deliverId;
         if (null != delayListener) {
             this.deliverId = Func.getDeliverId(delayListener, BusConstant.ON_MESSAGE);
+            setCode(this.deliverId);
         }
         this.deliverCount = deliverCount;
         this.type = type;
@@ -133,5 +134,13 @@ public class Request<T> extends Topic implements Message<T> {
     @Override
     public String topic() {
         return Func.getTopic(serviceId, code);
+    }
+
+    @Override
+    public String delayTopic() {
+        if (type.isDelay()) {
+            return Func.getTopic(serviceId, code);
+        }
+        return Func.getDelayTopic(serviceId, code, deliverId);
     }
 }

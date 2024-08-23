@@ -213,6 +213,11 @@ public final class Func {
         return serviceId + "|" + code;
     }
 
+    public String getDelayTopic(String serviceId, String code, String deliverId) {
+        Assert.notEmpty(deliverId, "deliverId can not be empty");
+        return getTopic(serviceId, code) + "|" + deliverId;
+    }
+
     /**
      * 获取投递ID
      */

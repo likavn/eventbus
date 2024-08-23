@@ -18,11 +18,11 @@ package com.github.likavn.eventbus.provider.rabbit;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
+import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.provider.rabbit.support.AbstractRabbitRegisterContainer;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -33,22 +33,27 @@ import java.util.List;
  */
 public class RabbitMsgDelayListener extends AbstractRabbitRegisterContainer {
     private final DeliveryBus deliveryBus;
+    private final ListenerRegistry registry;
 
     public RabbitMsgDelayListener(CachingConnectionFactory connectionFactory,
                                   BusConfig config,
                                   DeliveryBus deliveryBus,
                                   ListenerRegistry registry) {
-        super(connectionFactory, config);
+        super(connectionFactory, config, MsgType.DELAY);
         this.deliveryBus = deliveryBus;
+        this.registry = registry;
     }
 
     @Override
     public List<Listener> getListeners() {
-        return Collections.singletonList(Listener.ofDelay(config));
+        List<Listener> listeners = registry.getFullListeners();
+        // 兼容之前版本的延时消息
+        listeners.add(Listener.ofDelay(config));
+        return listeners;
     }
 
     @Override
     protected void deliver(Listener listener, byte[] body) {
-        deliveryBus.deliverDelay(body);
+        deliveryBus.deliverDelay(listener, body);
     }
 }

@@ -16,6 +16,7 @@
 package com.github.likavn.eventbus.provider.rocket;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.provider.rocket.support.AbstractRocketRegisterContainer;
@@ -34,16 +35,22 @@ import java.util.List;
  */
 public class RocketMsgDelayListener extends AbstractRocketRegisterContainer {
     private final DeliveryBus deliveryBus;
+    private final ListenerRegistry registry;
 
     public RocketMsgDelayListener(RocketMQProperties rocketMqProperties,
                                   BusConfig config,
-                                  DeliveryBus deliveryBus) {
+                                  DeliveryBus deliveryBus,
+                                  ListenerRegistry registry) {
         super(rocketMqProperties, config);
         this.deliveryBus = deliveryBus;
+        this.registry = registry;
     }
 
     @Override
     public List<Listener> getListeners() {
+        List<Listener> listeners = registry.getFullListeners();
+        // 兼容之前版本的延时消息
+        listeners.add(Listener.ofDelay(config));
         return Collections.singletonList(Listener.ofDelay(config));
     }
 

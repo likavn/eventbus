@@ -45,7 +45,7 @@ public class BusBootRocketConfiguration {
 
     @Bean
     public MsgSender msgSender(RocketMQTemplate rocketMQTemplate, BusConfig busConfig,
-                               @Lazy InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator,@Lazy ListenerRegistry registry) {
+                               @Lazy InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, @Lazy ListenerRegistry registry) {
         return new RocketMsgSender(rocketMQTemplate, busConfig, interceptorConfig, requestIdGenerator, registry);
     }
 
@@ -56,8 +56,9 @@ public class BusBootRocketConfiguration {
     }
 
     @Bean
-    public RocketMsgDelayListener rocketMsgDelayListener(RocketMQProperties rocketMQProperties, BusConfig busConfig, DeliveryBus deliveryBus) {
-        return new RocketMsgDelayListener(rocketMQProperties, busConfig, deliveryBus);
+    public RocketMsgDelayListener rocketMsgDelayListener(
+            RocketMQProperties rocketMQProperties, BusConfig busConfig, DeliveryBus deliveryBus, @Lazy ListenerRegistry registry) {
+        return new RocketMsgDelayListener(rocketMQProperties, busConfig, deliveryBus, registry);
     }
 
     @Bean
