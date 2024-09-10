@@ -26,11 +26,7 @@ import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.*;
 
 /**
  * 发送消息体包装处理类
@@ -42,14 +38,8 @@ public abstract class AbstractSenderAdapter implements MsgSender {
     private final BusConfig config;
     private final InterceptorConfig interceptorConfig;
     private final RequestIdGenerator requestIdGenerator;
-    private final Map<String, List<Listener>> timelyToDelayListenerMap;
-
-    /**
-     * key=code
-     */
-    private final Map<String, Listener> listenerCodeDelayMap;
-
     private final boolean sendTimelyToDelay;
+    private final Map<String, List<Listener>> timelyToDelayListenerMap = new HashMap<>(4);
 
     protected AbstractSenderAdapter(BusConfig config,
                                     InterceptorConfig interceptorConfig,
@@ -58,13 +48,37 @@ public abstract class AbstractSenderAdapter implements MsgSender {
         this.config = config;
         this.interceptorConfig = interceptorConfig;
         this.requestIdGenerator = requestIdGenerator;
-        this.timelyToDelayListenerMap = registry.getTimelyListeners().stream().filter(t
-                -> null != t.getToDelay() && !t.getToDelay().firstDeliver()).collect(Collectors.groupingBy(Listener::getTopic));
-
-        this.listenerCodeDelayMap = registry.getDelayListeners().stream().filter(t
-                -> !Func.isEmpty(t.getCode())).collect(Collectors.toMap(Listener::getCode, Function.identity(), (x, y) -> x));
-
         this.sendTimelyToDelay = config.getSendTimelyToDelay();
+        initListener(registry);
+    }
+
+    /**
+     * 初始化监听器注册表中的监听器
+     * 该方法主要做两件事：
+     * 1. 构建及时消息监听器的映射表{@code timelyToDelayListenerMap}，键为消息码，值为监听器列表
+     * 2. 构建延迟消息监听器的映射表{@code listenerCodeDelayMap}，键为消息码，值为延迟监听器实例
+     *
+     * @param registry 监听器注册表，包含及时监听器和延迟监听器
+     */
+    private void initListener(ListenerRegistry registry) {
+        // 遍历注册表中的及时监听器，过滤并构建消息码与监听器的映射
+        registry.getTimelyListeners()
+                .stream()
+                // 如果监听器设置了延迟投递，且不需要第一次投递，则跳过
+                .filter(listener -> null != listener.getToDelay() && !listener.getToDelay().firstDeliver())
+                // // 如果监听器的消息码列表为空，则跳过
+                .filter(listener -> !Func.isEmpty(listener.getTopics()))
+                .forEach(listener -> {
+                    // 遍历监听器的消息码，构建消息码与监听器的映射
+                    listener.getTopics().forEach(topic -> {
+                        List<Listener> listeners = timelyToDelayListenerMap.get(topic);
+                        if (null == listeners) {
+                            listeners = new ArrayList<>(1);
+                        }
+                        listeners.add(listener);
+                        timelyToDelayListenerMap.put(topic, listeners);
+                    });
+                });
     }
 
     /**
@@ -132,13 +146,6 @@ public abstract class AbstractSenderAdapter implements MsgSender {
         request.setDelayTime(delayTime);
     }
 
-    /**
-     * 发送消息
-     *
-     * @param request req
-     */
-    public abstract void toSend(Request<?> request);
-
     @Override
     public void sendDelayMessage(Request<?> request) {
         sendDelayMessage(request, true);
@@ -151,32 +158,28 @@ public abstract class AbstractSenderAdapter implements MsgSender {
      * @param request     请求对象，包含了要发送的消息的所有信息以及配置
      * @param interceptor 一个布尔值，指示是否启用拦截器逻辑
      */
-    public void sendDelayMessage(Request<?> request, boolean interceptor) {
-        // 设置消息类型，如果请求中没有指定类型，则默认为延迟消息类型
+    protected void sendDelayMessage(Request<?> request, boolean interceptor) {
         request.setType(null == request.getType() ? MsgType.DELAY : request.getType());
-        // 检查并设置请求的必要配置
         checkBuild(request);
         // 确保延迟时间被正确设置且大于0
         Assert.isTrue(null != request.getDelayTime() && request.getDelayTime() > 0, "延时时间不能小于0");
-        // 投递ID
-        if (Func.isEmpty(request.getDeliverId())) {
-            Listener subscriber = listenerCodeDelayMap.get(request.getCode());
-            Assert.notNull(subscriber, "延时消息code未找到对应订阅器！");
-            request.setDeliverId(subscriber.getTrigger().getDeliverId());
-        }
         // 如果启用了拦截器，则在发送前执行拦截器逻辑
         if (interceptor) {
             interceptorConfig.sendBeforeExecute(request);
         }
-
-        // 调用方法发送延迟消息
         toSendDelayMessage(request);
-
         // 如果启用了拦截器，则在发送后执行拦截器逻辑
         if (interceptor) {
             interceptorConfig.sendAfterExecute(request);
         }
     }
+
+    /**
+     * 发送消息
+     *
+     * @param request req
+     */
+    public abstract void toSend(Request<?> request);
 
     /**
      * 发送延时消息

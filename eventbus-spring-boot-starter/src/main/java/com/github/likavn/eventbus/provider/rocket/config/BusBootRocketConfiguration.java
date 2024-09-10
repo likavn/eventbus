@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.provider.rocket.config;
 
+import com.github.likavn.eventbus.config.EventBusAutoConfiguration;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
@@ -27,9 +28,9 @@ import com.github.likavn.eventbus.provider.rocket.RocketMsgSubscribeListener;
 import com.github.likavn.eventbus.provider.rocket.RocketNodeTestConnect;
 import org.apache.rocketmq.spring.autoconfigure.RocketMQProperties;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 
 /**
@@ -39,7 +40,7 @@ import org.springframework.context.annotation.Lazy;
  * @date 2024/01/01
  * @since 2.2
  */
-@Configuration
+@AutoConfigureAfter(EventBusAutoConfiguration.class)
 @ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rocketmq")
 public class BusBootRocketConfiguration {
 

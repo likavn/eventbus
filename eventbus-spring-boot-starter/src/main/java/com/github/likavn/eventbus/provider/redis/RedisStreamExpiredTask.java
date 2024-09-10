@@ -15,9 +15,9 @@
  */
 package com.github.likavn.eventbus.provider.redis;
 
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
 import com.github.likavn.eventbus.core.base.Lifecycle;
-import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.support.task.CronTask;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.support.RedisListener;
@@ -52,7 +52,7 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
     public RedisStreamExpiredTask(StringRedisTemplate redisTemplate,
                                   TaskRegistry taskRegistry,
                                   BusProperties busProperties,
-                                  List<Listener> subscribers,
+                                  ListenerRegistry registry,
                                   RLock rLock) {
         this.busProperties = busProperties;
         this.taskRegistry = taskRegistry;
@@ -60,7 +60,7 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
         this.redisTemplate = redisTemplate;
 
         // 及时消息订阅
-        this.redisSubscribers = RedisListener.fullRedisSubscriber(subscribers, busProperties.getServiceId());
+        this.redisSubscribers = RedisListener.fullRedisListeners(registry);
         String redisVersion = busProperties.getRedis().getRedisVersion();
         // 判断最低版本是否大于等于 6.2
         if (redisVersion.contains("-")) {

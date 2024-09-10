@@ -18,6 +18,7 @@ package com.github.likavn.eventbus.core.support.task;
 import com.github.likavn.eventbus.core.TaskRegistry;
 import com.github.likavn.eventbus.core.utils.WaitThreadPoolExecutor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
@@ -42,6 +43,7 @@ public abstract class Task extends TimerTask {
     /**
      * 任务执行的Runnable对象。
      */
+    @Setter
     private Runnable runnable;
 
     /**

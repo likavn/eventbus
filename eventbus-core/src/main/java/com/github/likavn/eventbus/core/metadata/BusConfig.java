@@ -33,8 +33,16 @@ public class BusConfig {
 
     /**
      * 消息引擎类别（redis、rabbitmq、rocketmq）
+     * {@link com.github.likavn.eventbus.core.metadata.BusType}
      */
     protected String type;
+
+    /**
+     * 原消息引擎类别（redis、rabbitmq、rocketmq），用于消息引擎切换时兼容原始消息
+     * 默认等于={@link #type}
+     * {@link com.github.likavn.eventbus.core.metadata.BusType}
+     */
+    protected String cutType;
 
     /**
      * 消息接收并发数，默认为：3

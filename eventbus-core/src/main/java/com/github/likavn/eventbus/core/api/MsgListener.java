@@ -15,132 +15,20 @@
  */
 package com.github.likavn.eventbus.core.api;
 
-import com.github.likavn.eventbus.core.exception.EventBusException;
-import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.data.Message;
-import com.github.likavn.eventbus.core.metadata.data.MsgBody;
-import com.github.likavn.eventbus.core.utils.Assert;
-import com.github.likavn.eventbus.core.utils.Func;
-import lombok.Getter;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
- * 及时消息订阅超类
+ * 及时消息监听器
  *
+ * @param <T> 消息体的数据类型
  * @author likavn
  * @date 2024/01/01
  */
-@Getter
-public abstract class MsgListener<T> {
-    /**
-     * 消息所属来源服务ID,服务名
-     */
-    private final String serviceId;
-
-    /**
-     * 消息类型，用于区分不同的消息类型
-     */
-    private final List<String> codes;
-
-    /**
-     * 定义并发级别，默认{@link BusConfig#getConcurrency()}。
-     */
-    private final Integer concurrency;
-
-    /**
-     * 构造器
-     */
-    @SuppressWarnings("all")
-    protected MsgListener() {
-        this(null, new ArrayList<>(1), null);
-        Type superclass = this.getClass().getGenericSuperclass();
-        Class<?> beanClz = (Class<?>) ((ParameterizedType) superclass).getActualTypeArguments()[0];
-        if (Func.isInterfaceImplemented(beanClz, MsgBody.class)) {
-            try {
-                Constructor<?> constructor = beanClz.getConstructor();
-                if (!constructor.isAccessible()) {
-                    constructor.setAccessible(true);
-                }
-                String code = ((MsgBody) beanClz.newInstance()).code();
-                codes.add(code);
-            } catch (Exception e) {
-                throw new EventBusException(e);
-            }
-        }
-        Assert.notEmpty(codes, this.getClass().getName() + "msg code is not null");
-    }
-
-    /**
-     * 构造器
-     *
-     * @param code 消息编码
-     */
-    protected MsgListener(String code) {
-        this(Collections.singletonList(code));
-    }
-
-    /**
-     * 构造器
-     *
-     * @param code        消息编码
-     * @param concurrency 并发级别
-     */
-    protected MsgListener(String code, Integer concurrency) {
-        this(Collections.singletonList(code), concurrency);
-    }
-
-    /**
-     * 构造器
-     *
-     * @param codes 消息编码
-     */
-    protected MsgListener(List<String> codes) {
-        this(null, codes);
-    }
-
-    /**
-     * 构造器
-     *
-     * @param codes       消息编码
-     * @param concurrency 并发级别
-     */
-    protected MsgListener(List<String> codes, Integer concurrency) {
-        this(null, codes, concurrency);
-    }
-
-    /**
-     * 构造器
-     *
-     * @param serviceId 消息服务的ID
-     * @param codes     消息编码
-     */
-    protected MsgListener(String serviceId, List<String> codes) {
-        this(serviceId, codes, null);
-    }
-
-    /**
-     * 构造器
-     *
-     * @param serviceId   消息服务的ID
-     * @param codes       消息编码
-     * @param concurrency 并发级别
-     */
-    protected MsgListener(String serviceId, List<String> codes, Integer concurrency) {
-        this.serviceId = serviceId;
-        this.codes = codes;
-        this.concurrency = concurrency;
-    }
-
+public interface MsgListener<T> {
     /**
      * 处理器
      *
-     * @param message 消息体
+     * @param message 消息体，包含延时消息的数据和元信息
      */
-    public abstract void onMessage(Message<T> message);
+    void onMessage(Message<T> message);
 }

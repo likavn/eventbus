@@ -63,6 +63,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
         try {
             appStartup();
         } catch (Exception e) {
+            log.error("[Eventbus register error] ", e);
             System.exit(1);
         }
     }
@@ -73,7 +74,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      */
     private void appStartup() {
         // 获取配置的Redis监听器列表
-        List<RedisListener> listeners = getListeners();
+        List<? extends RedisListener> listeners = getListeners();
         // 如果监听器列表为空，则直接返回
         if (Func.isEmpty(listeners)) {
             return;
@@ -86,7 +87,6 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
         pollExecutor = (ThreadPoolExecutor) executors[0];
         // 根据是否为阻塞轮询和监听器类型设置轮询间隔
         MsgType type = listeners.get(0).getType();
-        long pollTimeout = isBlock || type.isDelay() ? 2000 : 5;
         // 开始构建监听容器的配置对象
         StreamMessageListenerContainerOptions<String, ObjectRecord<String, String>> options
                 = StreamMessageListenerContainerOptions.builder()
@@ -96,7 +96,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
                 // 设置消息消费异常的处理程序
                 .errorHandler(t -> log.error("[Eventbus error] ", t))
                 // 设置轮询超时时间，如果设置为0，则表示不超时
-                .pollTimeout(Duration.ofMillis(pollTimeout))
+                .pollTimeout(Duration.ofMillis(5))
                 // 设置序列化器
                 .serializer(new StringRedisSerializer())
                 // 设置目标类型为String
@@ -119,7 +119,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      * @param listeners listeners
      * @return 线程池
      */
-    private Object[] createExecutor(List<RedisListener> listeners, boolean isBlock) {
+    private Object[] createExecutor(List<? extends RedisListener> listeners, boolean isBlock) {
         NamedThreadFactory factory = new NamedThreadFactory(this.getClass().getSimpleName() + "-");
         // 创建线程池
         int concurrency = listeners.stream().map(RedisListener::getConcurrency).reduce(Integer::sum).orElse(1);
@@ -151,7 +151,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      * @param container 消息监听器容器，用于管理消费者和处理消息
      * @param listeners 一个或多个Redis事件监听器，每个监听器代表一个消息流的监听点
      */
-    private void createConsumer(StreamMessageListenerContainer<String, ObjectRecord<String, String>> container, List<RedisListener> listeners) {
+    private void createConsumer(StreamMessageListenerContainer<String, ObjectRecord<String, String>> container, List<? extends RedisListener> listeners) {
         // 获取当前设备的主机地址，用于标识消息的消费点
         String hostAddress = Func.getHostAddress();
         // 初始化监听器组，这一步可能涉及到创建或更新Redis中的消费者组
@@ -204,7 +204,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      *
      * @return 消费者
      */
-    protected abstract List<RedisListener> getListeners();
+    protected abstract List<? extends RedisListener> getListeners();
 
     /**
      * 消费消息
@@ -233,7 +233,7 @@ public abstract class AbstractStreamListenerContainer implements Lifecycle {
      *
      * @param listeners 订阅者列表，每个订阅者包含流的键和消费者组的名称。
      */
-    private void createGroup(List<RedisListener> listeners) {
+    private void createGroup(List<? extends RedisListener> listeners) {
         // 根据流的键对订阅者进行分组
         listeners.stream().collect(Collectors.groupingBy(RedisListener::getStreamKey)).forEach((streamKey, subs) -> {
             // 检查流的键是否在Redis中存在

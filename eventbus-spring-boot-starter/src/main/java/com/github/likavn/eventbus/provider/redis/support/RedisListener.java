@@ -16,11 +16,11 @@
 package com.github.likavn.eventbus.provider.redis.support;
 
 import com.github.likavn.eventbus.core.ListenerRegistry;
-import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
+import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
+import lombok.Data;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,8 +30,9 @@ import java.util.stream.Collectors;
  * @author likavn
  * @date 2023/1/7
  **/
+@Data
 @SuppressWarnings("all")
-public final class RedisListener extends Listener {
+public class RedisListener extends Listener {
 
     /**
      * 消费者监听stream key
@@ -42,14 +43,22 @@ public final class RedisListener extends Listener {
      * 消费者所在消费者组
      */
     private final String group;
+    /**
+     * 消息编码
+     */
+    private String code;
+    private String topic;
 
-    public RedisListener(Listener subscriber, String subscribePrefix) {
-        super(subscriber.getServiceId(),
-                subscriber.getCode(),
-                subscriber.getConcurrency(), subscriber.getType(),
-                subscriber.getTrigger(), subscriber.getFailTrigger(), subscriber.getPolling(), subscriber.getToDelay());
-        this.streamKey = String.format(subscribePrefix, subscriber.getTopic());
-        this.group = null != subscriber.getTrigger() ? subscriber.getTrigger().getDeliverId() : subscriber.getServiceId();
+    public RedisListener(Listener listener, String code, String subscribePrefix) {
+        super(listener.getServiceId(),
+                listener.getCodes(),
+                listener.getConcurrency(),
+                listener.getTrigger(), listener.getFailTrigger(), listener.getPolling());
+        setType(listener.getType());
+        this.code = code;
+        this.topic = Func.getTopic(listener.getServiceId(), code);
+        this.streamKey = String.format(subscribePrefix, topic);
+        this.group = listener.getDeliverId();
     }
 
     public String getStreamKey() {
@@ -60,28 +69,28 @@ public final class RedisListener extends Listener {
         return group;
     }
 
-    public static List<RedisListener> fullRedisSubscriber(List<Listener> listeners, String serviceId) {
-        List<RedisListener> redisSubscribers = redisListeners(listeners);
-
+    public static List<RedisListener> fullRedisListeners(ListenerRegistry registry) {
+        List<RedisListener> listeners = timelyListeners(registry.getTimelyListeners());
         // 延时的消息订阅
-        redisSubscribers.addAll(redisDelaySubscriber(serviceId));
-        return redisSubscribers;
+        listeners.addAll(delayListeners(registry.getDelayListeners()));
+        return listeners;
     }
 
-    public static List<RedisListener> redisListeners(List<Listener> listeners) {
-        return listeners.stream().map(t -> new RedisListener(t, RedisConstant.BUS_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
+    public static List<RedisListener> timelyListeners(List<Listener> listeners) {
+        return listeners.stream().flatMap(t -> {
+            List<String> codes = t.getCodes();
+            return codes.stream().map(code -> new RedisListener(t, code, RedisConstant.BUS_SUBSCRIBE_PREFIX));
+        }).collect(Collectors.toList());
     }
 
-    public static List<RedisListener> redisListeners(ListenerRegistry registry) {
-        return registry.getFullListeners().stream().map(t -> new RedisListener(t, RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX)).collect(Collectors.toList());
+    public static List<RedisListener> redisFullDelayListeners(ListenerRegistry registry) {
+        return delayListeners(registry.getFullListeners());
     }
 
-    public static List<RedisListener> redisDelaySubscriber(String serviceId) {
-        return redisDelaySubscriber(serviceId, 1);
-    }
-
-    public static List<RedisListener> redisDelaySubscriber(String serviceId, int concurrency) {
-        Listener listener = new Listener(serviceId, null, concurrency, MsgType.DELAY);
-        return Collections.singletonList(new RedisListener(listener, RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX));
+    public static List<RedisListener> delayListeners(List<Listener> listeners) {
+        return listeners.stream().flatMap(t -> {
+            List<String> codes = t.getCodes();
+            return codes.stream().map(code -> new RedisListener(t, code, RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX));
+        }).collect(Collectors.toList());
     }
 }

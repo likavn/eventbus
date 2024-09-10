@@ -68,6 +68,7 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
             listeners.forEach(this::registerPushConsumer);
             starts(consumers);
         } catch (Exception e) {
+            log.error("[Eventbus register error] ", e);
             System.exit(1);
         }
     }
@@ -115,7 +116,7 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
             consumer.setNamesrvAddr(rocketMqProperties.getNameServer());
             MsgType msgType = listener.getType();
             //3.订阅主题Topic和Tag
-            String topic = String.format(msgType.isTimely() ? RocketConstant.QUEUE : RocketConstant.DELAY_QUEUE, listener.getTopic());
+            String topic = String.format(msgType.isTimely() ? RocketConstant.QUEUE : RocketConstant.DELAY_QUEUE, null);
             consumer.subscribe(topic, listener.getServiceId());
             //设定消费模式：负载均衡|广播模式
             consumer.setMessageModel(MessageModel.CLUSTERING);

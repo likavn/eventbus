@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.provider.redis.config;
 
+import com.github.likavn.eventbus.config.EventBusAutoConfiguration;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
@@ -25,6 +26,7 @@ import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.*;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -47,6 +49,7 @@ import java.util.Properties;
  * @date 2024/01/01
  */
 @Configuration
+@AutoConfigureAfter(EventBusAutoConfiguration.class)
 @ConditionalOnClass(RedisConnectionFactory.class)
 @ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "redis")
 public class BusBootRedisConfiguration {
@@ -56,7 +59,7 @@ public class BusBootRedisConfiguration {
     }
 
     @Bean
-    public RLock rLock(StringRedisTemplate busStringRedisTemplate, BusProperties busProperties, DefaultRedisScript<Boolean> lockRedisScript) {
+    public RLock rLock(StringRedisTemplate busStringRedisTemplate, BusProperties busProperties, @Qualifier("lockRedisScript") DefaultRedisScript<Boolean> lockRedisScript) {
         checkRedisVersion(busStringRedisTemplate, busProperties);
         return new RLock(busStringRedisTemplate, lockRedisScript);
     }
@@ -86,15 +89,15 @@ public class BusBootRedisConfiguration {
     public RedisMsgSubscribeListener redisMsgSubscribeListener(
             StringRedisTemplate busStringRedisTemplate,
             BusProperties busProperties, ListenerRegistry registry, DeliveryBus deliveryBus) {
-        return new RedisMsgSubscribeListener(busStringRedisTemplate, busProperties, registry.getTimelyListeners(), deliveryBus);
+        return new RedisMsgSubscribeListener(busStringRedisTemplate, busProperties, registry, deliveryBus);
     }
 
     @Bean
     public RedisMsgDelayListener redisMsgDelayListener(
             StringRedisTemplate busStringRedisTemplate, TaskRegistry taskRegistry,
             BusProperties busProperties,
-            @Qualifier("pushMsgStreamRedisScript") DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock,ListenerRegistry registry, DeliveryBus deliveryBus) {
-        return new RedisMsgDelayListener(busStringRedisTemplate, taskRegistry, busProperties, pushMsgStreamRedisScript, rLock,registry, deliveryBus);
+            @Qualifier("pushMsgStreamRedisScript") DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, ListenerRegistry registry, DeliveryBus deliveryBus) {
+        return new RedisMsgDelayListener(busStringRedisTemplate, taskRegistry, busProperties, pushMsgStreamRedisScript, rLock, registry, deliveryBus);
     }
 
     @Bean
@@ -103,7 +106,7 @@ public class BusBootRedisConfiguration {
                                     @Lazy InterceptorConfig interceptorConfig,
                                     @Qualifier("zsetAddRedisScript")
                                     DefaultRedisScript<Long> zsetAddRedisScript,
-                                    TaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator,@Lazy ListenerRegistry registry) {
+                                    TaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, @Lazy ListenerRegistry registry) {
         return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig, zsetAddRedisScript, taskRegistry, requestIdGenerator, registry);
     }
 
@@ -119,13 +122,13 @@ public class BusBootRedisConfiguration {
     public RedisPendingMsgResendTask redisPendingMsgResendTask(
             StringRedisTemplate busStringRedisTemplate, TaskRegistry taskRegistry,
             BusProperties busProperties, ListenerRegistry registry, RLock rLock, RedisMsgSender msgSender) {
-        return new RedisPendingMsgResendTask(busStringRedisTemplate, taskRegistry, busProperties, registry.getTimelyListeners(), rLock, msgSender);
+        return new RedisPendingMsgResendTask(busStringRedisTemplate, taskRegistry, busProperties, registry, rLock, msgSender);
     }
 
     @Bean
     public RedisStreamExpiredTask redisStreamExpiredTask(
             StringRedisTemplate busStringRedisTemplate, TaskRegistry taskRegistry, BusProperties busProperties, ListenerRegistry registry, RLock rLock) {
-        return new RedisStreamExpiredTask(busStringRedisTemplate, taskRegistry, busProperties, registry.getTimelyListeners(), rLock);
+        return new RedisStreamExpiredTask(busStringRedisTemplate, taskRegistry, busProperties, registry, rLock);
     }
 
     @Bean
@@ -134,7 +137,7 @@ public class BusBootRedisConfiguration {
     }
 
     @Configuration
-    public static class ScriptAutoConfiguration {
+    static class ScriptAutoConfiguration {
         /**
          * redis锁脚本
          */
@@ -168,6 +171,4 @@ public class BusBootRedisConfiguration {
             return redisScript;
         }
     }
-
-
 }

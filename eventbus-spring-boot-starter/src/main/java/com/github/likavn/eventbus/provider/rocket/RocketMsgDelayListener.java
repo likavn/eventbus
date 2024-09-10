@@ -48,10 +48,7 @@ public class RocketMsgDelayListener extends AbstractRocketRegisterContainer {
 
     @Override
     public List<Listener> getListeners() {
-        List<Listener> listeners = registry.getFullListeners();
-        // 兼容之前版本的延时消息
-        listeners.add(Listener.ofDelay(config));
-        return Collections.singletonList(Listener.ofDelay(config));
+        return registry.getFullListeners();
     }
 
     @Override

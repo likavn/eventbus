@@ -19,126 +19,95 @@ import com.github.likavn.eventbus.core.metadata.data.MsgBody;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 
 /**
- * 消息生产者
+ * 消息发送者接口
+ * 提供了发送消息和发送延迟消息的能力
  *
  * @author likavn
  * @date 2024/01/01
  */
 public interface MsgSender {
+
     /**
-     * 通知发送接口
-     * serviceId默认为本服务ID
+     * 使用MsgBody对象发送消息
+     * 该方法通过MsgBody对象的code方法获取消息代码，然后调用带Request参数的send方法发送消息
      *
-     * @param body 消息体
+     * @param body 消息体，包含消息代码和内容
      */
     default void send(MsgBody body) {
-        send(null, body.code(), body);
+        send(body.code(), body);
     }
 
     /**
-     * 通知发送接口
-     * serviceId默认为本服务ID
+     * 发送消息请求
+     * <p>
+     * 本方法通过提供的消息处理程序类和消息体来构建一个消息请求，并将其发送
+     * 主要用于内部实现，提供类型安全和封装
      *
-     * @param code 业务消息类型
-     * @param body 消息体
+     * @param handlerClz 消息处理程序类，必须是MsgListener的子类
+     * @param body       消息的具体内容
+     */
+    default void send(Class<? extends MsgListener<?>> handlerClz, Object body) {
+        // 构建请求并发送
+        send(Request.builder().code(handlerClz.getSimpleName()).body(body).build());
+    }
+
+    /**
+     * 发送消息
+     *
+     * @param code 消息代码
+     * @param body 消息的内容
      */
     default void send(String code, Object body) {
-        send(null, code, body);
+        send(Request.builder().code(code).body(body).build());
     }
 
     /**
-     * 通知发送接口
+     * 发送一个已经构建好的Request对象
+     * 该方法是发送消息的核心方法，接收到一个已经构建好的Request对象并发送之
      *
-     * @param serviceId 服务ID
-     * @param body      消息体
-     */
-    default void send(String serviceId, MsgBody body) {
-        send(serviceId, body.code(), body);
-    }
-
-    /**
-     * 通知发送接口
-     *
-     * @param serviceId 服务ID
-     * @param code      业务消息类型
-     * @param body      消息体
-     */
-    default void send(String serviceId, String code, Object body) {
-        send(Request.builder().serviceId(serviceId).code(code).body(body).build());
-    }
-
-    /**
-     * 通知发送接口
-     *
-     * @param request request
+     * @param request 已经构建好的请求对象，包含消息代码和内容
      */
     void send(Request<?> request);
 
     /**
-     * 发送延时消息接口
+     * 发送一个MsgBody对象延迟消息
+     * 该方法通过MsgBody对象的code方法获取消息代码，并调用带Request参数的sendDelayMessage方法发送延迟消息
      *
-     * @param listener  延时处理器
-     * @param body      延时消息实体
-     * @param delayTime 延时时间，单位：秒
+     * @param body      消息体，包含消息代码和内容
+     * @param delayTime 延迟时间，单位为毫秒
      */
-    @SuppressWarnings("all")
-    default void sendDelayMessage(Class<? extends MsgDelayListener> listener, Object body, long delayTime) {
-        sendDelayMessage(listener, null, body, delayTime);
-    }
-
-    /**
-     * 发送延时消息接口
-     *
-     * @param listener  延时处理器
-     * @param body      延时消息实体
-     * @param delayTime 延时时间，单位：秒
-     */
-    @SuppressWarnings("all")
-    default void sendDelayMessage(Class<? extends MsgDelayListener> listener, MsgBody body, long delayTime) {
-        sendDelayMessage(listener, body.code(), body, delayTime);
-    }
-
-    /**
-     * 发送延时消息接口
-     *
-     * @param listener  延时处理器
-     * @param code      延时消息类型
-     * @param body      延时消息实体
-     * @param delayTime 延时时间，单位：秒
-     */
-    @SuppressWarnings("all")
-    default void sendDelayMessage(Class<? extends MsgDelayListener> listener, String code, Object body, long delayTime) {
-        sendDelayMessage(Request.builder().delayListener(listener).code(code).body(body).delayTime(delayTime).build());
-    }
-
-    /**
-     * 发送延时消息接口
-     *
-     * @param code      延时消息类型
-     * @param body      延时消息实体
-     * @param delayTime 延时时间，单位：秒
-     */
-    @SuppressWarnings("all")
     default void sendDelayMessage(MsgBody body, long delayTime) {
         sendDelayMessage(body.code(), body, delayTime);
     }
 
     /**
-     * 发送延时消息接口
+     * 发送延迟消息
      *
-     * @param code      延时消息类型
-     * @param body      延时消息实体
-     * @param delayTime 延时时间，单位：秒
+     * @param handlerClz 消息处理类类型，必须是MsgDelayListener的子类
+     * @param body       消息体，发送的实际内容
+     * @param delayTime  延迟时间，单位：秒
      */
-    @SuppressWarnings("all")
-    default void sendDelayMessage(String code, Object body, long delayTime) {
-        sendDelayMessage(null, code, body, delayTime);
+    default void sendDelayMessage(Class<? extends MsgDelayListener<?>> handlerClz, Object body, long delayTime) {
+        sendDelayMessage(handlerClz.getSimpleName(), body, delayTime);
     }
 
     /**
-     * 发送延时消息接口
+     * 使用字符串代码和任意类型的消息体延迟发送消息
+     * 该方法构建一个Request对象，并调用带Request参数的sendDelayMessage方法发送延迟消息
      *
-     * @param request request
+     * @param code      消息代码，用于标识消息类型
+     * @param body      消息的内容，可以是任意类型
+     * @param delayTime 延迟时间，单位：秒
+     */
+    default void sendDelayMessage(String code, Object body, long delayTime) {
+        sendDelayMessage(Request.builder().code(code).body(body).delayTime(delayTime).build());
+    }
+
+    /**
+     * 延迟发送一个已经构建好的Request对象
+     * 该方法是延迟发送消息的核心方法，接收到一个已经构建好的Request对象并在指定时间后发送之
+     *
+     * @param request 已经构建好的请求对象，包含消息代码和内容
      */
     void sendDelayMessage(Request<?> request);
 }

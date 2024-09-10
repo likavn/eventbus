@@ -10,7 +10,8 @@
     <modules>
         <module>eventbus-core</module>
         <module>eventbus-spring-boot-starter</module>
-        <module>eventbus-demo</module>
+        <module>eventbus-support</module>
+        <module>eventbus-test</module>
     </modules>
     <name>eventbus</name>
     <url>https://github.com/likavn/eventbus</url>

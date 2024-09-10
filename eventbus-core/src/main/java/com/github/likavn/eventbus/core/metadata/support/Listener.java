@@ -21,17 +21,19 @@ import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
+ * 监听器元数据
+ *
  * @author likavn
  * @date 2024/01/01
  **/
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Listener {
     /**
      * 消息所属来源服务ID,服务名
@@ -40,7 +42,7 @@ public class Listener {
     /**
      * 消息编码
      */
-    private String code;
+    private List<String> codes;
 
     /**
      * 定义并发级别，默认{@link BusConfig#getConcurrency()}。
@@ -69,13 +71,21 @@ public class Listener {
      */
     private ToDelay toDelay;
 
-    public Listener(String serviceId, String code, int concurrency, MsgType type) {
+    public Listener(String serviceId, List<String> codes, int concurrency, MsgType type) {
         this.serviceId = serviceId;
-        this.code = code;
+        this.codes = codes;
         this.concurrency = concurrency;
         this.type = type;
     }
 
+    public Listener(String serviceId, List<String> codes, int concurrency, Trigger trigger, FailTrigger failTrigger, Polling polling) {
+        this.serviceId = serviceId;
+        this.codes = codes;
+        this.concurrency = concurrency;
+        this.trigger = trigger;
+        this.failTrigger = failTrigger;
+        this.polling = polling;
+    }
 
     public void isValid() {
         Polling.ValidatorInterval.isValid(null == polling ? null : polling.interval());
@@ -84,18 +94,17 @@ public class Listener {
         }
     }
 
-    public static Listener ofDelay(BusConfig config) {
-        return new Listener(config.getServiceId(), null, config.getConcurrency(), MsgType.DELAY);
+    /**
+     * 投递ID
+     */
+    public String getDeliverId() {
+        return trigger.getDeliverId();
     }
 
-    public String getTopic() {
-        return Func.getTopic(serviceId, code);
-    }
-
-    public String getDelayTopic() {
-        if (type.isDelay()) {
-            return Func.getTopic(serviceId, code);
+    public List<String> getTopics() {
+        if (Func.isEmpty(codes)) {
+            return Collections.emptyList();
         }
-        return Func.getDelayTopic(serviceId, code, trigger.getDeliverId());
+        return codes.stream().map(code -> Func.getTopic(serviceId, code)).collect(Collectors.toList());
     }
 }

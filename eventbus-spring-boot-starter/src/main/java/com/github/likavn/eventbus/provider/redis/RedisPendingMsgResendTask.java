@@ -15,10 +15,10 @@
  */
 package com.github.likavn.eventbus.provider.redis;
 
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.metadata.data.Request;
-import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.support.task.CronTask;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.prop.BusProperties;
@@ -48,16 +48,12 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
     private final RLock rLock;
     private final RedisMsgSender msgSender;
     private final StringRedisTemplate stringRedisTemplate;
-    /**
-     * 延时消息流key
-     */
-    private final String delayStreamKey;
     private final List<RedisListener> redisSubscribers;
     private CronTask task;
     private final TaskRegistry taskRegistry;
 
     public RedisPendingMsgResendTask(StringRedisTemplate stringRedisTemplate, TaskRegistry taskRegistry,
-                                     BusProperties busProperties, List<Listener> subscribers,
+                                     BusProperties busProperties, ListenerRegistry registry,
                                      RLock rLock,
                                      RedisMsgSender msgSender) {
         // 一分钟执行一次,这里选择每分钟的35秒执行，是为了避免整点任务过多的问题
@@ -66,9 +62,8 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
         this.busProperties = busProperties;
         this.rLock = rLock;
         this.msgSender = msgSender;
-        this.delayStreamKey = String.format(RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX, busProperties.getServiceId());
         // 及时消息订阅
-        this.redisSubscribers = RedisListener.fullRedisSubscriber(subscribers, busProperties.getServiceId());
+        this.redisSubscribers = RedisListener.fullRedisListeners(registry);
     }
 
     @Override
@@ -177,7 +172,7 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
                 request.setDeliverId(subscriber.getTrigger().getDeliverId());
                 msgSender.toSend(request);
             } else {
-                msgSender.toSend(delayStreamKey, request);
+                msgSender.toSend(subscriber.getStreamKey(), request);
             }
             acknowledge(subscriber, message.getId());
         });

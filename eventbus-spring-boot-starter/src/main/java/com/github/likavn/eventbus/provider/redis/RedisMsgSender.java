@@ -68,22 +68,23 @@ public class RedisMsgSender extends AbstractSenderAdapter {
     public void toSendDelayMessage(Request<?> request) {
         // 计算延迟时间
         Long timeMillis = System.currentTimeMillis() + (1000L * request.getDelayTime());
-        timeMillis = stringRedisTemplate.execute(zsetAddRedisScript,
-                Collections.singletonList(String.format(RedisConstant.BUS_DELAY_PREFIX, request.getServiceId())),
-                // 到当前时间之前的消息 + 推送数量
-                String.valueOf(timeMillis), Func.toJson(request));
+        String zSetKey = String.format(RedisConstant.BUS_DELAY_PREFIX, request.topic());
+        if (request.getType().isTimely()) {
+            zSetKey = String.format(RedisConstant.BUS_DELAY_PREFIX, Func.getDelayTopic(request.getServiceId(), request.getCode(), request.getDeliverId()));
+        }
+        timeMillis = stringRedisTemplate.execute(zsetAddRedisScript, Collections.singletonList(zSetKey), String.valueOf(timeMillis), Func.toJson(request));
         // 重置延迟任务
-        setNextTriggerTimeMillis(timeMillis);
+        setNextTriggerTimeMillis(zSetKey, timeMillis);
     }
 
     /**
      * 重置轮询时间
      */
-    public void setNextTriggerTimeMillis(Long timeMillis) {
+    public void setNextTriggerTimeMillis(String zSetKey, Long timeMillis) {
         if (null == timeMillis) {
             return;
         }
-        Task task = taskRegistry.getTask(RedisMsgDelayListener.class.getName());
+        Task task = taskRegistry.getTask(zSetKey);
         if (null != task) {
             task.refreshNextExecutionTime(timeMillis);
         }

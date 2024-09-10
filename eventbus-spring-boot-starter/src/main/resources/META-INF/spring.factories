@@ -1,3 +1,7 @@
+# Initializers
+org.springframework.context.ApplicationContextInitializer=\
+  com.github.likavn.eventbus.config.EventBusEnvironmentContextInitializer
+
+# Auto Configure
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.github.likavn.eventbus.config.BusBootConfiguration,\
-  com.github.likavn.eventbus.config.RequestIdGeneratorConfiguration
+  com.github.likavn.eventbus.config.EventBusAutoConfiguration

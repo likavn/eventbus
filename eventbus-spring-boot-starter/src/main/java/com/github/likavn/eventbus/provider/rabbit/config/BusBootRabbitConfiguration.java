@@ -28,10 +28,13 @@ import com.github.likavn.eventbus.provider.rabbit.RabbitNodeTestConnect;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+
+import static com.github.likavn.eventbus.core.constant.BusConstant.*;
 
 /**
  * rabbitMq实现配置
@@ -41,28 +44,41 @@ import org.springframework.context.annotation.Lazy;
  */
 @Configuration
 @ConditionalOnClass(RabbitTemplate.class)
-@ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "rabbitmq")
+@ConditionalOnProperty(prefix = CONFIG_PREFIX, name = TYPE_NAME, havingValue = RABBITMQ)
 public class BusBootRabbitConfiguration {
 
     @Bean
-    public MsgSender msgSender(RabbitTemplate rabbitTemplate, BusConfig config,
-                               @Lazy InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, @Lazy ListenerRegistry registry) {
+    @ConditionalOnMissingBean(MsgSender.class)
+    public MsgSender msgSender(RabbitTemplate rabbitTemplate,
+                               BusConfig config,
+                               @Lazy InterceptorConfig interceptorConfig,
+                               RequestIdGenerator requestIdGenerator,
+                               @Lazy ListenerRegistry registry) {
         return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig, requestIdGenerator, registry);
     }
 
-    @Bean
-    public RabbitMsgSubscribeListener rabbitMsgSubscribeListener(
-            CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
-        return new RabbitMsgSubscribeListener(connectionFactory, config, deliveryBus, registry.getTimelyListeners());
-    }
+    @Configuration
+    @ConditionalOnProperty(prefix = CONFIG_PREFIX, name = {TYPE_NAME, OLD_TYPE_NAME}, havingValue = RABBITMQ)
+    static class RabbitConsumerConfiguration {
 
-    @Bean
-    public RabbitMsgDelayListener rabbitMsgDelayListener(CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
-        return new RabbitMsgDelayListener(connectionFactory, config, deliveryBus, registry);
-    }
+        @Bean
+        @ConditionalOnMissingBean(RabbitMsgSubscribeListener.class)
+        public RabbitMsgSubscribeListener rabbitMsgSubscribeListener(
+                CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
+            return new RabbitMsgSubscribeListener(connectionFactory, config, deliveryBus, registry);
+        }
 
-    @Bean
-    public RabbitNodeTestConnect rabbitNodeTestConnect(CachingConnectionFactory connectionFactory, BusConfig config) {
-        return new RabbitNodeTestConnect(connectionFactory, config);
+        @Bean
+        @ConditionalOnMissingBean(RabbitMsgDelayListener.class)
+        public RabbitMsgDelayListener rabbitMsgDelayListener(
+                CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
+            return new RabbitMsgDelayListener(connectionFactory, config, deliveryBus, registry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(RabbitNodeTestConnect.class)
+        public RabbitNodeTestConnect rabbitNodeTestConnect(CachingConnectionFactory connectionFactory) {
+            return new RabbitNodeTestConnect(connectionFactory);
+        }
     }
 }

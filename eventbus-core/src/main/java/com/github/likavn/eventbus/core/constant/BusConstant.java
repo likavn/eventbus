@@ -46,4 +46,23 @@ public class BusConstant {
      * subscribe thread name
      */
     public static final String THREAD_NAME = "eventbus-msg-pool-";
+
+    /**
+     * 配置前缀
+     */
+    public static final String CONFIG_PREFIX = "eventbus";
+
+    /**
+     * 消息引擎配置key
+     */
+    public static final String TYPE_NAME = "type";
+
+    /**
+     * 迁移原有消息引擎配置key
+     */
+    public static final String OLD_TYPE_NAME = "oldType";
+
+    public static final String REDIS = "redis";
+    public static final String RABBITMQ = "rabbitmq";
+    public static final String ROCKETMQ = "rocketmq";
 }

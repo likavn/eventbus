@@ -86,7 +86,7 @@ public class Trigger {
      * 投递ID
      */
     public String getDeliverId() {
-        return Func.getDeliverId(Func.primitiveClass(invokeBean), method.getName());
+        return Func.originalClass(invokeBean).getName();
     }
 
     /**
@@ -137,7 +137,7 @@ public class Trigger {
         try {
             Assert.isTrue(Modifier.isPublic(modifiers),
                     String.format("Method %s of %s must be public", method.getName(), method.getDeclaringClass().getName()));
-            Class<?> primitiveClass = Func.primitiveClass(invokeBean);
+            Class<?> primitiveClass = Func.originalClass(invokeBean);
             method = primitiveClass.getMethod(method.getName(), method.getParameterTypes());
             Type[] parameterTypes = method.getGenericParameterTypes();
             this.paramsCount = parameterTypes.length;

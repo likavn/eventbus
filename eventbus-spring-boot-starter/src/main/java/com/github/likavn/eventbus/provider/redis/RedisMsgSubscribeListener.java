@@ -16,7 +16,7 @@
 package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
-import com.github.likavn.eventbus.core.metadata.support.Listener;
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.support.AbstractStreamListenerContainer;
 import com.github.likavn.eventbus.provider.redis.support.RedisListener;
@@ -34,25 +34,25 @@ import java.util.List;
  **/
 @Slf4j
 public class RedisMsgSubscribeListener extends AbstractStreamListenerContainer {
-    private final List<RedisListener> subscribers;
+    private final ListenerRegistry registry;
     private final DeliveryBus deliveryBus;
 
     public RedisMsgSubscribeListener(StringRedisTemplate stringRedisTemplate,
                                      BusProperties busProperties,
-                                     List<Listener> subscribers,
+                                     ListenerRegistry registry,
                                      DeliveryBus deliveryBus) {
         super(stringRedisTemplate, busProperties);
+        this.registry = registry;
         this.deliveryBus = deliveryBus;
-        this.subscribers = RedisListener.redisListeners(subscribers);
     }
 
     @Override
     protected List<RedisListener> getListeners() {
-        return this.subscribers;
+        return RedisListener.timelyListeners(registry.getTimelyListeners());
     }
 
     @Override
-    protected void deliver(RedisListener subscriber, Record<String, String> msg) {
-        deliveryBus.deliverTimely(subscriber, msg.getValue());
+    protected void deliver(RedisListener listener, Record<String, String> msg) {
+        deliveryBus.deliverTimely(listener, msg.getValue());
     }
 }

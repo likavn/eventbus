@@ -1,2 +1,1 @@
-com.github.likavn.eventbus.config.BusBootConfiguration
-com.github.likavn.eventbus.config.RequestIdGeneratorConfiguration
+com.github.likavn.eventbus.config.EventBusAutoConfiguration

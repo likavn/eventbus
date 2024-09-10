@@ -15,12 +15,17 @@
  */
 package com.github.likavn.eventbus.core;
 
-import com.github.likavn.eventbus.core.annotation.*;
+import com.github.likavn.eventbus.core.annotation.EventbusListener;
+import com.github.likavn.eventbus.core.annotation.Fail;
+import com.github.likavn.eventbus.core.annotation.Polling;
+import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.constant.BusConstant;
+import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
+import com.github.likavn.eventbus.core.metadata.data.MsgBody;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
@@ -28,10 +33,14 @@ import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.extern.slf4j.Slf4j;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.github.likavn.eventbus.core.utils.Func.*;
 
 /**
  * 订阅器注册中心
@@ -44,10 +53,8 @@ public class ListenerRegistry {
     /**
      * 订阅及时消息处理器
      * key=订阅器全类名+方法名{@link Trigger#getDeliverId()}
-     * 注解:
-     *
-     * @see Listener
      * 接口：
+     *
      * @see MsgListener
      */
     private final Map<String, Listener> timelyMap = new ConcurrentHashMap<>();
@@ -55,10 +62,8 @@ public class ListenerRegistry {
     /**
      * 订阅延时消息处理器
      * key=订阅器全类名+方法名{@link Trigger#getDeliverId()}
-     * 注解:
-     *
-     * @see DelayListener
      * 接口：
+     *
      * @see MsgDelayListener
      */
     private final Map<String, Listener> delayMap = new ConcurrentHashMap<>();
@@ -86,67 +91,143 @@ public class ListenerRegistry {
      * 注册器
      */
     public void register(Object obj) {
-        // 接口实现的消息订阅器
-        if (obj instanceof MsgListener || obj instanceof MsgDelayListener) {
-            registerInterfaceListeners(obj);
+        Class<?> originalClass = Func.originalClass(obj);
+        EventbusListener eventbusListener = originalClass.getAnnotation(EventbusListener.class);
+        if (null == eventbusListener) {
             return;
         }
-
-        // 注解实现的消息订阅器
-        Method[] methods = obj.getClass().getDeclaredMethods();
-        registerAnnotationListeners(obj, Arrays.asList(methods));
+        // 接口实现的消息订阅器
+        if (obj instanceof MsgListener || obj instanceof MsgDelayListener) {
+            register(obj, originalClass, eventbusListener);
+        }
     }
 
     /**
-     * 注册接口实现的消息订阅器
+     * 注册事件监听器
+     * <p>
+     * 本函数核心目的是将事件监听器（Listener）注册到相应的数据结构中，以便在事件触发时能够快速响应
+     * 主要包括以下步骤：
+     * 1. 确保目标类具有指定的事件处理方法（on_message）
+     * 2. 确定服务ID，优先使用事件监听器中标注的serviceId，如果未指定则使用配置中的serviceId
+     * 3. 获取监听的事件代码列表
+     * 4. 确定并发模式，根据事件监听器中标注的并发模式获取对应的并发数
+     * 5. 获取事件触发器，用于描述事件如何触发
+     * 6. 处理失败策略，如果方法上标注了失败策略（Fail），则创建对应的失败触发器（FailTrigger）
+     * 7. 处理轮询策略，如果方法上标注了轮询策略（Polling），则创建对应的轮询触发器（Polling）
+     * 8. 创建监听器实例，并根据对象类型决定其处理消息的类型（及时消息或延迟消息）
+     * 9. 最终将监听器实例注册到相应的数据结构中（根据消息类型不同，存储在不同的Map中）
      *
-     * @param obj 实例
+     * @param obj              注册的对象实例，通常是一个事件监听器
+     * @param originalClass    目标类的Class对象，用于反射操作
+     * @param eventbusListener 事件监听器标注，包含服务ID、监听代码、并发模式等信息
      */
-    @SuppressWarnings("all")
-    private void registerInterfaceListeners(Object obj) {
-        // 获取对象的原始类型（存在代理类的情况）
-        Class<?> primitiveClass = Func.primitiveClass(obj);
-        Method primitiveMethod = getMethod(primitiveClass, BusConstant.ON_MESSAGE);
-        if (null == primitiveMethod) {
+    private void register(Object obj, Class<?> originalClass, EventbusListener eventbusListener) {
+        // 确保目标类具有指定的事件处理方法
+        Method originalMethod = getMethod(originalClass, BusConstant.ON_MESSAGE);
+        if (null == originalMethod) {
             return;
         }
-        Fail fail = primitiveMethod.getAnnotation(Fail.class);
-        Polling polling = primitiveMethod.getAnnotation(Polling.class);
-        Concurrency concurrencyAnn = primitiveMethod.getAnnotation(Concurrency.class);
-        if (null == fail) {
-            fail = primitiveClass.getAnnotation(Fail.class);
-        }
-        FailTrigger failTrigger = null == fail ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
-        // 获取触发器
+        // 确定服务ID
+        String serviceId = Func.isEmpty(eventbusListener.serviceId()) ? config.getServiceId() : eventbusListener.serviceId();
+        // 获取监听的事件代码列表
+        List<String> codes = getListenerCodes(originalClass, eventbusListener);
+        // 确定并发模式
+        Integer concurrency = getConcurrency(eventbusListener.concurrency());
+        // 获取事件触发器
         Trigger trigger = getTrigger(obj, BusConstant.ON_MESSAGE);
-        // 接口实现的及时消息订阅器
+        // 处理失败策略
+        Fail fail = originalMethod.getAnnotation(Fail.class);
+        FailTrigger failTrigger = null == fail ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
+        // 处理轮询策略
+        Polling polling = originalMethod.getAnnotation(Polling.class);
+        // 创建监听器实例
+        Listener listener = new Listener(serviceId, codes, concurrency, trigger, failTrigger, polling);
+        // 根据对象类型决定其处理消息的类型
         if (obj instanceof MsgListener) {
-            MsgListener<?> interf = (MsgListener<?>) obj;
-            String serviceId = Func.isEmpty(interf.getServiceId()) ? config.getServiceId() : interf.getServiceId();
-            // 获取并发数
-            Integer concurrency = getConcurrency(concurrencyAnn, interf.getConcurrency());
-            ToDelay toDelay = primitiveMethod.getAnnotation(ToDelay.class);
-            interf.getCodes().forEach(code -> {
-                Listener listener = new Listener(serviceId, code, concurrency, MsgType.TIMELY, trigger, failTrigger, polling, toDelay);
-                putTimelyMap(listener);
-            });
-        }
-        // 接口实现的延时消息处理器
-        else {
-            Listener listener = new Listener();
-            listener.setServiceId(config.getServiceId());
-            listener.setCode(trigger.getDeliverId());
+            ToDelay toDelay = originalMethod.getAnnotation(ToDelay.class);
+            listener.setType(MsgType.TIMELY);
+            listener.setToDelay(toDelay);
+            putTimelyMap(listener);
+        } else {
             listener.setType(MsgType.DELAY);
-            listener.setTrigger(trigger);
-            listener.setFailTrigger(failTrigger);
-            MsgDelayListener interf = (MsgDelayListener) obj;
-
-            // 获取并发数
-            listener.setConcurrency(getConcurrency(concurrencyAnn));
-            listener.setPolling(polling);
-            // 添加到延迟触发器订阅者映射表中
-            putDelayMap(Func.getDeliverId(primitiveClass, BusConstant.ON_MESSAGE), listener);
+            putDelayMap(listener);
         }
+    }
+
+    /**
+     * 根据类和注解获取事件监听器的代码
+     *
+     * @param originalClass    带有事件监听器注解的类
+     * @param eventbusListener 事件监听器注解
+     * @return 监听器代码列表
+     * <p>
+     * 该方法首先尝试通过注解中的codes属性获取代码如果未设置，则尝试通过继承关系
+     * 和MsgBody接口获取代码如果这两种方式都失败，则抛出异常
+     */
+    private List<String> getListenerCodes(Class<?> originalClass, EventbusListener eventbusListener) {
+        // 检查注解中的codes属性是否已设置
+        String[] codes = eventbusListener.codes();
+        if (!Func.isEmpty(codes)) {
+            return Arrays.asList(codes);
+        }
+        Class<?> msgBodyClass = getMsgBodyClass(originalClass);
+        // 检查消息体类是否实现了MsgBody接口
+        if (isInterfaceImpl(msgBodyClass, MsgBody.class)) {
+            try {
+                // 尝试获取消息体类的默认构造函数
+                Constructor<?> constructor = msgBodyClass.getConstructor();
+                // 如果构造函数不是可访问的，则设置为可访问
+                if (!constructor.isAccessible()) {
+                    constructor.setAccessible(true);
+                }
+                // 通过反射创建消息体类的实例，并获取其code方法的返回值
+                String code = ((MsgBody) msgBodyClass.newInstance()).code();
+                return Collections.singletonList(code);
+            } catch (Exception e) {
+                // 如果在反射过程中发生异常，则抛出EventBusException
+                throw new EventBusException(e);
+            }
+        }
+        return Collections.singletonList(originalClass.getSimpleName());
+    }
+
+    /**
+     * 获取消息体的类类型
+     *
+     * @param originalClass 原始类类型，预计从中找出实现消息监听器接口的泛型参数
+     * @return 返回实现消息监听器接口的泛型参数类类型
+     * @throws EventBusException 如果没有找到实现消息监听器接口的类类型，则抛出此异常
+     */
+    private Class<?> getMsgBodyClass(Class<?> originalClass) {
+        // 初始化超级接口类型变量
+        Type superInf = null;
+
+        // 遍历原始类的所有泛型接口
+        for (Type inf : originalClass.getGenericInterfaces()) {
+            // 如果接口不是参数化类型，则跳过
+            if (!(inf instanceof ParameterizedType)) {
+                continue;
+            }
+
+            // 获取接口的原始类类型
+            Class<?> clz = (Class<?>) ((ParameterizedType) inf).getRawType();
+
+            // 判断当前接口是否为MsgListener或MsgDelayListener接口的实现
+            if (clz.getName().equals(MsgListener.class.getName())
+                    || isInterfaceImpl(clz, MsgListener.class)
+                    || clz.getName().equals(MsgDelayListener.class.getName())
+                    || isInterfaceImpl(clz, MsgDelayListener.class)) {
+                superInf = inf;
+            }
+        }
+
+        // 如果没有找到实现的消息监听器接口，则抛出异常
+        if (null == superInf) {
+            throw new EventBusException("The message listener implementation interface was not found");
+        }
+
+        // 返回消息监听器接口的泛型参数类型
+        return (Class<?>) ((ParameterizedType) superInf).getActualTypeArguments()[0];
     }
 
     /**
@@ -159,122 +240,6 @@ public class ListenerRegistry {
         return null == defaultConcurrency || defaultConcurrency < 1 ? config.getConcurrency() : defaultConcurrency;
     }
 
-    private Integer getConcurrency(Concurrency concurrencyAnn) {
-        return (null != concurrencyAnn && concurrencyAnn.concurrency() > 0) ? concurrencyAnn.concurrency() : config.getConcurrency();
-    }
-
-    private Integer getConcurrency(Concurrency concurrencyAnn, Integer defaultConcurrency) {
-        return (null != concurrencyAnn && concurrencyAnn.concurrency() > 0) ? concurrencyAnn.concurrency() : getConcurrency(defaultConcurrency);
-    }
-
-    /**
-     * 注册注解监听器。
-     * 该方法会遍历提供的方法列表，查找并注册带有特定注解的方法作为事件监听器。
-     *
-     * @param obj     要注册监听器的对象实例。
-     * @param methods 要检查的方法列表。
-     */
-    private void registerAnnotationListeners(Object obj, List<Method> methods) {
-        // 获取对象对应的原始类型
-        Class<?> primitiveClass = Func.primitiveClass(obj);
-        AtomicBoolean isCreated = new AtomicBoolean(false);
-
-        // 遍历方法列表，筛选出带有特定注解的方法
-        methods.stream().filter(method -> {
-            // 尝试获取原始类型的同名方法
-            Method primitiveMethod = getMethod(primitiveClass, method.getName());
-            if (null == primitiveMethod) {
-                return false;
-            }
-
-            // 获取并检查注解是否存在
-            com.github.likavn.eventbus.core.annotation.Listener listener = primitiveMethod.getAnnotation(com.github.likavn.eventbus.core.annotation.Listener.class);
-            DelayListener delayListener = primitiveMethod.getAnnotation(DelayListener.class);
-
-            if (null == listener && null == delayListener) {
-                return false;
-            }
-
-            // 确保一个订阅器类只被注册一次
-            Assert.isTrue(!isCreated.get(), String.format("存在重复的订阅器，一个订阅器类只能存在一个，class：%s", obj.getClass()));
-            isCreated.set(true);
-            return true;
-        }).forEach(method -> registerAnnotationListeners(obj, primitiveClass, method));
-    }
-
-
-    /**
-     * 注册注解实现的消息订阅器。
-     * 该方法用于根据注解配置，将指定的方法注册为消息订阅器，根据注解中的配置项（如消息类型、错误处理方式、并发控制等），
-     * 创建并添加到相应的订阅者映射表中（延迟或及时）。
-     *
-     * @param obj            实例对象，即包含订阅方法的对象实例。
-     * @param primitiveClass 被订阅方法所在的原始类。
-     * @param method         订阅方法。
-     **/
-    private void registerAnnotationListeners(Object obj, Class<?> primitiveClass, Method method) {
-        // 尝试获取与给定方法同名的原始方法
-        Method primitiveMethod = getMethod(primitiveClass, method.getName());
-        if (null == primitiveMethod) {
-            return; // 如果找不到原始方法，则直接返回
-        }
-        // 创建触发器，用于在指定条件满足时触发订阅方法
-        Trigger trigger = Trigger.of(obj, method);
-
-        // 默认消息类型为DELAY（延迟）
-        MsgType msgType = MsgType.DELAY;
-        // 默认服务ID为配置中的服务ID
-        String serviceId = config.getServiceId();
-        // 默认失败处理方式和并发控制未设置
-        Fail fail;
-        List<String> codes;
-        Integer concurrency;
-        // 检查订阅方法是否注解了Listener注解
-        com.github.likavn.eventbus.core.annotation.Listener listener = primitiveMethod.getAnnotation(com.github.likavn.eventbus.core.annotation.Listener.class);
-        Concurrency concurrencyAnn = primitiveMethod.getAnnotation(Concurrency.class);
-        if (null != listener) {
-            // 如果注解存在，则设置消息类型为TIMELY（及时）
-            msgType = MsgType.TIMELY;
-
-            // 如果注解中指定了serviceId，则使用注解中的值
-            if (!Func.isEmpty(listener.serviceId())) {
-                serviceId = listener.serviceId();
-            }
-
-            // 从注解中获取失败处理方式、错误码列表和并发控制设置
-            fail = listener.fail();
-            codes = Arrays.asList(listener.codes());
-            concurrency = getConcurrency(concurrencyAnn, listener.concurrency());
-        } else {
-            // 检查是否注解了DelayListener注解
-            DelayListener delayListener = primitiveMethod.getAnnotation(DelayListener.class);
-            // 从DelayListener注解中获取失败处理方式、错误码列表和并发控制设置
-            fail = delayListener.fail();
-            codes = Arrays.asList(delayListener.codes());
-            // 若未指定，则使用默认的并发控制值
-            concurrency = getConcurrency(concurrencyAnn, delayListener.concurrency());
-        }
-
-        // 创建失败触发器，用于处理订阅执行失败的情况
-        FailTrigger failTrigger = new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
-        Polling polling = primitiveMethod.getAnnotation(Polling.class);
-        ToDelay toDelay = primitiveMethod.getAnnotation(ToDelay.class);
-        // 遍历错误码列表，为每个错误码创建并注册一个订阅者
-        for (String code : codes) {
-            // 创建订阅者实例
-            Listener createListener = new Listener(serviceId, code, concurrency, msgType, trigger, failTrigger, polling, toDelay);
-            if (msgType.isTimely()) {
-                // 如果是及时消息，则添加到及时触发器订阅者映射表中
-                putTimelyMap(createListener);
-            } else {
-                createListener.setToDelay(null);
-                // 如果是延迟消息，则添加到延迟触发器订阅者映射表中
-                putDelayMap(trigger.getDeliverId(), createListener);
-            }
-        }
-    }
-
-
     /**
      * 新增订阅器
      *
@@ -282,22 +247,22 @@ public class ListenerRegistry {
      */
     private void putTimelyMap(Listener listener) {
         listener.isValid();
-        String deliverId = listener.getTrigger().getDeliverId();
-        Assert.isTrue(!timelyMap.containsKey(deliverId), "listenerMap deliverId=" + deliverId + "存在相同的消息处理器");
-        log.debug("ListenerRegistry 注册消息监听器deliverId={}", deliverId);
+        String deliverId = listener.getDeliverId();
+        Assert.isTrue(!timelyMap.containsKey(deliverId), "timelyMap deliverId=" + deliverId + "存在相同的消息处理器");
+        log.debug("ListenerRegistry 注册及时消息监听器deliverId={}", deliverId);
         timelyMap.put(deliverId, listener);
     }
 
     /**
      * 新增订阅器
      *
-     * @param deliverId 投递ID
-     * @param listener  listener
+     * @param listener listener
      */
-    private void putDelayMap(String deliverId, Listener listener) {
+    private void putDelayMap(Listener listener) {
         listener.isValid();
-        Assert.isTrue(!delayMap.containsKey(deliverId), "subscribeDelay deliverId=" + deliverId + "存在相同的延时消息处理器");
-        log.debug("ListenerRegistry 注册消息监听器deliverId={}", deliverId);
+        String deliverId = listener.getDeliverId();
+        Assert.isTrue(!delayMap.containsKey(deliverId), "delayMap deliverId=" + deliverId + "存在相同的消息处理器");
+        log.debug("ListenerRegistry 注册延时消息监听器deliverId={}", deliverId);
         delayMap.put(deliverId, listener);
     }
 
@@ -377,9 +342,8 @@ public class ListenerRegistry {
      * @return listeners
      */
     public List<Listener> getFullListeners() {
-        return new ArrayList<Listener>() {{
-            addAll(getTimelyListeners());
-            addAll(getDelayListeners());
-        }};
+        List<Listener> listeners = new ArrayList<>(getTimelyListeners());
+        listeners.addAll(getDelayListeners());
+        return listeners;
     }
 }

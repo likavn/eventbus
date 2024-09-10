@@ -15,8 +15,6 @@
  */
 package com.github.likavn.eventbus.core.metadata.data;
 
-import com.github.likavn.eventbus.core.api.MsgDelayListener;
-import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
 import com.github.likavn.eventbus.core.utils.Func;
@@ -88,21 +86,22 @@ public class Request<T> extends Topic implements Message<T> {
                    String code,
                    String requestId,
                    String deliverId,
-                   Class<? extends MsgDelayListener> delayListener,
                    Integer deliverCount,
+                   Integer pollingCount,
+                   Integer failRetryCount,
                    MsgType type,
                    Long delayTime,
+                   Boolean toDelay,
                    T body) {
         super(serviceId, code);
         this.requestId = requestId;
         this.deliverId = deliverId;
-        if (null != delayListener) {
-            this.deliverId = Func.getDeliverId(delayListener, BusConstant.ON_MESSAGE);
-            setCode(this.deliverId);
-        }
         this.deliverCount = deliverCount;
+        this.pollingCount = pollingCount;
+        this.failRetryCount = failRetryCount;
         this.type = type;
         this.delayTime = delayTime;
+        this.toDelay = toDelay;
         this.body = body;
     }
 
@@ -134,13 +133,5 @@ public class Request<T> extends Topic implements Message<T> {
     @Override
     public String topic() {
         return Func.getTopic(serviceId, code);
-    }
-
-    @Override
-    public String delayTopic() {
-        if (type.isDelay()) {
-            return Func.getTopic(serviceId, code);
-        }
-        return Func.getDelayTopic(serviceId, code, deliverId);
     }
 }

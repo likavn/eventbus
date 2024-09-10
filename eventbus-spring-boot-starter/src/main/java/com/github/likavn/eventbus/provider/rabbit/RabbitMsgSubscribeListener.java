@@ -16,6 +16,7 @@
 package com.github.likavn.eventbus.provider.rabbit;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.provider.rabbit.support.AbstractRabbitRegisterContainer;
@@ -31,20 +32,20 @@ import java.util.List;
  **/
 public class RabbitMsgSubscribeListener extends AbstractRabbitRegisterContainer {
     private final DeliveryBus deliveryBus;
-    private final List<Listener> listeners;
+    private final ListenerRegistry registry;
 
     public RabbitMsgSubscribeListener(CachingConnectionFactory connectionFactory,
                                       BusConfig config,
                                       DeliveryBus deliveryBus,
-                                      List<Listener> listeners) {
+                                      ListenerRegistry registry) {
         super(connectionFactory, config);
         this.deliveryBus = deliveryBus;
-        this.listeners = listeners;
+        this.registry = registry;
     }
 
     @Override
     public List<Listener> getListeners() {
-        return this.listeners;
+        return registry.getTimelyListeners();
     }
 
     @Override

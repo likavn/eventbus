@@ -46,10 +46,7 @@ public class RabbitMsgDelayListener extends AbstractRabbitRegisterContainer {
 
     @Override
     public List<Listener> getListeners() {
-        List<Listener> listeners = registry.getFullListeners();
-        // 兼容之前版本的延时消息
-        listeners.add(Listener.ofDelay(config));
-        return listeners;
+        return registry.getFullListeners();
     }
 
     @Override

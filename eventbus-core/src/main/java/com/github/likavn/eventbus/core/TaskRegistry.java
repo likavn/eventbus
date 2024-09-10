@@ -73,9 +73,9 @@ public class TaskRegistry {
      */
     @SuppressWarnings("all")
     public void createTask(Task task) {
-        Assert.isTrue(task.isInitialized(), "任务未初始化！");
+        Assert.isTrue(task.isInitialized(), "任务[" + task.getName() + "]未初始化！");
         // 确保任务名称唯一
-        Assert.isTrue(!taskMap.containsKey(task.getName()), "任务已存在");
+        Assert.isTrue(!taskMap.containsKey(task.getName()), "任务[" + task.getName() + "]已存在");
 
         task.setTaskRegistry(this);
         taskMap.put(task.getName(), task);

@@ -16,14 +16,15 @@
 package com.github.likavn.eventbus.core.utils;
 
 import com.github.likavn.eventbus.core.metadata.data.Request;
-import com.github.likavn.eventbus.core.support.spi.IJson;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,13 +36,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Slf4j
 @UtilityClass
-public final class Func {
+public final class Func extends JsonSupportUtil{
     /**
      * agent class name pool
      */
     private static final List<String> PROXY_CLASS_NAMES = new ArrayList<>(4);
-
-    private static final IJson JSON;
 
     static {
         // cglib
@@ -50,33 +49,6 @@ public final class Func {
         // javassist
         PROXY_CLASS_NAMES.add("$$_JAVASSIST");
         PROXY_CLASS_NAMES.add("$$_javassist");
-
-        // load JSON
-        IJson js = null;
-        ServiceLoader<IJson> serviceLoader = ServiceLoader.load(IJson.class);
-        Integer minOrder = null;
-        for (IJson t : serviceLoader) {
-            if (!t.active()) {
-                continue;
-            }
-            if (null == minOrder || t.getOrder() < minOrder) {
-                minOrder = t.getOrder();
-                js = t;
-            }
-        }
-        JSON = js;
-        Assert.notNull(JSON, "json serialization tool is required!");
-    }
-
-    /**
-     * jsonStr to request bean
-     *
-     * @param js js
-     * @return bean
-     */
-    @SuppressWarnings("all")
-    public Request convertByJson(String js) {
-        return parseObject(js, Request.class);
     }
 
     /**
@@ -91,30 +63,14 @@ public final class Func {
     }
 
     /**
-     * @param body 数据对象
-     * @param type 数据实体class
-     * @return 转换对象
+     * jsonStr to request bean
+     *
+     * @param js js
+     * @return bean
      */
     @SuppressWarnings("all")
-    public <T> T parseObject(Object body, Type type) {
-        if (body instanceof String) {
-            String bodyStr = (String) body;
-            if (!JSON.isJson(bodyStr) && isInterfaceImplemented((Class<?>) type, CharSequence.class)) {
-                return (T) bodyStr;
-            }
-            return JSON.parseObject(body.toString(), type);
-        }
-        return JSON.parseObject(toJson(body), type);
-    }
-
-    /**
-     * toJson
-     *
-     * @param value object
-     * @return string
-     */
-    public String toJson(Object value) {
-        return JSON.toJsonString(value);
+    public Request convertByJson(String js) {
+        return parseObject(js, Request.class);
     }
 
     public boolean isEmpty(Map<?, ?> map) {
@@ -167,7 +123,7 @@ public final class Func {
      * @param obj 传入对象
      * @return 原始类型
      */
-    public Class<?> primitiveClass(Object obj) {
+    public Class<?> originalClass(Object obj) {
         return isProxy(obj.getClass()) ? obj.getClass().getSuperclass() : obj.getClass();
     }
 
@@ -244,12 +200,12 @@ public final class Func {
      * @param interfaceClass 接口
      * @return 是否实现了接口
      */
-    public boolean isInterfaceImplemented(Class<?> clazz, Class<?> interfaceClass) {
+    public boolean isInterfaceImpl(Class<?> clazz, Class<?> interfaceClass) {
         if (interfaceClass.isAssignableFrom(clazz)) {
             return true;
         }
         for (Class<?> inf : clazz.getInterfaces()) {
-            if (isInterfaceImplemented(inf, interfaceClass)) {
+            if (isInterfaceImpl(inf, interfaceClass)) {
                 return true;
             }
         }

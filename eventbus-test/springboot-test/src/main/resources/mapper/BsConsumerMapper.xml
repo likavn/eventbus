@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.github.likavn.eventbus.test.mapper.BsConsumerMapper">
+
+    <select id="listPage" resultType="com.github.likavn.eventbus.test.controller.vo.BsConsumerVO">
+        select
+            bc.*,
+            bd.service_id ,
+            bd.code ,
+            bd.body ,
+            bd.ip_address sendIpAddress,
+            bd.create_time dataCreateTime
+        from
+            bs_consumer bc
+                left join bs_data bd on bc.request_id = bd.request_id
+        <where>
+            <if test="consumer.id != null">
+                and bc.id = #{consumer.id}
+            </if>
+        </where>
+        order by bd.create_time desc
+    </select>
+</mapper>
