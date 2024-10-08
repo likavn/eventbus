@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Slf4j
 @UtilityClass
-public final class Func extends JsonSupportUtil{
+public final class Func extends JsonSupportUtil {
     /**
      * agent class name pool
      */
@@ -124,6 +124,9 @@ public final class Func extends JsonSupportUtil{
      * @return 原始类型
      */
     public Class<?> originalClass(Object obj) {
+        if (null == obj) {
+            return null;
+        }
         return isProxy(obj.getClass()) ? obj.getClass().getSuperclass() : obj.getClass();
     }
 

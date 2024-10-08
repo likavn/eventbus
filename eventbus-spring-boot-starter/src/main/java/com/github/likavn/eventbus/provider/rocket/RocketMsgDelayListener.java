@@ -23,7 +23,6 @@ import com.github.likavn.eventbus.provider.rocket.support.AbstractRocketRegister
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.spring.autoconfigure.RocketMQProperties;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -48,11 +47,11 @@ public class RocketMsgDelayListener extends AbstractRocketRegisterContainer {
 
     @Override
     public List<Listener> getListeners() {
-        return registry.getFullListeners();
+        return registry.getDelayListeners();
     }
 
     @Override
-    protected void deliver(Listener subscriber, MessageExt msg) {
-        deliveryBus.deliverDelay(msg.getBody());
+    protected void deliver(Listener listener, MessageExt msg) {
+        deliveryBus.deliverDelay(listener, msg.getBody());
     }
 }

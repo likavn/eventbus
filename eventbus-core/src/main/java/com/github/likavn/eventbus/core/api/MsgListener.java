@@ -27,8 +27,19 @@ import com.github.likavn.eventbus.core.metadata.data.Message;
 public interface MsgListener<T> {
     /**
      * 处理器
+     * 当有新消息到达时，此方法被调用以处理消息
      *
      * @param message 消息体，包含延时消息的数据和元信息
      */
     void onMessage(Message<T> message);
+
+    /**
+     * 处理消息投递异常
+     * 当消息投递过程中发生异常时，此方法被调用用于处理该异常
+     *
+     * @param message   消息，发生异常的消息对象
+     * @param throwable 异常，投递过程中遇到的异常对象
+     */
+    default void failHandler(Message<T> message, Throwable throwable) {
+    }
 }

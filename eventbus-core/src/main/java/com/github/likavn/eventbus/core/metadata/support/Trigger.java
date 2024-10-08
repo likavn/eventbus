@@ -19,7 +19,7 @@ import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
-import lombok.Data;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.*;
@@ -30,18 +30,19 @@ import java.lang.reflect.*;
  * @author likavn
  * @date 2024/01/01
  **/
-@Data
 @Slf4j
 public class Trigger {
     /**
      * 调用对象
      */
-    private Object invokeBean;
+    @Getter
+    private final Object invokeBean;
 
     /**
      * 方法
      */
-    private Method method;
+    @Getter
+    private final Method method;
 
     /**
      * 接收数据所在参数列表位置
@@ -63,12 +64,19 @@ public class Trigger {
      */
     private int paramsCount;
 
+    /**
+     * 投递ID
+     */
+    @Getter
+    private final String deliverId;
 
     protected Trigger(Object invokeBean, Method method) {
         this.invokeBean = invokeBean;
         this.method = method;
+        Class<?> primitiveClass = Func.originalClass(invokeBean);
+        this.deliverId = null == primitiveClass ? null : primitiveClass.getName();
         // 构建参数
-        buildParams(method);
+        buildParams(invokeBean, method);
     }
 
     /**
@@ -79,14 +87,10 @@ public class Trigger {
      * @return 触发器
      */
     public static Trigger of(Object invokeBean, Method method) {
+        if (null == method) {
+            return null;
+        }
         return new Trigger(invokeBean, method);
-    }
-
-    /**
-     * 投递ID
-     */
-    public String getDeliverId() {
-        return Func.originalClass(invokeBean).getName();
     }
 
     /**
@@ -129,8 +133,8 @@ public class Trigger {
     /**
      * 构建参数
      */
-    private void buildParams(Method method) {
-        if (null == method) {
+    private void buildParams(Object invokeBean, Method method) {
+        if (null == invokeBean || null == method) {
             return;
         }
         int modifiers = method.getModifiers();

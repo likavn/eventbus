@@ -29,7 +29,6 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@SuppressWarnings("all")
 @EqualsAndHashCode(callSuper = true)
 public class Request<T> extends Topic implements Message<T> {
     private static final long serialVersionUID = 1L;

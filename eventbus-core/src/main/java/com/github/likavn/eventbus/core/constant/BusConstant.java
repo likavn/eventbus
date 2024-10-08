@@ -38,6 +38,14 @@ public class BusConstant {
     public static final String ON_MESSAGE = "onMessage";
 
     /**
+     * 接口订阅器接收异常的方法名
+     *
+     * @see MsgListener#failHandler(Message, Throwable)
+     * @see MsgDelayListener#failHandler(Message, Throwable)
+     */
+    public static final String FAIL_HANDLER = "failHandler";
+
+    /**
      * thread name
      */
     public static final String TASK_NAME = "eventbus-task-pool-";

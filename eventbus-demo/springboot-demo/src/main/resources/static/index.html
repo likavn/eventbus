@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Eventbus</title>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+<body>
+<H3>Eventbus消息测试</H3>
+<div>
+    <span>组件状态：</span>
+    <span id="startupTxt" style="color:blue;"></span>
+    <span style="color: red;">去</span>
+    <button id="startup" onclick="startup()">关闭</button>
+</div>
+<div>
+    <span>消息类型：</span>
+    <select title="状态" id="type" onchange="changeType()">
+        <option value="1">及时消息</option>
+        <option value="2">及时消息（传入消息code）</option>
+        <option value="3">及时消息（传入处理器类）</option>
+        <option value="13">延时消息</option>
+        <option value="14">延时消息（传入消息code）</option>
+    </select>
+</div>
+<div>
+    <span>发送内容：</span>
+    <textarea id="content" style="height: 80px; width: 520px;" placeholder="请输入发送的消息内容"></textarea>
+</div>
+<div id="delayTimeBlock" style="display: none;">
+    <span>延时时间：</span>
+    <input type="number" id="delayTime" value="5" placeholder="请输入延时时间"/>
+    <span>秒</span>
+</div>
+<div>
+    <span>发送数量：</span>
+    <input type="number" id="sendCount" value="1" placeholder="请输入发送的消息数量"/>
+    <span>条</span>
+</div>
+<div>
+    <span>触发按钮：</span>
+    <button id="sendBtn" onclick="sendMessage()">发送消息</button>
+    <span id="sendTime" style="color: red;"></span>
+</div>
+<div style="margin-top: 50px;">
+    <span>消息列表：</span>
+</div>
+<div style="margin-top: 5px;">
+    <div>
+        <span><button id="tableRefresh" onclick="tableRefresh()">刷新</button></span>
+        <span><button id="tablePrevPage" onclick="tablePrevPage()">上一页</button></span>
+        <span><button id="tableNextPage" onclick="tableNextPage()">下一页</button></span>
+        <span>当前第<span id="current"></span>页，</span>
+        <span>共<span id="pageSize"></span>页</span>
+    </div>
+    <table>
+        <thead>
+        <tr id="tableHead">
+            <th name="requestId">requestId</th>
+            <th name="serviceId">serviceId</th>
+            <th name="code">code</th>
+            <th name="typeStr">消息类型</th>
+            <th name="body">消息</th>
+            <th name="sendIpAddress">发送者IP</th>
+            <th name="deliverId">消费者ID</th>
+            <th name="deliverCount">投递次数</th>
+            <th name="delayTime">延时时间(s)</th>
+            <th name="statusStr">消息接收状态</th>
+            <th name="pollingCount">轮询次数</th>
+            <th name="failRetryCount">重试次数</th>
+            <th name="toDelay">toDelay</th>
+            <th name="dataCreateTime">消息发送时间</th>
+            <th name="successTime">成功时间</th>
+            <th name="exceptionTime">失败时间</th>
+            <th name="exceptionMessage">失败信息</th>
+            <th name="exceptionStackTrace">堆栈信息</th>
+            <th name="createTime">消费时间</th>
+            <th name="updateTime">最后更新时间</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+    </table>
+</div>
+<div class="toast"></div>
+<script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script>
+    var active = 1;
+    var pageSize = 0;
+    var current = 1;
+    var size = 20;
+
+
+    var tdNames = [];
+    let children = $("#tableHead").children();
+    for (var i = 0; i < children.length; i++) {
+        var name = children[i].getAttribute("name");
+        if (name && name != 'null') {
+            tdNames.push(name);
+        }
+    }
+
+    $(document).ready(function () {
+        var content = localStorage.getItem('content');
+        console.log("加载历史消息内容content=" + content);
+        $("#content").val(content);
+
+        $.get("eventbus/active", function (response) {
+                active = response.data;
+                refreshStartupStatus();
+            }
+        );
+        loadTableData(current, size);
+    });
+
+
+    /**
+     * 启动/关闭
+     */
+    function startup() {
+        var url = "eventbus/" + (active ? "stop" : "start");
+        $.get(url, function (response) {
+                if (response.success) {
+                    active = !active;
+                    refreshStartupStatus();
+                } else {
+                    alert("操作失败");
+                }
+            }
+        );
+    }
+
+    /**
+     * 刷新启动状态
+     */
+    function refreshStartupStatus() {
+        $("#startupTxt").text(active ? "已启动" : "已关闭");
+        $("#startup").text(active ? "关闭" : "启动");
+    }
+
+
+    /**
+     * 发送消息
+     */
+    function sendMessage() {
+        var type = $("#type").val();
+        var sendCount = $("#sendCount").val();
+        var delayTime = $("#delayTime").val();
+        var content = $("#content").val();
+        console.log("type=" + type);
+        console.log("sendCount=" + sendCount);
+        console.log("delayTime=" + delayTime);
+        console.log("content=" + content);
+        // 存储消息
+        localStorage.setItem('content', content);
+        $("#sendBtn").prop("disabled", true);
+        var note = "发送中...";
+        var timerId = setInterval(function () {
+            $("#sendTime").text(note);
+            if (note.length > 3) {
+                note = "发送中"
+            } else {
+                note = "发送中...";
+            }
+        }, 500);
+        $.ajax({
+            type: "post",
+            // url
+            url: "/eventbus/trigger/" + type + "/" + sendCount + "?delayTime=" + delayTime,
+            data: content,
+            dateType: "json",
+            contentType: 'application/json',
+            success: function (response) {
+                clearInterval(timerId);
+                if (response.success) {
+                    $("#sendTime").text(response.data);
+                } else {
+                    $("#sendTime").text("发送失败!");
+                    alert("发送失败");
+                }
+                $("#sendBtn").prop("disabled", false);
+            }
+        });
+    }
+
+    /**
+     * 改变消息类型
+     */
+    function changeType() {
+        var type = $("#type").val();
+        if (Number(type) > 10) {
+            $("#delayTimeBlock").show();
+        } else {
+            $("#delayTimeBlock").hide();
+        }
+    }
+
+    function tableRefresh() {
+        loadTableData(current, size);
+    }
+
+    function tablePrevPage() {
+        if (current - 1 < 1) {
+            return
+        }
+        loadTableData(--current, size);
+    }
+
+    function tableNextPage() {
+        if (current + 1 > pageSize) {
+            return
+        }
+        loadTableData(++current, size);
+    }
+
+    function reSendMessage(id) {
+        $.post("eventbus/table/reSendMessage",
+            {consumerDataId: id},
+            function (response) {
+                if (response.success) {
+                    showToast("重发成功");
+                    tableRefresh();
+                } else {
+                    showToast("重发失败!" + response.msg);
+                }
+            });
+    }
+
+    function loadTableData(current, size) {
+        $.get("eventbus/table/page?current=" + current + "&size=" + size, function (response) {
+                if (response.success) {
+                    var data = response.data;
+                    pageSize = data.pages;
+                    $("#pageSize").text(pageSize);
+                    $("#current").text(current);
+                    var tableBody = "";
+                    if (data.records.length > 0) {
+                        for (let index in data.records) {
+                            var record = data.records[index];
+                            tableBody += "<tr>\n";
+                            tdNames.forEach(function (name) {
+                                let value = record[name] ? record[name] : '';
+                                tableBody += "    <td><a title=\"" + value + "\">" + cutStr(value) + "</a></td>\n";
+                            })
+                            tableBody += "    <td><button class='reSendMessage' onclick=\"reSendMessage('" + record.id + "')\">重发</button></td>\n";
+                            tableBody += "</tr>\n";
+                        }
+                    }
+                    $("#tableBody").html(tableBody);
+                } else {
+                    alert("操作失败");
+                }
+            }
+        );
+    }
+
+    // 显示toast提示
+    function showToast(message) {
+        $('.toast').text(message);
+        $('.toast').fadeIn().delay(2000).fadeOut();
+    }
+
+    // 截取字符串
+    function cutStr(str) {
+        if (str.length > 62) {
+            return str.substring(0, 20) + '...';
+        }
+        return str;
+    }
+</script>
+<style type="text/css">
+    div {
+        padding-top: 5px;
+    }
+
+    table {
+        border: 1px solid #000;
+        font-size: 12px;
+    }
+
+    th, td {
+        border: 1px solid #000;
+    }
+
+    .reSendMessage {
+        color: red;
+    }
+
+    .toast {
+        position: fixed;
+        left: 50%;
+        top: 5%;
+        transform: translateX(-50%);
+        padding: 15px 20px;
+        background-color: green;
+        color: #fff;
+        border-radius: 5px;
+        display: none;
+        width: 10%;
+        text-align: center;
+    }
+</style>
+</body>
+</html>

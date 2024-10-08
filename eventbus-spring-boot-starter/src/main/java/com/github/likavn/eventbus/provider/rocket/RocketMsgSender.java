@@ -55,15 +55,21 @@ public class RocketMsgSender extends AbstractSenderAdapter {
 
     @Override
     public void toSendDelayMessage(Request<?> request) {
+        String destination;
+        if (request.getType().isDelay()) {
+            destination = String.format(RocketConstant.DELAY_QUEUE, request.topic());
+        } else {
+            destination = String.format(RocketConstant.QUEUE, request.topic());
+        }
+
         // 构建消息对象
         Message<String> message = MessageBuilder
                 .withPayload(Func.toJson(request))
                 // 消息类型
                 .setHeader(MessageHeaders.CONTENT_TYPE, "text/plain")
                 .build();
-        // 发送一个延时消息，延迟等级为4级，也就是30s后被监听消费
         rocketMqTemplate.syncSend(
-                String.format(RocketConstant.DELAY_QUEUE, request.getServiceId()) + ":" + request.getServiceId(),
+                destination + ":" + request.getServiceId(),
                 message,
                 // 发送超时时间,十秒
                 10000,

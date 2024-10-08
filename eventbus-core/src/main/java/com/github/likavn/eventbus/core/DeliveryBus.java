@@ -15,7 +15,7 @@
  */
 package com.github.likavn.eventbus.core;
 
-import com.github.likavn.eventbus.core.annotation.Fail;
+import com.github.likavn.eventbus.core.annotation.FailRetry;
 import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgSender;
@@ -45,7 +45,10 @@ public class DeliveryBus {
     private final MsgSender msgSender;
     private final ListenerRegistry registry;
 
-    public DeliveryBus(InterceptorConfig interceptorConfig, BusConfig config, MsgSender msgSender, ListenerRegistry registry) {
+    public DeliveryBus(InterceptorConfig interceptorConfig,
+                       BusConfig config,
+                       MsgSender msgSender,
+                       ListenerRegistry registry) {
         this.interceptorConfig = interceptorConfig;
         this.config = config;
         this.msgSender = msgSender;
@@ -78,21 +81,12 @@ public class DeliveryBus {
      * @param listener 订阅者
      * @param request  请求对象
      */
-    public void deliverTimely(Listener listener, Request<?> request) {
-        if (null != request.getDeliverId() && (!listener.getTrigger().getDeliverId().equals(request.getDeliverId()))) {
+    private void deliverTimely(Listener listener, Request<?> request) {
+        if (null != request.getDeliverId() && !listener.getDeliverId().equals(request.getDeliverId())) {
             return;
         }
         // 发送消息给订阅者
         deliver(listener, request);
-    }
-
-    /**
-     * 接收延时消息
-     *
-     * @param body body
-     */
-    public void deliverDelay(String body) {
-        deliverDelay(Func.convertByJson(body));
     }
 
     /**
@@ -109,29 +103,8 @@ public class DeliveryBus {
      *
      * @param body body
      */
-    public void deliverDelay(byte[] body) {
-        deliverDelay(Func.convertByBytes(body));
-    }
-
-    /**
-     * 接收延时消息
-     *
-     * @param body body
-     */
     public void deliverDelay(Listener listener, byte[] body) {
         deliverDelay(listener, Func.convertByBytes(body));
-    }
-
-    /**
-     * 该方法用于处理具有延迟特性的请求，它会根据请求对象自动选择合适的监听器
-     * 如果请求是延迟请求，则从延迟监听器中查找；否则从及时监听器中查找
-     * 此方法覆盖了默认情况下的延迟交付行为，即不使用自定义监听器
-     *
-     * @param request 请求对象，其中包含了交付ID和请求类型等信息
-     */
-    @SuppressWarnings("all")
-    public void deliverDelay(Request request) {
-        deliverDelay(null, request);
     }
 
     /**
@@ -144,7 +117,7 @@ public class DeliveryBus {
      * @param request  必填参数，包含了请求的所有必要信息
      */
     @SuppressWarnings("all")
-    public void deliverDelay(Listener listener, Request request) {
+    private void deliverDelay(Listener listener, Request request) {
         // 检查并处理传入监听器的特殊情况
         if (null != listener && null == listener.getTrigger()) {
             listener = null;
@@ -160,7 +133,7 @@ public class DeliveryBus {
         }
         // 处理未找到监听器的错误情况
         if (null == listener) {
-            log.error("delay msg handler not found deliverId={}", request.getDeliverId());
+            log.error("not found delayMsg handler by deliverId={}", request.getDeliverId());
             return;
         }
         deliver(listener, request);
@@ -266,33 +239,34 @@ public class DeliveryBus {
         log.error("deliver error", throwable);
         // 获取订阅器的FailTrigger
         FailTrigger failTrigger = listener.getFailTrigger();
-        Fail fail = null;
+        FailRetry failRetry = null;
         if (null != failTrigger) {
             // 如果FailTrigger不为空，则获取Fail对象
-            fail = failTrigger.getFail();
-        }
-
-        // 每次投递消息异常时都会调用
-        interceptorConfig.deliverThrowableEveryExecute(request, throwable);
-        // 获取有效的投递次数
-        int retryCount = (null != fail && fail.retryCount() >= 0) ? fail.retryCount() : config.getFail().getRetryCount();
-        int failRetryCount = request.getFailRetryCount();
-        if (failRetryCount < retryCount) {
-            // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
-            request.setFailRetryCount(failRetryCount + 1);
-            failReTry(request, fail);
-            return;
+            failRetry = failTrigger.getFail();
         }
         try {
+            // 每次投递消息异常时都会调用
+            interceptorConfig.deliverThrowableEveryExecute(request, throwable);
             // 如果FailTrigger不为空，则执行订阅器的异常处理
             if (null != failTrigger && null != failTrigger.getMethod()) {
                 failTrigger.invoke(request, throwable);
             }
-
+        } catch (Exception var2) {
+            log.error("deliveryBus.failHandle error", var2);
+        }
+        // 获取有效的投递次数
+        int retryCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
+        int failRetryCount = request.getFailRetryCount();
+        if (failRetryCount < retryCount) {
+            // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
+            request.setFailRetryCount(failRetryCount + 1);
+            failReTry(request, failRetry);
+            return;
+        }
+        try {
             // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
             interceptorConfig.deliverThrowableExecute(request, throwable);
         } catch (Exception var2) {
-            // 捕获异常并记录错误日志
             log.error("deliveryBus.failHandle error", var2);
         }
     }
@@ -303,7 +277,7 @@ public class DeliveryBus {
      * @param request req
      * @param fail    fail
      */
-    private void failReTry(Request<?> request, Fail fail) {
+    private void failReTry(Request<?> request, FailRetry fail) {
         // 获取下次投递失败时间
         long delayTime = (null != fail && fail.nextTime() > 0) ? fail.nextTime() : config.getFail().getNextTime();
         sendDelayMessage(request, delayTime);

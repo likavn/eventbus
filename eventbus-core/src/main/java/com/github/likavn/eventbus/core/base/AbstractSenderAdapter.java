@@ -138,7 +138,7 @@ public abstract class AbstractSenderAdapter implements MsgSender {
             request.setDeliverId(listener.getTrigger().getDeliverId());
             // 设置延迟时间
             request.setDelayTime(listener.getToDelay().delayTime());
-            // 发送延迟消息，不重新尝试
+            // 发送延迟消息
             sendDelayMessage(request, false);
         });
         // 恢复原始的投递ID和延迟时间

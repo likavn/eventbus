@@ -16,9 +16,9 @@
 package com.github.likavn.eventbus.core.metadata.data;
 
 /**
- * 业务消息体
- * 发送消息时避免每次都要写code编码
+ * 业务消息体编码接口
  * <p>
+ * 发送消息时避免每次都要写code编码
  * 备注：实现类必须存在无参构造器
  *
  * @author likavn

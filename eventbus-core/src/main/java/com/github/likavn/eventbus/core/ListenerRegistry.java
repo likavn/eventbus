@@ -16,7 +16,7 @@
 package com.github.likavn.eventbus.core;
 
 import com.github.likavn.eventbus.core.annotation.EventbusListener;
-import com.github.likavn.eventbus.core.annotation.Fail;
+import com.github.likavn.eventbus.core.annotation.FailRetry;
 import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
@@ -39,8 +39,8 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
-import static com.github.likavn.eventbus.core.utils.Func.*;
 
 /**
  * 订阅器注册中心
@@ -97,7 +97,7 @@ public class ListenerRegistry {
             return;
         }
         // 接口实现的消息订阅器
-        if (obj instanceof MsgListener || obj instanceof MsgDelayListener) {
+        if (obj instanceof MsgListener) {
             register(obj, originalClass, eventbusListener);
         }
     }
@@ -123,7 +123,7 @@ public class ListenerRegistry {
      */
     private void register(Object obj, Class<?> originalClass, EventbusListener eventbusListener) {
         // 确保目标类具有指定的事件处理方法
-        Method originalMethod = getMethod(originalClass, BusConstant.ON_MESSAGE);
+        Method originalMethod = getMsgListenerMethod(originalClass, BusConstant.ON_MESSAGE);
         if (null == originalMethod) {
             return;
         }
@@ -136,21 +136,21 @@ public class ListenerRegistry {
         // 获取事件触发器
         Trigger trigger = getTrigger(obj, BusConstant.ON_MESSAGE);
         // 处理失败策略
-        Fail fail = originalMethod.getAnnotation(Fail.class);
-        FailTrigger failTrigger = null == fail ? null : new FailTrigger(fail, getTrigger(obj, fail.callMethod()));
+        FailRetry failRetry = originalMethod.getAnnotation(FailRetry.class);
+        FailTrigger failTrigger = FailTrigger.of(failRetry, getTrigger(obj, BusConstant.FAIL_HANDLER));
         // 处理轮询策略
         Polling polling = originalMethod.getAnnotation(Polling.class);
         // 创建监听器实例
         Listener listener = new Listener(serviceId, codes, concurrency, trigger, failTrigger, polling);
         // 根据对象类型决定其处理消息的类型
-        if (obj instanceof MsgListener) {
+        if (obj instanceof MsgDelayListener) {
+            listener.setType(MsgType.DELAY);
+            putDelayMap(listener);
+        } else {
             ToDelay toDelay = originalMethod.getAnnotation(ToDelay.class);
             listener.setType(MsgType.TIMELY);
             listener.setToDelay(toDelay);
             putTimelyMap(listener);
-        } else {
-            listener.setType(MsgType.DELAY);
-            putDelayMap(listener);
         }
     }
 
@@ -172,7 +172,7 @@ public class ListenerRegistry {
         }
         Class<?> msgBodyClass = getMsgBodyClass(originalClass);
         // 检查消息体类是否实现了MsgBody接口
-        if (isInterfaceImpl(msgBodyClass, MsgBody.class)) {
+        if (Func.isInterfaceImpl(msgBodyClass, MsgBody.class)) {
             try {
                 // 尝试获取消息体类的默认构造函数
                 Constructor<?> constructor = msgBodyClass.getConstructor();
@@ -214,9 +214,9 @@ public class ListenerRegistry {
 
             // 判断当前接口是否为MsgListener或MsgDelayListener接口的实现
             if (clz.getName().equals(MsgListener.class.getName())
-                    || isInterfaceImpl(clz, MsgListener.class)
+                    || Func.isInterfaceImpl(clz, MsgListener.class)
                     || clz.getName().equals(MsgDelayListener.class.getName())
-                    || isInterfaceImpl(clz, MsgDelayListener.class)) {
+                    || Func.isInterfaceImpl(clz, MsgDelayListener.class)) {
                 superInf = inf;
             }
         }
@@ -274,7 +274,7 @@ public class ListenerRegistry {
      * @return tg
      */
     private Trigger getTrigger(Object obj, String methodName) {
-        return Trigger.of(obj, getMethod(obj.getClass(), methodName));
+        return Trigger.of(obj, getMsgListenerMethod(obj.getClass(), methodName));
     }
 
     /**
@@ -284,16 +284,22 @@ public class ListenerRegistry {
      * @param methodName method name
      * @return mt
      */
-    private Method getMethod(Class<?> cla, String methodName) {
+    private Method getMsgListenerMethod(Class<?> cla, String methodName) {
         if (Func.isEmpty(methodName)) {
             return null;
         }
+        Method supMethod = Stream.of(MsgListener.class.getDeclaredMethods()).filter(t -> t.getName().equals(methodName)).findFirst().orElse(null);
+        if (null == supMethod) {
+            throw new IllegalArgumentException("methodName=" + methodName + " not found in MsgListener");
+        }
         Method method = null;
-        for (Method mt : cla.getMethods()) {
-            if (mt.getName().equals(methodName)) {
-                method = mt;
-                break;
+        try {
+            method = cla.getMethod(methodName, supMethod.getParameterTypes());
+            // 如果方法声明在MsgListener接口中，则表示为默认方法，无法获取，需要设置为null
+            if (method.getDeclaringClass() == MsgListener.class) {
+                method = null;
             }
+        } catch (NoSuchMethodException ignored) {
         }
         return method;
     }

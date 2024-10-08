@@ -21,12 +21,13 @@ import com.github.likavn.eventbus.core.metadata.data.MsgBody;
 import java.lang.annotation.*;
 
 /**
- * 消息监听订阅
+ * 消息监听/订阅器注解
  * <p>
  * 用于标记对及时/延时消息的监听类，可以通过此注解定制消息处理的详细行为，如所属服务、消息类型和并发级别等。
  *
  * @author likavn
- * @date 2024/01/01
+ * @date 2024/07/27
+ * @since 2.5
  **/
 @Documented
 @Target({ElementType.TYPE})
@@ -47,8 +48,11 @@ public @interface EventbusListener {
      * 1.如果实体不继承{@link MsgBody}，则默认为当前监听器的类名。
      * 2.如果实体继承{@link MsgBody}，则默认为{@link MsgBody#code()}。
      * <p>
-     * 监听器订阅code优先级:
-     * 优先级= {@link #codes} > {@link MsgBody#code()} > 当前监听器类名
+     * 监听器订阅code优先如下：
+     *
+     * @see #codes
+     * @see MsgBody#code()
+     * 当前监听器类名
      */
     String[] codes() default {};
 

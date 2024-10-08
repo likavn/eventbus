@@ -88,7 +88,9 @@ public class Listener {
     }
 
     public void isValid() {
-        Polling.ValidatorInterval.isValid(null == polling ? null : polling.interval());
+        if (null != polling) {
+            Polling.ValidatorInterval.isValid(polling.interval());
+        }
         if (null != toDelay) {
             Assert.isTrue(toDelay.delayTime() > 0, "@ToDelay.delayTime must be greater than 0");
         }

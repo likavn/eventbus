@@ -25,6 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.annotation.*;
 
 /**
+ * 消息轮询行为注解
+ * <p>
  * 定义了一个注解@Polling，用于标注在方法上以控制消息订阅的轮询行为。
  * 轮询可以通过注解的属性count和interval进行配置。
  *
@@ -116,13 +118,11 @@ public @interface Polling {
          * @param interval 轮询时间间隔的表达式。
          */
         public void isValid(String interval) {
-            if (Func.isEmpty(interval)) {
-                return;
-            }
-            interval = interval.replace("$count", "1")
-                    .replace("$deliverCount", "1")
-                    .replace("$intervalTime", "1");
+            Assert.isTrue(!Func.isEmpty(interval), "interval must not be empty");
             try {
+                interval = interval.replace("$count", "1")
+                        .replace("$deliverCount", "1")
+                        .replace("$intervalTime", "1");
                 double v = CalculateUtil.evalExpression(interval);
                 Assert.isTrue(v > 0, "interval must be greater than 0");
             } catch (Exception e) {

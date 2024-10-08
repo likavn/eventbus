@@ -23,8 +23,8 @@ import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.provider.rocket.RocketMsgDelayListener;
-import com.github.likavn.eventbus.provider.rocket.RocketMsgSender;
 import com.github.likavn.eventbus.provider.rocket.RocketMsgSubscribeListener;
+import com.github.likavn.eventbus.provider.rocket.RocketMsgSender;
 import com.github.likavn.eventbus.provider.rocket.RocketNodeTestConnect;
 import org.apache.rocketmq.spring.autoconfigure.RocketMQProperties;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
@@ -53,7 +53,7 @@ public class BusBootRocketConfiguration {
     @Bean
     public RocketMsgSubscribeListener rocketMsgSubscribeListener(
             RocketMQProperties rocketMQProperties, BusConfig busConfig, DeliveryBus deliveryBus, ListenerRegistry registry) {
-        return new RocketMsgSubscribeListener(rocketMQProperties, busConfig, deliveryBus, registry.getTimelyListeners());
+        return new RocketMsgSubscribeListener(rocketMQProperties, busConfig, deliveryBus, registry);
     }
 
     @Bean

@@ -15,7 +15,7 @@
  */
 package com.github.likavn.eventbus.core.metadata.support;
 
-import com.github.likavn.eventbus.core.annotation.Fail;
+import com.github.likavn.eventbus.core.annotation.FailRetry;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
@@ -31,10 +31,25 @@ public class FailTrigger extends Trigger {
     /**
      * 投递失败配置信息
      */
-    private final Fail fail;
+    private final FailRetry fail;
 
-    public FailTrigger(Fail fail, Trigger trigger) {
+    public FailTrigger(FailRetry fail) {
+        super(null, null);
+        this.fail = fail;
+    }
+
+    public FailTrigger(FailRetry fail, Trigger trigger) {
         super(trigger.getInvokeBean(), trigger.getMethod());
         this.fail = fail;
+    }
+
+    public static FailTrigger of(FailRetry fail, Trigger trigger) {
+        if (null != trigger) {
+            return new FailTrigger(fail, trigger);
+        }
+        if (null != fail) {
+            return new FailTrigger(fail);
+        }
+        return null;
     }
 }

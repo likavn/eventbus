@@ -15,13 +15,13 @@
  */
 package com.github.likavn.eventbus.provider.rocket.support;
 
+import com.github.likavn.eventbus.core.base.AcquireListeners;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Func;
-import com.github.likavn.eventbus.provider.AcquireListeners;
 import com.github.likavn.eventbus.provider.rocket.constant.RocketConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -65,7 +65,9 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
                 return;
             }
             // register
-            listeners.forEach(this::registerPushConsumer);
+            listeners.forEach(listener -> {
+                listener.getTopics().forEach(topic -> registerPushConsumer(listener, topic));
+            });
             starts(consumers);
         } catch (Exception e) {
             log.error("[Eventbus register error] ", e);
@@ -100,9 +102,9 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
      *
      * @param listener listener
      */
-    private void registerPushConsumer(Listener listener) {
-        String group = null != listener.getTrigger() ? listener.getTrigger().getDeliverId() : listener.getServiceId();
-        group = group.replace(".", "_").replace("#", "|");
+    private void registerPushConsumer(Listener listener, String topic) {
+        String group = topic + "|" + listener.getTrigger().getDeliverId();
+        group = group.replace(".", "_");
         //1.创建消费者Consumer，制定消费者组名
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
         try {
@@ -116,7 +118,7 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
             consumer.setNamesrvAddr(rocketMqProperties.getNameServer());
             MsgType msgType = listener.getType();
             //3.订阅主题Topic和Tag
-            String topic = String.format(msgType.isTimely() ? RocketConstant.QUEUE : RocketConstant.DELAY_QUEUE, null);
+            topic = String.format(msgType.isTimely() ? RocketConstant.QUEUE : RocketConstant.DELAY_QUEUE, topic);
             consumer.subscribe(topic, listener.getServiceId());
             //设定消费模式：负载均衡|广播模式
             consumer.setMessageModel(MessageModel.CLUSTERING);

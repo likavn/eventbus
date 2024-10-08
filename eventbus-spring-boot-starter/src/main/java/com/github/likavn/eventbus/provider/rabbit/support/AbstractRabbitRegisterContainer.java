@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.provider.rabbit.support;
 
+import com.github.likavn.eventbus.core.base.AcquireListeners;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.exception.EventBusException;
@@ -22,7 +23,6 @@ import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Func;
-import com.github.likavn.eventbus.provider.AcquireListeners;
 import com.github.likavn.eventbus.provider.rabbit.constant.RabbitConstant;
 import com.rabbitmq.client.*;
 import lombok.extern.slf4j.Slf4j;

@@ -16,7 +16,6 @@
 package com.github.likavn.eventbus.core.metadata;
 
 import lombok.Data;
-import lombok.ToString;
 
 /**
  * eventbus全局配置
@@ -73,7 +72,6 @@ public class BusConfig {
      * 节点联通性配置
      */
     @Data
-    @ToString
     public static class TestConnect {
         /**
          * 轮询检测时间间隔，单位：秒，默认：35秒进行检测一次
@@ -90,7 +88,6 @@ public class BusConfig {
      * 消息投递失败时配置
      */
     @Data
-    @ToString
     public static class Fail {
         /**
          * 消息投递失败时，一定时间内再次进行投递的次数，默认：3次

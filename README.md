@@ -54,7 +54,7 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 <dependency>
     <groupId>com.github.likavn</groupId>
   <artifactId>eventbus-spring-boot-starter</artifactId>
-  <version>2.3.4</version>
+  <version>2.5.Beta</version>
 </dependency>
 ```
 
@@ -155,21 +155,16 @@ private MsgSender msgSender;
 msgSender.send("testMsgSubscribe", "charging");
 ```
 
-订阅异步业务消息监听器实现类[DemoMsgListener.java](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java)
+订阅异步业务消息监听器实现类[TestStringListener.java](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/test/TestStringListener.java)
 
 ```java
 /**
  * 订阅异步消息
  * 继承超类【MsgListener】并设置监听的消息实体对象
  */
-@Slf4j
 @Component
+@EventbusListener(codes = "testMsgSubscribe")
 public class DemoMsgListener extends MsgListener<String> {
-    protected DemoMsgListener() {
-        // 订阅消息code
-        super("testMsgSubscribe");
-    }
-
     // 接收业务消息体对象数据
     @Override
     public void onMessage(Message<String> message) {
@@ -213,6 +208,7 @@ msgSender.send(testBody);
 ```java
 @Slf4j
 @Component
+@EventbusListener
 public class DemoMsgListener3 extends MsgListener<TestBody> {
 
     @Override
@@ -221,8 +217,6 @@ public class DemoMsgListener3 extends MsgListener<TestBody> {
     }
 }
 ```
-
-也可基于注解[@Listener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Listener.java)的方式定义及时消息监听器，参考：[DemoAnnListener.java](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnListener.java)
 
 ### 发送与订阅延时消息
 
@@ -258,8 +252,6 @@ public class DemoMsgDelayListener implements MsgDelayListener<String> {
 }
 ```
 
-也可基于注解[@DelayListener](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/DelayListener.java)的方式定义延时消息监听器，此时需定义延时消息编码，参考：[DemoAnnDelayListener.java](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoAnnDelayListener.java)
-
 ### 异常捕获
 
 当消息或延时消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（系统默认重复投递3次，每次间隔10秒），即便这样，消息还是有可能会存在投递不成功的问题，当消息进行最后一次投递还是失败时，可以使用注解`@Fail`
@@ -272,12 +264,8 @@ public class DemoMsgDelayListener implements MsgDelayListener<String> {
  */
 @Slf4j
 @Component
+@EventbusListener(codes = "testMsgSubscribe")
 public class DemoMsgSubscribeListener extends MsgListener<String> {
-    protected DemoMsgSubscribeListener() {
-        // 订阅消息code
-        super("testMsgSubscribe");
-    }
-
     // 接收业务消息体对象数据
     // @Fail消息投递失败时重试，callMethod=投递失败时异常处理方法名，这里设置重试2次，下次重试间隔5秒（引擎为rocketMq时，此处延时时间为rocketMq的18个延时级别）后触发
     @Override
@@ -485,37 +473,24 @@ public class DemoDeliverThrowableInterceptor implements DeliverThrowableIntercep
 
 在异步消息监听器的方法上配置注解[@ToDelay](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/ToDelay.java)  即可让异步消息转成延时消息并接收处理。示例：[DemoMsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java) </br>
 
-参数配置：
-delayTime ：延迟时间，单位：秒。
-firstDeliver ：是否需要首次执行，默认：false (第一次获取到消息时不执行接收方法）。
+参数配置：</br>
+delayTime ：延迟时间，单位：秒。</br>
+firstDeliver ：是否需要及时消息进行首次投递，默认：false (第一次接收到及时消息时不投递，只投递延时消息）。</br>
 
-注：受执行任务线程池影响，当执行任务的线程池繁忙时，此处设置的延时时间可能不准确，请知悉。
 
 ```java
+/**
+ * codes : 消息code
+ * concurrency : 并发数
+ */
+@Component
+@EventbusListener(codes = MsgConstant.DEMO_MSG_LISTENER, concurrency = 2)
 public class DemoMsgListener extends MsgListener<TestBody> {
-    protected DemoMsgListener() {
-        super(
-                // 订阅的消息编码
-                MsgConstant.DEMO_MSG_LISTENER,
-                // 并发数
-                2);
-    }
 
     @Override
     @ToDelay(delayTime = 3)
     public void onMessage(Message<TestBody> msg) {
         TestBody body = msg.getBody();
-        log.info("接收数据,第{}次投递，轮询{}次，失败重试{}次:RequestId:{}", msg.getDeliverCount(), msg.getPollingCount(), msg.getFailRetryCount(), msg.getRequestId());
-        //  throw new RuntimeException("DemoMsgListener test");
-        if (msg.getDeliverCount() == 3) {
-            throw new RuntimeException("DemoMsgListener test");
-        }
-
-        if (msg.getPollingCount() > 5) {
-            // 终止轮询
-            Polling.Keep.over();
-            log.info("终止轮询");
-        }
     }
 }
 ```
@@ -532,19 +507,11 @@ public class DemoMsgListener extends MsgListener<TestBody> {
 注：表达式中可以使用以下三个变量，count（当前轮询次数）、deliverCount（当前投递次数）和intervalTime（本次轮询与上次轮询的时间间隔，单位为秒，非延时消息初始时为:1）
 
 ```java
-@Service
+@Component
+@EventbusListener(codes = MsgConstant.DEMO_MSG_LISTENER, concurrency = 2)
 public class DemoMsgListener extends MsgListener<TestBody> {
-    protected DemoMsgListener() {
-        super(
-                // 订阅的消息编码
-                MsgConstant.DEMO_MSG_LISTENER,
-                // 并发数
-                2);
-    }
-
     @Override
     @Polling(count = 2, interval = "$count * $intervalTime + 5")
-    @Fail(callMethod = "exceptionHandler", retryCount = 1, nextTime = 5)
     public void onMessage(Message<TestBody> message) {
         TestBody body = message.getBody();
         log.info("接收数据: {}", message.getRequestId());
@@ -554,16 +521,6 @@ public class DemoMsgListener extends MsgListener<TestBody> {
             // 终止轮询
             Polling.Keep.over();
         }
-    }
-
-    /**
-     * 消息投递失败处理
-     *
-     * @param throwable
-     * @param message
-     */
-    public void exceptionHandler(Throwable throwable, Message<TMsg> message) {
-        log.error("消息投递失败！: {}，{}", message.getRequestId(), throwable.getMessage());
     }
 }
 ```
@@ -619,7 +576,9 @@ public class DemoMsgListener extends MsgListener<TestBody> {
 更多信息请查阅相关接口类...
 
 ## 实现流程
+
 ### redis实现流程
+
 如下流程图：</br>
 <img src="./doc/picture/eventbus-redis.png" alt="eventbus-redis" style="zoom: 90%; margin-left: 0px;" />
 

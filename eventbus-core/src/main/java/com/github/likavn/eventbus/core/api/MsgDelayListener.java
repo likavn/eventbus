@@ -15,8 +15,6 @@
  */
 package com.github.likavn.eventbus.core.api;
 
-import com.github.likavn.eventbus.core.metadata.data.Message;
-
 /**
  * 延时消息监听器
  *
@@ -24,12 +22,5 @@ import com.github.likavn.eventbus.core.metadata.data.Message;
  * @author likavn
  * @date 2024/01/01
  */
-public interface MsgDelayListener<T> {
-
-    /**
-     * 处理器
-     *
-     * @param message 消息体，包含延时消息的数据和元信息
-     */
-    void onMessage(Message<T> message);
+public interface MsgDelayListener<T> extends MsgListener<T> {
 }

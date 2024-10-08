@@ -20,6 +20,7 @@ import com.github.likavn.eventbus.core.metadata.data.Request;
 
 /**
  * 消息发送者接口
+ * <p>
  * 提供了发送消息和发送延迟消息的能力
  *
  * @author likavn
@@ -48,7 +49,7 @@ public interface MsgSender {
      */
     default void send(Class<? extends MsgListener<?>> handlerClz, Object body) {
         // 构建请求并发送
-        send(Request.builder().code(handlerClz.getSimpleName()).body(body).build());
+        send(handlerClz.getSimpleName(), body);
     }
 
     /**

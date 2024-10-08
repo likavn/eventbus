@@ -16,6 +16,7 @@
 package com.github.likavn.eventbus.provider.rocket;
 
 import com.github.likavn.eventbus.core.DeliveryBus;
+import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.provider.rocket.support.AbstractRocketRegisterContainer;
@@ -33,18 +34,18 @@ import java.util.List;
  **/
 public class RocketMsgSubscribeListener extends AbstractRocketRegisterContainer {
     private final DeliveryBus deliveryBus;
-    private final List<Listener> listeners;
+    private final ListenerRegistry registry;
 
     public RocketMsgSubscribeListener(RocketMQProperties rocketMqProperties,
-                                      BusConfig config, DeliveryBus deliveryBus, List<Listener> listeners) {
+                                      BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
         super(rocketMqProperties, config);
         this.deliveryBus = deliveryBus;
-        this.listeners = listeners;
+        this.registry = registry;
     }
 
     @Override
     public List<Listener> getListeners() {
-        return listeners;
+        return registry.getTimelyListeners();
     }
 
     @Override
