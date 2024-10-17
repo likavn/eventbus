@@ -20,10 +20,8 @@ import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Func;
-import com.github.likavn.eventbus.provider.rabbit.constant.RabbitConstant;
 import com.rabbitmq.client.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -32,6 +30,7 @@ import org.springframework.amqp.rabbit.connection.RabbitUtils;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * AbstractRabbitRegisterContainer
@@ -40,23 +39,15 @@ import java.util.*;
  * @date 2024/1/20
  **/
 @Slf4j
-public abstract class AbstractRabbitRegisterContainer implements AcquireListeners, Lifecycle {
+public abstract class AbstractRabbitRegisterContainer implements AcquireListeners<RabbitListener>, Lifecycle {
     private final CachingConnectionFactory connectionFactory;
     private Connection connection = null;
     private final List<Channel> channels = Collections.synchronizedList(new ArrayList<>());
     protected final BusConfig config;
-    private String exchangeName = null;
-    private boolean applicationStarted = false;
-    private final MsgType msgType;
 
     protected AbstractRabbitRegisterContainer(CachingConnectionFactory connectionFactory, BusConfig config) {
-        this(connectionFactory, config, MsgType.TIMELY);
-    }
-
-    protected AbstractRabbitRegisterContainer(CachingConnectionFactory connectionFactory, BusConfig config, MsgType msgType) {
         this.connectionFactory = connectionFactory;
         this.config = config;
-        this.msgType = msgType;
     }
 
     public synchronized Connection getConnection() {
@@ -74,112 +65,117 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
 
     @Override
     public void register() {
+        List<RabbitListener> listeners = getListeners();
         try (Channel channel = getConnection().createChannel(false)) {
             // 根据监听器类型创建交换机
-            createExchange(channel, msgType);
-            // 获取事件监听器列表
-            // 对每个监听器，根据其并发级别创建消费者
-            getListeners().forEach(listener -> {
-                Func.pollRun(listener.getConcurrency(), () -> {
+            createExchanges(channel, listeners);
+            createQueues(channel, listeners);
+            queueBinds(channel, listeners);
+            for (RabbitListener listener : listeners) {
+                // 对每个监听器，根据其并发级别创建消费者
+                Func.pollRun(listener.isRetry() ? listener.getRetryConcurrency() : listener.getConcurrency(), () -> {
                     // 创建消费者的过程可能会抛出IOException
                     try {
-                        createListener(channel, listener);
+                        createConsumer(listener);
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        log.error("[register createConsumer error] ", e);
+                        throw new EventBusException(e);
                     }
                 });
-            });
-        } catch (Exception e) {
-            // 如果应用尚未启动且捕获到异常，则终止应用
-            if (!applicationStarted) {
-                log.error("[Eventbus register error] ", e);
-                System.exit(1);
             }
+        } catch (Exception e) {
+            log.error("[register error] ", e);
             // 将捕获到的异常包装为EventBusException并抛出
             throw new EventBusException(e);
         }
-        // 设置应用启动状态为true
-        applicationStarted = true;
     }
 
-    private void createListener(Channel channel, Listener listener) throws IOException {
+    /**
+     * 创建消费者并开始消费消息
+     * 该方法根据传入的RabbitListener对象配置，创建一个新的信道，绑定队列、交换机和路由键，然后开始消费消息
+     * 消费者使用DefaultConsumer类的匿名子类来处理接收到的消息
+     *
+     * @param listener RabbitListener对象，包含了监听器的相关配置信息，如队列名、交换机名和路由键
+     * @throws IOException 如果在创建信道或开始消费过程中发生I/O错误
+     */
+    private void createConsumer(RabbitListener listener) throws IOException {
+        Channel channel = createChannel();
         // 设置通道的消息批量处理大小
         channel.basicQos(config.getMsgBatchSize());
-        // 生成并声明队列，队列名称基于监听器动态生成
-        String queueName = generateQueueName(listener);
-        channel.queueDeclare(queueName, true, false, false, null);
-        for (String code : listener.getCodes()) {
-            String routingKey = generateRoutingKey(msgType, listener, code);
-            channel.queueBind(queueName, exchangeName, routingKey);
-        }
-        if (msgType != listener.getType()) {
-            return;
-        }
-        createConsumer(listener, queueName);
-    }
-
-    private void createConsumer(Listener listener, String queueName) throws IOException {
-        Channel channel = createChannel();
-        // 消费者开始监听队列，处理消息
-        channel.basicConsume(queueName, false, new DefaultConsumer(channel) {
+        // 开始消费消息，自动应答设置为false，即需要手动确认消息处理
+        channel.basicConsume(listener.getQueue(), false, new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
-                // 临时修改线程名称，以便于问题追踪
                 String oldName = Func.reThreadName(BusConstant.THREAD_NAME);
                 try {
-                    // 处理接收到的消息，并确认消息处理成功
                     deliver(listener, body);
+                    // 手动确认消息处理成功
                     channel.basicAck(envelope.getDeliveryTag(), false);
                 } catch (Exception e) {
                     // 记录消息处理失败的日志，并重试或拒绝消息
                     log.error("[Eventbus error] ", e);
+                    // 重试消息，不处理其他消息，true表示重新入队
                     channel.basicNack(envelope.getDeliveryTag(), false, true);
                 } finally {
-                    // 恢复线程名称
                     Thread.currentThread().setName(oldName);
                 }
             }
         });
     }
 
-    private String generateRoutingKey(MsgType msgType, Listener listener, String code) {
-        String topic = Func.getTopic(listener.getServiceId(), code);
-        if (msgType.isDelay()) {
-            if (listener.getType().isDelay()) {
-                return String.format(RabbitConstant.DELAY_ROUTING_KEY, topic);
-            }
-            return String.format(RabbitConstant.DELAY_ROUTING_KEY, topic);
+    /**
+     * 绑定队列到交换机
+     *
+     * @param channel   用于声明队列的信道
+     * @param listeners RabbitListener注解的列表，包含队列名等信息
+     * @throws IOException 如果队列绑定过程中发生I/O错误
+     */
+    private void queueBinds(Channel channel, List<RabbitListener> listeners) throws IOException {
+        for (RabbitListener listener : listeners) {
+            // 将队列绑定到交换机，并使用指定的路由键
+            channel.queueBind(listener.getQueue(), listener.getExchange(), listener.getRoutingKey());
         }
-        return String.format(RabbitConstant.ROUTING_KEY, topic);
-    }
-
-    private String generateQueueName(Listener listener) {
-        return String.format((listener.getType().isDelay() ? RabbitConstant.DELAY_QUEUE : RabbitConstant.QUEUE), listener.getServiceId(), listener.getDeliverId());
     }
 
     /**
-     * 创建交换机。
-     * 根据消息类型（MsgType）来决定创建的交换机的名称和类型。如果消息类型为及时消息，则创建普通交换机；如果为延迟消息，则创建带有延迟特性的交换机。
+     * 创建消息队列
+     * 根据RabbitListener注解中的队列名创建队列，确保每个队列名只创建一次队列
      *
-     * @param msgType 消息类型，用来决定交换机的名称和类型。包含是否为延迟消息和是否为及时消息的标志。
-     * @throws IOException 通道创建失败时抛出的异常。
+     * @param channel   用于声明队列的信道
+     * @param listeners RabbitListener注解的列表，包含队列名等信息
+     * @throws IOException 如果队列声明过程中发生I/O错误
      */
-    private void createExchange(Channel channel, MsgType msgType) throws IOException {
-        // 如果交换机名称已不为空，则不再创建，直接返回
-        if (null != this.exchangeName) {
-            return;
+    private void createQueues(Channel channel, List<RabbitListener> listeners) throws IOException {
+        // 提取队列名并去重，因为同一个队列名可能出现在多个RabbitListener注解中
+        List<String> queueNames = listeners.stream().map(RabbitListener::getQueue).distinct().collect(Collectors.toList());
+        // 遍历队列名列表，为每个队列名声明一个队列
+        for (String queueName : queueNames) {
+            // 队列声明参数分别是：队列名，是否持久化，是否独占，是否自动删除，和其他属性
+            channel.queueDeclare(queueName, true, false, false, null);
         }
-        // 根据消息类型决定交换机的具体名称和类型
-        String exName = String.format(msgType.isTimely() ? RabbitConstant.EXCHANGE : RabbitConstant.DELAY_EXCHANGE, config.getServiceId());
-        String type = msgType.isTimely() ? BuiltinExchangeType.TOPIC.getType() : "x-delayed-message";
-        Map<String, Object> args = new HashMap<>(4);
-        // 如果是延迟消息，设置延迟交换机的类型
-        if (msgType.isDelay()) {
-            args.put("x-delayed-type", "direct");
+    }
+
+    /**
+     * 创建交换机
+     * 根据监听器列表中的交换机配置，在RabbitMQ中声明对应的交换机
+     *
+     * @param channel   RabbitMQ的通道，用于声明交换机
+     * @param listeners 监听器列表，包含了交换机的配置信息
+     * @throws IOException 如果在声明交换机过程中发生I/O错误
+     */
+    private void createExchanges(Channel channel, List<RabbitListener> listeners) throws IOException {
+        List<String> exNames = listeners.stream().map(RabbitListener::getExchange).distinct().collect(Collectors.toList());
+        for (String exName : exNames) {
+            String type = BuiltinExchangeType.TOPIC.getType();
+            Map<String, Object> args = new HashMap<>(4);
+            if (exName.contains("delay")) {
+                // 如果交换机名称包含“delay”，则使用延迟交换机类型，并设置相应的参数
+                type = "x-delayed-message";
+                args.put("x-delayed-type", "direct");
+            }
+            // 声明交换机，指定交换机名称、类型、是否持久化、是否自动删除及其他参数
+            channel.exchangeDeclare(exName, type, true, false, args);
         }
-        // 声明交换机，指定交换机名称、类型、是否持久化、是否自动删除及其他参数
-        channel.exchangeDeclare(exName, type, true, false, args);
-        this.exchangeName = exName;
     }
 
     /**

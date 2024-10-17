@@ -31,29 +31,44 @@ public class RabbitConstant {
     private static final String SUFFIX = "eventbus.";
 
     /**
-     * rabbitMq及时消息交换机
+     * 及时消息交换机
      * 参数：
      * <p>
      * 1.服务serviceId;
      */
-    public static final String EXCHANGE = SUFFIX + "exchange.%s";
+    public static final String TIMELY_EXCHANGE = SUFFIX + "timely.exchange.%s";
 
     /**
-     * rabbitMq路由key；
+     * 及时消息路由key；
      * 参数：
      * <p>
-     * 1.Topic;
+     * 1.服务serviceId|消息编码;
      */
-    public static final String ROUTING_KEY = SUFFIX + "routingKey.%s";
+    public static final String TIMELY_ROUTING_KEY = SUFFIX + "timely.routingKey.%s";
 
     /**
-     * rabbitMq队列key；
+     * 及时消息队列key；
      * 参数：
      * <p>
-     * 1.Topic;
-     * 2.处理器全类名+方法名ID;
+     * 1.服务serviceId|消息编码|监听器全类名;
      */
-    public static final String QUEUE = SUFFIX + "queue.%s@%s";
+    public static final String TIMELY_QUEUE = SUFFIX + "timely.queue.%s";
+
+    /**
+     * 及时消息重试路由key；
+     * 参数：
+     * <p>
+     * 1.服务serviceId|消息编码|监听器全类名;
+     */
+    public static final String TIMELY_RETRY_ROUTING_KEY = SUFFIX + "timely.retry.routingKey.%s";
+
+    /**
+     * 及时消息重试队列key；
+     * 参数：
+     * <p>
+     * 1.服务serviceId|消息编码|监听器全类名;
+     */
+    public static final String TIMELY_RETRY_QUEUE = SUFFIX + "timely.retry.queue.%s";
 
     /**
      * 延时队列交换机
@@ -61,21 +76,37 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId;
      */
-    public static final String DELAY_EXCHANGE = SUFFIX + "delayExchange.%s";
+    public static final String DELAY_EXCHANGE = SUFFIX + "delay.exchange.%s";
 
     /**
      * 延时队列路由key
      * 参数：
      * <p>
-     * 1.服务serviceId;
+     * 1.服务serviceId|消息编码
      */
-    public static final String DELAY_ROUTING_KEY = SUFFIX + "delayRoutingKey.%s";
+    public static final String DELAY_ROUTING_KEY = SUFFIX + "delay.routingKey.%s";
 
     /**
      * 延时队列名
      * 参数：
      * <p>
-     * 1.服务serviceId;
+     * 1.服务serviceId|消息编码|监听器全类名;
      */
-    public static final String DELAY_QUEUE = SUFFIX + "delayQueue.%s@%s";
+    public static final String DELAY_QUEUE = SUFFIX + "delay.queue.%s";
+
+    /**
+     * 延时队列路由key,异常重试路由
+     * 参数：
+     * <p>
+     * 1.服务serviceId|消息编码|监听器全类名;
+     */
+    public static final String DELAY_RETRY_ROUTING_KEY = SUFFIX + "delay.retry.routingKey.%s";
+
+    /**
+     * 延时消息重试队列key
+     * 参数：
+     * <p>
+     * 1.服务serviceId|消息编码|监听器全类名;
+     */
+    public static final String DELAY_RETRY_QUEUE = SUFFIX + "delay.retry.queue.%s";
 }

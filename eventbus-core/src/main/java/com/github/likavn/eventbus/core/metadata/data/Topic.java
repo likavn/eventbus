@@ -18,6 +18,7 @@ package com.github.likavn.eventbus.core.metadata.data;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.io.Serializable;
 
@@ -28,6 +29,7 @@ import java.io.Serializable;
  * @date 2024/01/01
  **/
 @Data
+@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
 public abstract class Topic implements Serializable {

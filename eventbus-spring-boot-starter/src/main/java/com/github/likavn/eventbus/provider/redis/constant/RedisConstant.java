@@ -31,41 +31,79 @@ public class RedisConstant {
     private static final String SUFFIX = "eventbus:";
 
     /**
-     * 分布式锁,订阅消息锁
+     * 及时消息队列,stream key
      * 参数：
      * <p>
-     * 1. 服务serviceId;
+     * 1. 服务ID|消息编码
      */
-    public static final String LOCK_PENDING_MSG_PREFIX = SUFFIX + "lock:{%s}:%s-%s";
+    public static final String TIMELY_QUEUE = SUFFIX + "timely:queue:{%s}";
 
     /**
-     * 消息队列前缀
+     * 及时消息重试,zset key
      * 参数：
      * <p>
-     * 1.服务serviceId;
+     * 1.服务ID|消息编码|消息监听器类全类名
      */
-    public static final String BUS_SUBSCRIBE_PREFIX = SUFFIX + "queue:{%s}";
+    public static final String TIMELY_RETRY_ZSET = SUFFIX + "timely:retry:zset:{%s}";
 
     /**
-     * 延时队列,延时消息处理超时时长key
+     * 及时消息重试,lock key
      * 参数：
      * <p>
-     * 1.服务serviceId;
+     * 1.服务ID|消息编码|消息监听器类全类名
      */
-    public static final String BUS_DELAY_LOCK_PREFIX = SUFFIX + "lock:delay:{%s}";
+    public static final String TIMELY_RETRY_LOCK = SUFFIX + "timely:retry:lock:{%s}";
 
     /**
-     * 延时队列zset key
+     * 及时消息重试,stream key
      * 参数：
      * <p>
-     * 1.服务serviceId;
+     * 1.服务ID|消息编码|消息监听器类全类名
      */
-    public static final String BUS_DELAY_PREFIX = SUFFIX + "delay-zset:{%s}";
+    public static final String TIMELY_RETRY_QUEUE = SUFFIX + "timely:retry:queue:{%s}";
+
     /**
-     * 延时消息通知Stream队列key前缀
+     * 延时消息，zset key
      * 参数：
      * <p>
-     * 1.服务serviceId;
+     * 1.服务ID|消息编码
      */
-    public static final String BUS_DELAY_SUBSCRIBE_PREFIX = SUFFIX + "queue-delay:{%s}";
+    public static final String DELAY_ZSET = SUFFIX + "delay:zset:{%s}";
+    /**
+     * 延时消息，lock key
+     * 参数：
+     * <p>
+     * 1.服务ID|消息编码
+     */
+    public static final String DELAY_LOCK = SUFFIX + "delay:lock:{%s}";
+    /**
+     * 延时消息，stream key
+     * 参数：
+     * <p>
+     * 1.服务ID|消息编码
+     */
+    public static final String DELAY_QUEUE = SUFFIX + "delay:queue:{%s}";
+
+    /**
+     * 延时消息重试，zset key
+     * 参数：
+     * <p>
+     * 1.服务ID|消息编码|消息监听器类全类名
+     */
+    public static final String DELAY_RETRY_ZSET = SUFFIX + "delay:retry:zset:{%s}";
+    /**
+     * 延时消息重试，lock key
+     * 参数：
+     * <p>
+     * 1.服务ID|消息编码|消息监听器类全类名
+     */
+    public static final String DELAY_RETRY_LOCK = SUFFIX + "delay:retry:lock:{%s}";
+    /**
+     * 延时消息重试，stream key
+     * 参数：
+     * <p>
+     * 1.服务ID|消息编码|消息监听器类全类名
+     */
+    public static final String DELAY_RETRY_QUEUE = SUFFIX + "delay:retry:queue:{%s}";
+
 }

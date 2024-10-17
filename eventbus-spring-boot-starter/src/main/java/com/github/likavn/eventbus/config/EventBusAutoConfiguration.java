@@ -27,7 +27,7 @@ import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.BusType;
-import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
+import com.github.likavn.eventbus.core.base.InterceptorContainer;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.rabbit.config.BusBootRabbitConfiguration;
 import com.github.likavn.eventbus.provider.redis.config.BusBootRedisConfiguration;
@@ -56,8 +56,8 @@ import java.util.Map;
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(BusProperties.class)
-@Import({RequestIdGeneratorConfiguration.class, BusBootRabbitConfiguration.class, BusBootRedisConfiguration.class, BusBootRocketConfiguration.class})
 @ConditionalOnProperty(prefix = BusConstant.CONFIG_PREFIX, name = "enable", havingValue = "true", matchIfMissing = true)
+@Import({RequestIdGeneratorConfiguration.class, BusBootRabbitConfiguration.class, BusBootRedisConfiguration.class, BusBootRocketConfiguration.class})
 public class EventBusAutoConfiguration {
     private final BusProperties config;
 
@@ -72,6 +72,9 @@ public class EventBusAutoConfiguration {
     private void initializing() {
         log.info("Eventbus Initializing... {}", config.getType());
         BusType.isValid(config.getType());
+        if (!config.getType().equals(config.getOldType())) {
+            log.info("Eventbus compatibility type by {}", config.getOldType());
+        }
         // 自动获取服务名
         String serviceId = config.getServiceId();
         if (!StringUtils.hasLength(serviceId)) {
@@ -96,13 +99,14 @@ public class EventBusAutoConfiguration {
      * 事件总线拦截器配置
      */
     @Bean
-    @ConditionalOnMissingBean(InterceptorConfig.class)
-    public InterceptorConfig interceptorConfig(@Autowired(required = false) SendBeforeInterceptor sendBeforeInterceptor,
-                                               @Autowired(required = false) SendAfterInterceptor sendAfterInterceptor,
-                                               @Autowired(required = false) DeliverSuccessInterceptor deliverSuccessInterceptor,
-                                               @Autowired(required = false) DeliverThrowableEveryInterceptor deliverThrowableEveryInterceptor,
-                                               @Autowired(required = false) DeliverThrowableInterceptor deliverExceptionInterceptor) {
-        return new InterceptorConfig(sendBeforeInterceptor, sendAfterInterceptor, deliverSuccessInterceptor, deliverThrowableEveryInterceptor, deliverExceptionInterceptor);
+    @ConditionalOnMissingBean(InterceptorContainer.class)
+    public InterceptorContainer interceptorConfig(
+            @Autowired(required = false) SendBeforeInterceptor sendBeforeInterceptor,
+            @Autowired(required = false) SendAfterInterceptor sendAfterInterceptor,
+            @Autowired(required = false) DeliverSuccessInterceptor deliverSuccessInterceptor,
+            @Autowired(required = false) DeliverThrowableEveryInterceptor deliverThrowableEveryInterceptor,
+            @Autowired(required = false) DeliverThrowableInterceptor deliverExceptionInterceptor) {
+        return new InterceptorContainer(sendBeforeInterceptor, sendAfterInterceptor, deliverSuccessInterceptor, deliverThrowableEveryInterceptor, deliverExceptionInterceptor);
     }
 
     /**
@@ -111,8 +115,8 @@ public class EventBusAutoConfiguration {
     @Bean
     @ConditionalOnBean(MsgSender.class)
     @ConditionalOnMissingBean(DeliveryBus.class)
-    public DeliveryBus deliveryBus(InterceptorConfig interceptorConfig, BusConfig busConfig, MsgSender msgSender, ListenerRegistry registry) {
-        return new DeliveryBus(interceptorConfig, busConfig, msgSender, registry);
+    public DeliveryBus deliveryBus(InterceptorContainer interceptorContainer, BusConfig busConfig, MsgSender msgSender) {
+        return new DeliveryBus(interceptorContainer, busConfig, msgSender);
     }
 
     /**

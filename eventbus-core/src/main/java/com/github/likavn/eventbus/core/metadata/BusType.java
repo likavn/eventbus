@@ -15,8 +15,8 @@
  */
 package com.github.likavn.eventbus.core.metadata;
 
-import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.utils.Assert;
+import lombok.Getter;
 
 /**
  * 消息引擎类别（redis、rabbitmq、rocketmq）
@@ -25,15 +25,15 @@ import com.github.likavn.eventbus.core.utils.Assert;
  * @date 2023/03/06
  * @since 2.3.4
  **/
+@Getter
 public enum BusType {
     /**
      * redis
      */
-    REDIS(BusConstant.REDIS),
-    RABBITMQ(BusConstant.RABBITMQ),
-    ROCKETMQ(BusConstant.ROCKETMQ),
+    REDIS("redis"),
+    RABBITMQ("rabbitmq"),
+    ROCKETMQ("rocketmq"),
     ;
-
     private final String name;
 
     BusType(String name) {
@@ -41,13 +41,13 @@ public enum BusType {
     }
 
     public boolean valid(String name) {
-        return name().equals(name);
+        return this.name.equals(name);
     }
 
     public static BusType of(String name) {
-        for (BusType value : values()) {
-            if (value.name.equals(name)) {
-                return value;
+        for (BusType en : values()) {
+            if (en.valid(name)) {
+                return en;
             }
         }
         return null;

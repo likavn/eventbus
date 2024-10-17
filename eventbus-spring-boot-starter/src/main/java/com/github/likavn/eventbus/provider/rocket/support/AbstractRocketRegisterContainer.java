@@ -18,11 +18,10 @@ package com.github.likavn.eventbus.provider.rocket.support;
 import com.github.likavn.eventbus.core.base.AcquireListeners;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.constant.BusConstant;
+import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Func;
-import com.github.likavn.eventbus.provider.rocket.constant.RocketConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -35,6 +34,7 @@ import org.apache.rocketmq.spring.autoconfigure.RocketMQProperties;
 import java.util.ArrayList;
 import java.util.List;
 
+
 /**
  * AbstractListenerContainer
  *
@@ -43,7 +43,7 @@ import java.util.List;
  * @since 2.2
  **/
 @Slf4j
-public abstract class AbstractRocketRegisterContainer implements AcquireListeners, Lifecycle {
+public abstract class AbstractRocketRegisterContainer implements AcquireListeners<RocketListener>, Lifecycle {
     private final List<DefaultMQPushConsumer> consumers = new ArrayList<>();
     protected final RocketMQProperties rocketMqProperties;
     protected final BusConfig config;
@@ -59,20 +59,13 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
             consumers.forEach(DefaultMQPushConsumer::resume);
             return;
         }
-        try {
-            List<Listener> listeners = getListeners();
-            if (Func.isEmpty(listeners)) {
-                return;
-            }
-            // register
-            listeners.forEach(listener -> {
-                listener.getTopics().forEach(topic -> registerPushConsumer(listener, topic));
-            });
-            starts(consumers);
-        } catch (Exception e) {
-            log.error("[Eventbus register error] ", e);
-            System.exit(1);
+        List<RocketListener> listeners = getListeners();
+        if (Func.isEmpty(listeners)) {
+            return;
         }
+        // register
+        listeners.forEach(this::registerPushConsumer);
+        starts(consumers);
     }
 
     /**
@@ -102,24 +95,21 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
      *
      * @param listener listener
      */
-    private void registerPushConsumer(Listener listener, String topic) {
-        String group = topic + "|" + listener.getTrigger().getDeliverId();
-        group = group.replace(".", "_");
+    private void registerPushConsumer(RocketListener listener) {
         //1.创建消费者Consumer，制定消费者组名
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(listener.getGroup());
         try {
             String hostName = Func.getHostAddress() + "@" + Func.getPid();
-            consumer.setConsumeThreadMin(listener.getConcurrency());
-            consumer.setConsumeThreadMax(listener.getConcurrency());
+            int concurrency = listener.isRetry() ? listener.getRetryConcurrency() : listener.getConcurrency();
+            consumer.setConsumeThreadMin(concurrency);
+            consumer.setConsumeThreadMax(concurrency);
             consumer.setInstanceName(hostName);
             consumer.setPullBatchSize(config.getMsgBatchSize());
             consumer.setConsumeMessageBatchMaxSize(config.getMsgBatchSize());
             //2.指定Nameserver地址
             consumer.setNamesrvAddr(rocketMqProperties.getNameServer());
-            MsgType msgType = listener.getType();
             //3.订阅主题Topic和Tag
-            topic = String.format(msgType.isTimely() ? RocketConstant.QUEUE : RocketConstant.DELAY_QUEUE, topic);
-            consumer.subscribe(topic, listener.getServiceId());
+            consumer.subscribe(listener.getQueue(), listener.getServiceId());
             //设定消费模式：负载均衡|广播模式
             consumer.setMessageModel(MessageModel.CLUSTERING);
             //4.设置回调函数，处理消息
@@ -144,7 +134,7 @@ public abstract class AbstractRocketRegisterContainer implements AcquireListener
             consumers.add(consumer);
         } catch (MQClientException | IllegalStateException e) {
             log.error("AbstractRocketRegisterContainer.registerPushConsumer", e);
-            System.exit(1);
+            throw new EventBusException(e);
         }
     }
 

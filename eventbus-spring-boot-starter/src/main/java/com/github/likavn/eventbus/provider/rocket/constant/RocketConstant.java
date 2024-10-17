@@ -32,18 +32,34 @@ public class RocketConstant {
     private static final String SUFFIX = "eventbus_";
 
     /**
-     * rabbitMq队列key+TAG
+     * 及时消息队列key
      * 参数：
      * <p>
-     * 1.Topic;
+     * 1.服务ID|消息编码;
      */
-    public static final String QUEUE = SUFFIX + "queue_%s";
+    public static final String TIMELY_QUEUE = SUFFIX + "timely_queue_%s";
 
     /**
-     * 延时队列名+TAG
+     * 及时消息重试队列key
      * 参数：
      * <p>
-     * 1.Topic;
+     * 1.服务ID|消息编码|消息监听器全类名;
      */
-    public static final String DELAY_QUEUE = SUFFIX + "delayQueue_%s";
+    public static final String TIMELY_RETRY_QUEUE = SUFFIX + "timely_retry_queue_%s";
+
+    /**
+     * 延时消息队列名key
+     * 参数：
+     * <p>
+     * 1.服务ID|消息编码;
+     */
+    public static final String DELAY_QUEUE = SUFFIX + "delay_queue_%s";
+
+    /**
+     * 延时消息重试队列名key
+     * 参数：
+     * <p>
+     * 1.服务ID|消息编码|消息监听器全类名;
+     */
+    public static final String DELAY_RETRY_QUEUE = SUFFIX + "delay_retry_queue_%s";
 }

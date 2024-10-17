@@ -43,11 +43,16 @@ public class Assert {
      *
      * @param expression 判断条件
      * @param message    异常信息
+     * @param params     异常信息
      */
-    public void isTrue(boolean expression, String message) {
+    public void isTrue(boolean expression, String message, Object... params) {
         if (!expression) {
-            throw new IllegalArgumentException(message);
+            throw new IllegalArgumentException(String.format(message, params));
         }
+    }
+
+    public void isTrue(boolean expression, String message) {
+        isTrue(expression, message, "");
     }
 
     /**

@@ -18,15 +18,16 @@ package com.github.likavn.eventbus.core.base;
 import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Assert;
-import com.github.likavn.eventbus.core.utils.Func;
 
 import java.util.*;
+
+import static com.github.likavn.eventbus.core.utils.Func.*;
 
 /**
  * 发送消息体包装处理类
@@ -36,19 +37,17 @@ import java.util.*;
  */
 public abstract class AbstractSenderAdapter implements MsgSender {
     private final BusConfig config;
-    private final InterceptorConfig interceptorConfig;
+    private final InterceptorContainer interceptorContainer;
     private final RequestIdGenerator requestIdGenerator;
-    private final boolean sendTimelyToDelay;
     private final Map<String, List<Listener>> timelyToDelayListenerMap = new HashMap<>(4);
 
     protected AbstractSenderAdapter(BusConfig config,
-                                    InterceptorConfig interceptorConfig,
+                                    InterceptorContainer interceptorContainer,
                                     RequestIdGenerator requestIdGenerator,
                                     ListenerRegistry registry) {
         this.config = config;
-        this.interceptorConfig = interceptorConfig;
+        this.interceptorContainer = interceptorContainer;
         this.requestIdGenerator = requestIdGenerator;
-        this.sendTimelyToDelay = config.getSendTimelyToDelay();
         initListener(registry);
     }
 
@@ -67,18 +66,18 @@ public abstract class AbstractSenderAdapter implements MsgSender {
                 // 如果监听器设置了延迟投递，且不需要第一次投递，则跳过
                 .filter(listener -> null != listener.getToDelay() && !listener.getToDelay().firstDeliver())
                 // // 如果监听器的消息码列表为空，则跳过
-                .filter(listener -> !Func.isEmpty(listener.getTopics()))
-                .forEach(listener -> {
-                    // 遍历监听器的消息码，构建消息码与监听器的映射
-                    listener.getTopics().forEach(topic -> {
-                        List<Listener> listeners = timelyToDelayListenerMap.get(topic);
-                        if (null == listeners) {
-                            listeners = new ArrayList<>(1);
-                        }
-                        listeners.add(listener);
-                        timelyToDelayListenerMap.put(topic, listeners);
-                    });
-                });
+                .filter(listener -> !isEmpty(listener.getTopics()))
+                .forEach(listener ->
+                        // 遍历监听器的消息码，构建消息码与监听器的映射
+                        listener.getTopics().forEach(topic -> {
+                            List<Listener> listeners = timelyToDelayListenerMap.get(topic);
+                            if (null == listeners) {
+                                listeners = new ArrayList<>(1);
+                            }
+                            listeners.add(listener);
+                            timelyToDelayListenerMap.put(topic, listeners);
+                        })
+                );
     }
 
     /**
@@ -97,15 +96,15 @@ public abstract class AbstractSenderAdapter implements MsgSender {
         // 检查消息请求对象的构建项是否正确
         checkBuild(request);
         // 断言消息code不为空
-        Assert.isTrue(!Func.isEmpty(request.getCode()), "及时消息code不能为空");
+        Assert.isTrue(!isEmpty(request.getCode()), "及时消息code不能为空");
         // 执行发送前的拦截器操作
-        interceptorConfig.sendBeforeExecute(request);
+        interceptorContainer.sendBeforeExecute(request);
         toDelay(request);
         // 执行实际的消息发送操作
         toSend(request);
 
         // 执行发送后的拦截器操作
-        interceptorConfig.sendAfterExecute(request);
+        interceptorContainer.sendAfterExecute(request);
     }
 
     /**
@@ -115,12 +114,7 @@ public abstract class AbstractSenderAdapter implements MsgSender {
      * @param request 消息请求对象，包含消息投递和延迟的相关信息
      */
     private void toDelay(Request<?> request) {
-        // 如果消息已经有了投递ID，说明已经被投递，无需进行延迟处理
-        if (!Func.isEmpty(request.getDeliverId())) {
-            return;
-        }
-        // 如果消息被标记为需要延迟，并且当前状态不允许立即投递，则直接返回
-        if (Boolean.TRUE.equals(request.getToDelay()) && !sendTimelyToDelay) {
+        if (request.isToDelay()) {
             return;
         }
         // 如果当前消息的主题没有对应的延迟投递监听器，说明不需要进行延迟投递
@@ -128,10 +122,10 @@ public abstract class AbstractSenderAdapter implements MsgSender {
             return;
         }
         // 标记消息为需要延迟投递
-        request.setToDelay(Boolean.TRUE);
+        request.setToDelay(true);
         // 保存原始的投递ID和延迟时间，以便后续恢复
         String deliverId = request.getDeliverId();
-        Long delayTime = request.getDelayTime();
+        long delayTime = request.getDelayTime();
         // 获取消息主题对应的延迟投递监听器，并为每个监听器设置新的投递ID和延迟时间
         timelyToDelayListenerMap.get(request.topic()).forEach(listener -> {
             // 设置延迟消息的投递ID
@@ -162,15 +156,15 @@ public abstract class AbstractSenderAdapter implements MsgSender {
         request.setType(null == request.getType() ? MsgType.DELAY : request.getType());
         checkBuild(request);
         // 确保延迟时间被正确设置且大于0
-        Assert.isTrue(null != request.getDelayTime() && request.getDelayTime() > 0, "延时时间不能小于0");
+        Assert.isTrue(request.getDelayTime() > 0, "延时时间不能小于0");
         // 如果启用了拦截器，则在发送前执行拦截器逻辑
         if (interceptor) {
-            interceptorConfig.sendBeforeExecute(request);
+            interceptorContainer.sendBeforeExecute(request);
         }
         toSendDelayMessage(request);
         // 如果启用了拦截器，则在发送后执行拦截器逻辑
         if (interceptor) {
-            interceptorConfig.sendAfterExecute(request);
+            interceptorContainer.sendAfterExecute(request);
         }
     }
 
@@ -188,22 +182,52 @@ public abstract class AbstractSenderAdapter implements MsgSender {
      */
     public abstract void toSendDelayMessage(Request<?> request);
 
+
     /**
      * 发送消息前置操作
      *
      * @param request req
      */
     protected void checkBuild(Request<?> request) {
+        Assert.isTrue(valid(request.getCode()), "消息编码code[%s]%s", request.getCode(), BusConstant.TIPS_VALID_NAME);
         // 确保传入的对象不为空
-        Objects.requireNonNull(request.getBody(), "消息体不能为空");
+        Objects.requireNonNull(request.getBody(), "msg body is not null");
 
         // 设置服务ID为默认值，如果为空的话
-        request.setServiceId(Func.isEmpty(request.getServiceId()) ? config.getServiceId() : request.getServiceId());
+        request.setServiceId(isEmpty(request.getServiceId()) ? config.getServiceId() : request.getServiceId());
 
         // 设置请求ID为默认值，如果为空的话
-        request.setRequestId(Func.isEmpty(request.getRequestId()) ? requestIdGenerator.nextId() : request.getRequestId());
+        request.setRequestId(isEmpty(request.getRequestId()) ? requestIdGenerator.nextId() : request.getRequestId());
 
         // 设置递送数量为默认值，如果为空的话
-        request.setDeliverCount(request.getDeliverCount() != null ? request.getDeliverCount() : 1);
+        if (request.getDeliverCount() == 0) {
+            request.setDeliverCount(1);
+        }
+    }
+
+    /**
+     * 获取延迟消息路由键
+     *
+     * @param request           消息请求对象
+     * @param delayFormat       延迟消息路由键格式
+     * @param delayRetryFormat  重试延迟消息路由键格式
+     * @param timelyRetryFormat 即时消息重试路由键格式
+     * @return 延迟消息路由键
+     */
+    protected String getDelayKey(Request<?> request, String delayFormat, String delayRetryFormat, String timelyRetryFormat) {
+        String delayKey;
+        // 如果请求标记为重试，根据重试类型生成对应的重试路由键
+        // 根据是否延迟投递，选择不同的路由键格式
+        if (request.getType().isDelay()) {
+            if (request.isRetry()) {
+                delayKey = String.format(delayRetryFormat, getFullTopic(request));
+            } else {
+                // 如果不是重试，根据请求主题生成普通路由键
+                delayKey = String.format(delayFormat, request.topic());
+            }
+        } else {
+            delayKey = String.format(timelyRetryFormat, getFullTopic(request));
+        }
+        return delayKey;
     }
 }

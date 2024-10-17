@@ -28,45 +28,45 @@ public class BusConfig {
     /**
      * 服务ID/消息来源ID，可以不用配置，默认为：spring.application.name
      */
-    protected String serviceId;
+    private String serviceId;
 
     /**
      * 消息引擎类别（redis、rabbitmq、rocketmq）
      * {@link com.github.likavn.eventbus.core.metadata.BusType}
      */
-    protected String type;
+    private String type;
 
     /**
-     * 原消息引擎类别（redis、rabbitmq、rocketmq），用于消息引擎切换时兼容原始消息
+     * 原消息引擎类别（redis、rabbitmq、rocketmq），用于消息引擎切换时兼容原始消息，消息引擎没做迁移时可不做配置
      * 默认等于={@link #type}
      * {@link com.github.likavn.eventbus.core.metadata.BusType}
      */
-    protected String cutType;
+    private String oldType;
 
     /**
-     * 消息接收并发数，默认为：3
+     * 消息接收并发数，默认为：2
      */
-    protected Integer concurrency = 3;
+    private Integer concurrency = 2;
+
+    /**
+     * 重试消息接收并发数，默认为：1
+     */
+    private Integer retryConcurrency = 1;
 
     /**
      * 单次获取消息数量，默认：16条
      */
-    protected Integer msgBatchSize = 16;
-
-    /**
-     * 是否在发送本服务（发送消息的serviceId）及时消息时将及时消息投递到延时队列，默认为：true
-     */
-    protected Boolean sendTimelyToDelay = true;
+    private Integer msgBatchSize = 16;
 
     /**
      * 节点联通性配置
      */
-    protected TestConnect testConnect = new TestConnect();
+    private TestConnect testConnect = new TestConnect();
 
     /**
      * 消息投递失败时配置信息
      */
-    protected Fail fail = new Fail();
+    private Fail fail = new Fail();
 
     /**
      * 节点联通性配置
@@ -95,7 +95,7 @@ public class BusConfig {
         private Integer retryCount = 3;
 
         /**
-         * 下次触发时间，单位：秒，默认10秒 ，（rocketMq为18个延时消息级别）
+         * 下次触发时间，单位：秒，默认10秒 ，（rocketMq对应为18个延时消息级别）
          */
         private Long nextTime = 10L;
     }

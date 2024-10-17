@@ -37,7 +37,7 @@ public interface Message<T> {
     String getServiceId();
 
     /**
-     * 消息类型，用于区分不同的消息类型
+     * 消息编码code，用于区分不同的消息类型
      *
      * @return 消息类型
      */
@@ -48,21 +48,28 @@ public interface Message<T> {
      *
      * @return 消息投递次数
      */
-    Integer getDeliverCount();
+    int getDeliverCount();
 
     /**
      * 获取消息轮询次数
      *
      * @return 消息轮询次数
      */
-    Integer getPollingCount();
+    int getPollingCount();
 
     /**
      * 获取消费者接收失败后，发起的失败重试次数
      *
      * @return 返回重试的次数
      */
-    Integer getFailRetryCount();
+    int getFailRetryCount();
+
+    /**
+     * 是否为重试消息
+     *
+     * @return 是否为重试消息
+     */
+    boolean isRetry();
 
     /**
      * 获取消息体

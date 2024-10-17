@@ -2,6 +2,7 @@ package com.github.likavn.eventbus.demo.listener;
 
 import com.github.likavn.eventbus.core.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.annotation.FailRetry;
+import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.domain.TestDelayBody;
@@ -17,7 +18,8 @@ import org.springframework.stereotype.Component;
 @EventbusListener
 public class DemoMsgDelayListener implements MsgDelayListener<TestDelayBody> {
     @Override
-    @FailRetry(count = 1, nextTime = 15)
+    @Polling(count = 3, interval = "3")
+    @FailRetry(count = 1, nextTime = 2)
     public void onMessage(Message<TestDelayBody> message) {
         TestDelayBody body = message.getBody();
         log.info("接收消息: {}", message.getRequestId());

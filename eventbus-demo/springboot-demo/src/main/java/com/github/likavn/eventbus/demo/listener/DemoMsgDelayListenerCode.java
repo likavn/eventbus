@@ -18,11 +18,11 @@ import org.springframework.stereotype.Component;
 @EventbusListener(codes = MsgConstant.DEMO_MSG_DELAY_LISTENER_CODE)
 public class DemoMsgDelayListenerCode implements MsgDelayListener<TMsg> {
     @Override
-    @FailRetry(count = 1, nextTime = 15)
+    @FailRetry(count = 1, nextTime = 2)
     public void onMessage(Message<TMsg> message) {
         TMsg body = message.getBody();
         log.info("接收消息: {}", message.getRequestId());
-        //throw new RuntimeException("DemoMsgDelayListener test");
+        throw new RuntimeException("DemoMsgDelayListener test");
     }
 
     public void failHandler(Message<TMsg> message, Throwable throwable) {

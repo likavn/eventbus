@@ -32,6 +32,7 @@ import org.springframework.util.ErrorHandler;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.Executor;
@@ -150,13 +151,11 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
      */
     @Override
     public void start() {
-
         synchronized (lifecycleMonitor) {
-
             if (this.running) {
                 return;
             }
-
+            Collections.shuffle(subscriptions);
             List<XStreamPollTask> tasks = subscriptions.stream() //
                     .filter(it -> !it.isActive()) //
                     .filter(it -> it instanceof TaskSubscription) //

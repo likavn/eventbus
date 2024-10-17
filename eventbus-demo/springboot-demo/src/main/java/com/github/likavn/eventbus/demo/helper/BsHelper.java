@@ -22,7 +22,7 @@ import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
-import com.github.likavn.eventbus.core.utils.NetUtil;
+import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.demo.entity.BsConsumer;
 import com.github.likavn.eventbus.demo.entity.BsData;
 import com.github.likavn.eventbus.demo.enums.ConsumerStatus;
@@ -69,7 +69,7 @@ public class BsHelper {
                 .code(request.getCode())
                 .type(request.getType().getValue())
                 .body(request.getBody())
-                .ipAddress(NetUtil.getHostAddr())
+                .ipAddress(Func.getHostAddr())
                 .createTime(LocalDateTime.now())
                 .build();
         dataMapper.insert(data);
@@ -88,7 +88,7 @@ public class BsHelper {
         consumer.setDeliverCount(request.getDeliverCount());
         consumer.setPollingCount(request.getPollingCount());
         consumer.setFailRetryCount(request.getFailRetryCount());
-        consumer.setToDelay(request.getToDelay());
+        consumer.setToDelay(request.isToDelay());
         consumer.setUpdateTime(now);
         if (null != consumer.getId()) {
             consumerMapper.updateById(consumer);
@@ -109,7 +109,7 @@ public class BsHelper {
         consumer.setDeliverCount(request.getDeliverCount());
         consumer.setPollingCount(request.getPollingCount());
         consumer.setFailRetryCount(request.getFailRetryCount());
-        consumer.setToDelay(request.getToDelay());
+        consumer.setToDelay(request.isToDelay());
         consumer.setExceptionMessage(throwable.getMessage());
         consumer.setExceptionStackTrace(getStackTrace(throwable));
         consumer.setExceptionTime(now);
@@ -139,7 +139,7 @@ public class BsHelper {
                 // 消息接收处理器（消费者ID）
                 .deliverId(request.getDeliverId())
                 .deliverCount(request.getDeliverCount())
-                .ipAddress(NetUtil.getHostAddr())
+                .ipAddress(Func.getHostAddr())
                 .delayTime(request.getDelayTime())
                 .type(request.getType().getValue())
                 // 消息状态,待处理
@@ -175,19 +175,19 @@ public class BsHelper {
                 // 消息投递次数+1
                 .deliverCount(consumer.getDeliverCount() + 1)
                 .type(msgType)
-                .toDelay(consumer.getToDelay())
-                .delayTime(consumer.getDelayTime())
-                .pollingCount(consumer.getPollingCount())
                 .build();
-        if (msgType.isTimely()) {
-            msgSender.send(request);
-            return;
-        }
-        // 延时时间设置1秒
+        // 特殊说明
+        // 设置的轮询次数小于监听器配置的轮询次数，次数会触发轮询，否则不进行轮询
+        request.setPollingCount(consumer.getPollingCount());
+
+        // 失败重试次数，此处设置失败次数小于监听器配置的重试次数，则当接收消息发生异常时会出发重试，否则不进行重试
+        request.setFailRetryCount(consumer.getFailRetryCount());
+
+        // 延时时间设置1秒,所有消息重试都走延时消息
         request.setDelayTime(1L);
+        request.setRetry(Boolean.TRUE);
         msgSender.sendDelayMessage(request);
     }
-
 
 
     public static String getStackTrace(final Throwable throwable) {

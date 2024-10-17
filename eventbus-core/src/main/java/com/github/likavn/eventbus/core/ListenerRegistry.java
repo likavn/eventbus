@@ -132,7 +132,9 @@ public class ListenerRegistry {
         // 获取监听的事件代码列表
         List<String> codes = getListenerCodes(originalClass, eventbusListener);
         // 确定并发模式
-        Integer concurrency = getConcurrency(eventbusListener.concurrency());
+        Integer concurrency = getConcurrency(eventbusListener.concurrency(), config.getConcurrency());
+        // 异常重试消息接收并发数
+        Integer retryConcurrency = getConcurrency(eventbusListener.retryConcurrency(), config.getRetryConcurrency());
         // 获取事件触发器
         Trigger trigger = getTrigger(obj, BusConstant.ON_MESSAGE);
         // 处理失败策略
@@ -141,7 +143,7 @@ public class ListenerRegistry {
         // 处理轮询策略
         Polling polling = originalMethod.getAnnotation(Polling.class);
         // 创建监听器实例
-        Listener listener = new Listener(serviceId, codes, concurrency, trigger, failTrigger, polling);
+        Listener listener = new Listener(serviceId, codes, concurrency, retryConcurrency, trigger, failTrigger, polling);
         // 根据对象类型决定其处理消息的类型
         if (obj instanceof MsgDelayListener) {
             listener.setType(MsgType.DELAY);
@@ -164,6 +166,7 @@ public class ListenerRegistry {
      * 该方法首先尝试通过注解中的codes属性获取代码如果未设置，则尝试通过继承关系
      * 和MsgBody接口获取代码如果这两种方式都失败，则抛出异常
      */
+    @SuppressWarnings("all")
     private List<String> getListenerCodes(Class<?> originalClass, EventbusListener eventbusListener) {
         // 检查注解中的codes属性是否已设置
         String[] codes = eventbusListener.codes();
@@ -198,6 +201,7 @@ public class ListenerRegistry {
      * @return 返回实现消息监听器接口的泛型参数类类型
      * @throws EventBusException 如果没有找到实现消息监听器接口的类类型，则抛出此异常
      */
+    @SuppressWarnings("all")
     private Class<?> getMsgBodyClass(Class<?> originalClass) {
         // 初始化超级接口类型变量
         Type superInf = null;
@@ -232,12 +236,9 @@ public class ListenerRegistry {
 
     /**
      * 获取并发数
-     *
-     * @param defaultConcurrency 默认并发数
-     * @return 并发数
      */
-    private Integer getConcurrency(Integer defaultConcurrency) {
-        return null == defaultConcurrency || defaultConcurrency < 1 ? config.getConcurrency() : defaultConcurrency;
+    private Integer getConcurrency(int concurrency, Integer defaultConcurrency) {
+        return concurrency > 0 ? concurrency : defaultConcurrency;
     }
 
     /**
@@ -292,36 +293,18 @@ public class ListenerRegistry {
         if (null == supMethod) {
             throw new IllegalArgumentException("methodName=" + methodName + " not found in MsgListener");
         }
-        Method method = null;
+        Method method;
         try {
             method = cla.getMethod(methodName, supMethod.getParameterTypes());
             // 如果方法声明在MsgListener接口中，则表示为默认方法，无法获取，需要设置为null
             if (method.getDeclaringClass() == MsgListener.class) {
                 method = null;
             }
-        } catch (NoSuchMethodException ignored) {
+        } catch (NoSuchMethodException e) {
+            log.error("ListenerRegistry getMsgListenerMethod error", e);
+            throw new EventBusException(e);
         }
         return method;
-    }
-
-    /**
-     * 获取订阅器
-     *
-     * @param deliverId deliverId
-     * @return listener
-     */
-    public Listener getTimelyListener(String deliverId) {
-        return timelyMap.get(deliverId);
-    }
-
-    /**
-     * 获取延时消息处理器
-     *
-     * @param deliverId deliverId
-     * @return listener
-     */
-    public Listener getDelayListener(String deliverId) {
-        return delayMap.get(deliverId);
     }
 
     /**
@@ -340,16 +323,5 @@ public class ListenerRegistry {
      */
     public List<Listener> getDelayListeners() {
         return new ArrayList<>(delayMap.values());
-    }
-
-    /**
-     * 获取所有消息订阅器
-     *
-     * @return listeners
-     */
-    public List<Listener> getFullListeners() {
-        List<Listener> listeners = new ArrayList<>(getTimelyListeners());
-        listeners.addAll(getDelayListeners());
-        return listeners;
     }
 }

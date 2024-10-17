@@ -42,15 +42,7 @@ public class BusProperties extends BusConfig {
     @Data
     public static class RedisProperties {
         /**
-         * 是否为阻塞轮询，开启阻塞轮询会占用redis连接的线程池。占用线程数量=消费者并发总数，默认为：否，不开启阻塞和轮询
-         */
-        private Boolean pollBlock = false;
-        /**
-         * 非阻塞轮询时，接收消息的线程池中线程最大数，默认为：5个
-         */
-        private Integer pollThreadPoolSize = 5;
-        /**
-         * 非阻塞轮询时，接收消息的线程池中空闲线程存活时长，单位：秒，默认为：300s
+         * 轮询时，接收消息的线程池中空闲线程存活时长，单位：秒，默认为：300s
          */
         private Integer pollThreadKeepAliveTime = 300;
         /**
@@ -62,18 +54,13 @@ public class BusProperties extends BusConfig {
          */
         private Integer pendingMessagesBatchSize = 100;
         /**
-         * stream 过期时间，6.2及以上版本支持，单位：小时，默认：5 天
+         * stream 过期时间，6.2及以上版本支持，单位：小时，默认：3 天
          */
-        private Long streamExpiredHours = 24 * 5L;
+        private Long streamExpiredHours = 24 * 3L;
         /**
          * stream 过期数据截取，值为当前保留的消息数，5.0~<6.2版本支持，单位：条，默认：10000条
          */
         private Long streamExpiredLength = 10000L;
-
-        /**
-         * 接收并处理完成延时消息后，是否立刻删除延迟消息，默认为：是
-         */
-        private Boolean deleteDelayStreamMsg = true;
         /**
          * redis版本号，不用配置，系统自动设定
          */

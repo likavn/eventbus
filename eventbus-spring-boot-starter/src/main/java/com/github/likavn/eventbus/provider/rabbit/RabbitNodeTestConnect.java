@@ -16,6 +16,7 @@
 package com.github.likavn.eventbus.provider.rabbit;
 
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
+import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.Connection;
@@ -30,6 +31,7 @@ import org.springframework.amqp.rabbit.connection.Connection;
 public class RabbitNodeTestConnect implements NodeTestConnect {
     private final CachingConnectionFactory connectionFactory;
     private Connection connection;
+    private Channel channel;
 
     public RabbitNodeTestConnect(CachingConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
@@ -41,7 +43,11 @@ public class RabbitNodeTestConnect implements NodeTestConnect {
             if (null == connection) {
                 connection = connectionFactory.createConnection();
             }
-            return connection.isOpen();
+            if (null == channel) {
+                channel = connection.createChannel(false);
+            }
+            channel.basicQos(1);
+            return true;
         } catch (Exception ex) {
             log.error("rabbitMq testConnect", ex);
             return false;

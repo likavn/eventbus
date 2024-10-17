@@ -17,12 +17,12 @@ package com.github.likavn.eventbus.provider.redis;
 
 import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
+import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.support.task.CronTask;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.prop.BusProperties;
-import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 import com.github.likavn.eventbus.provider.redis.support.RedisListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
@@ -46,7 +46,7 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
     private static final String CRON = POLLING_INTERVAL + " * * * * ?";
     private final BusProperties busProperties;
     private final RLock rLock;
-    private final RedisMsgSender msgSender;
+    private final MsgSender msgSender;
     private final StringRedisTemplate stringRedisTemplate;
     private final List<RedisListener> redisSubscribers;
     private CronTask task;
@@ -55,7 +55,7 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
     public RedisPendingMsgResendTask(StringRedisTemplate stringRedisTemplate, TaskRegistry taskRegistry,
                                      BusProperties busProperties, ListenerRegistry registry,
                                      RLock rLock,
-                                     RedisMsgSender msgSender) {
+                                     MsgSender msgSender) {
         // 一分钟执行一次,这里选择每分钟的35秒执行，是为了避免整点任务过多的问题
         this.stringRedisTemplate = stringRedisTemplate;
         this.taskRegistry = taskRegistry;
@@ -63,7 +63,7 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
         this.rLock = rLock;
         this.msgSender = msgSender;
         // 及时消息订阅
-        this.redisSubscribers = RedisListener.fullRedisListeners(registry);
+        this.redisSubscribers = RedisListener.getAllListeners(registry);
     }
 
     @Override
@@ -148,7 +148,7 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
     /**
      * 从pending队列中读取消息
      */
-    public void pushMessage(RedisListener subscriber, PendingMessages pendingMessages) {
+    public void pushMessage(RedisListener listener, PendingMessages pendingMessages) {
         // 遍历所有pending消息的详情
         pendingMessages.get().parallel().forEach(message -> {
             // 消息的ID
@@ -160,21 +160,19 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
             }
             // 通过streamOperations，直接读取这条pending消息，
             List<ObjectRecord<String, String>> result = stringRedisTemplate
-                    .opsForStream().range(String.class, subscriber.getStreamKey(), Range.closed(recordId, recordId));
+                    .opsForStream().range(String.class, listener.getStreamKey(), Range.closed(recordId, recordId));
             if (CollectionUtils.isEmpty(result)) {
-                acknowledge(subscriber, message.getId());
+                acknowledge(listener, message.getId());
                 return;
             }
             Request<?> request = Func.convertByJson(result.get(0).getValue());
             request.setDeliverCount(request.getDeliverCount() + 1);
             // 重新投递消息
-            if (subscriber.getType().isTimely()) {
-                request.setDeliverId(subscriber.getTrigger().getDeliverId());
-                msgSender.toSend(request);
-            } else {
-                msgSender.toSend(subscriber.getStreamKey(), request);
-            }
-            acknowledge(subscriber, message.getId());
+            request.setDeliverId(listener.getDeliverId());
+            request.setDelayTime(1L);
+            request.setRetry(true);
+            msgSender.sendDelayMessage(request);
+            acknowledge(listener, message.getId());
         });
     }
 

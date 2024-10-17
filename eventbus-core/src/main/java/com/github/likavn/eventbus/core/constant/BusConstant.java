@@ -70,7 +70,8 @@ public class BusConstant {
      */
     public static final String OLD_TYPE_NAME = "oldType";
 
-    public static final String REDIS = "redis";
-    public static final String RABBITMQ = "rabbitmq";
-    public static final String ROCKETMQ = "rocketmq";
+    /**
+     * 校验名称提示
+     */
+    public static final String TIPS_VALID_NAME = "只能包含大小写字母、数字、横线（-）、下划线（_）";
 }

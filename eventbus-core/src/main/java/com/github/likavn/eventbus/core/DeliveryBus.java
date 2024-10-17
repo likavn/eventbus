@@ -21,7 +21,7 @@ import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
+import com.github.likavn.eventbus.core.base.InterceptorContainer;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
@@ -40,19 +40,16 @@ import java.lang.reflect.InvocationTargetException;
  **/
 @Slf4j
 public class DeliveryBus {
-    private final InterceptorConfig interceptorConfig;
+    private final InterceptorContainer interceptorContainer;
     private final BusConfig config;
     private final MsgSender msgSender;
-    private final ListenerRegistry registry;
 
-    public DeliveryBus(InterceptorConfig interceptorConfig,
+    public DeliveryBus(InterceptorContainer interceptorContainer,
                        BusConfig config,
-                       MsgSender msgSender,
-                       ListenerRegistry registry) {
-        this.interceptorConfig = interceptorConfig;
+                       MsgSender msgSender) {
+        this.interceptorContainer = interceptorContainer;
         this.config = config;
         this.msgSender = msgSender;
-        this.registry = registry;
     }
 
     /**
@@ -61,8 +58,8 @@ public class DeliveryBus {
      * @param listener 订阅者
      * @param body     内容的主体
      */
-    public void deliverTimely(Listener listener, byte[] body) {
-        deliverTimely(listener, Func.convertByBytes(body));
+    public void deliver(Listener listener, byte[] body) {
+        deliver(listener, Func.convertByBytes(body));
     }
 
     /**
@@ -71,72 +68,8 @@ public class DeliveryBus {
      * @param listener 订阅者
      * @param body     内容的主体
      */
-    public void deliverTimely(Listener listener, String body) {
-        deliverTimely(listener, Func.convertByJson(body));
-    }
-
-    /**
-     * 发送及时消息给订阅者
-     *
-     * @param listener 订阅者
-     * @param request  请求对象
-     */
-    private void deliverTimely(Listener listener, Request<?> request) {
-        if (null != request.getDeliverId() && !listener.getDeliverId().equals(request.getDeliverId())) {
-            return;
-        }
-        // 发送消息给订阅者
-        deliver(listener, request);
-    }
-
-    /**
-     * 接收延时消息
-     *
-     * @param body body
-     */
-    public void deliverDelay(Listener listener, String body) {
-        deliverDelay(listener, Func.convertByJson(body));
-    }
-
-    /**
-     * 接收延时消息
-     *
-     * @param body body
-     */
-    public void deliverDelay(Listener listener, byte[] body) {
-        deliverDelay(listener, Func.convertByBytes(body));
-    }
-
-    /**
-     * 该方法用于处理具有延迟特性的请求，允许传入自定义的监听器
-     * 如果提供的监听器有效且没有绑定触发条件，则忽略该监听器
-     * 否则，根据请求类型和监听器类型，查找并使用相应的监听器处理请求
-     * 这是对延迟消息交付的核心处理逻辑，处理了监听器的选择和错误情况
-     *
-     * @param listener 可选参数，用于指定自定义的监听器
-     * @param request  必填参数，包含了请求的所有必要信息
-     */
-    @SuppressWarnings("all")
-    private void deliverDelay(Listener listener, Request request) {
-        // 检查并处理传入监听器的特殊情况
-        if (null != listener && null == listener.getTrigger()) {
-            listener = null;
-        }
-        // 获取延时订阅者
-        if (null == listener) {
-            // 根据请求类型选择合适的监听器
-            if (request.getType().isDelay()) {
-                listener = registry.getDelayListener(request.getDeliverId());
-            } else {
-                listener = registry.getTimelyListener(request.getDeliverId());
-            }
-        }
-        // 处理未找到监听器的错误情况
-        if (null == listener) {
-            log.error("not found delayMsg handler by deliverId={}", request.getDeliverId());
-            return;
-        }
-        deliver(listener, request);
+    public void deliver(Listener listener, String body) {
+        deliver(listener, Func.convertByJson(body));
     }
 
     /**
@@ -155,7 +88,7 @@ public class DeliveryBus {
         }
         // 如果开启了调试日志，则记录消息内容
         if (log.isDebugEnabled()) {
-            log.debug("deliver msg：{}", Func.toJson(request));
+            log.debug("deliver msg：{}", request.toJson());
         }
         try {
             // 触发监听器，根据触发条件执行相应操作
@@ -182,22 +115,22 @@ public class DeliveryBus {
         // 获取订阅者的延迟投递策略
         ToDelay toDelay = listener.getToDelay();
         // 如果订阅者没有设置延迟投递策略，则直接投递事件
-        if (null == toDelay) {
+        if (null == toDelay || request.isRetry()) {
             isDeliver = invoke(trigger, request);
         } else {
             // 如果订阅者设置了一开始就投递，则投递事件
             if (toDelay.firstDeliver()) {
                 isDeliver = invoke(trigger, request);
-            } else if (Boolean.TRUE.equals(request.getToDelay())) {
+            } else if (request.isToDelay()) {
                 // 如果请求被标记为可延迟，并且设置了延迟时间大于0，则投递事件
-                if (null != request.getDelayTime() && request.getDelayTime() > 0) {
+                if (request.getDelayTime() > 0) {
                     isDeliver = invoke(trigger, request);
                 }
             }
         }
         // 如果事件被投递，则执行投递成功后的操作
         if (isDeliver) {
-            interceptorConfig.deliverSuccessExecute(request);
+            interceptorContainer.deliverSuccessExecute(request);
         }
         // 如果订阅者不应该被延迟投递，则进行轮询操作
         if (!toDelay(listener, request)) {
@@ -246,7 +179,7 @@ public class DeliveryBus {
         }
         try {
             // 每次投递消息异常时都会调用
-            interceptorConfig.deliverThrowableEveryExecute(request, throwable);
+            interceptorContainer.deliverThrowableEveryExecute(request, throwable);
             // 如果FailTrigger不为空，则执行订阅器的异常处理
             if (null != failTrigger && null != failTrigger.getMethod()) {
                 failTrigger.invoke(request, throwable);
@@ -265,7 +198,7 @@ public class DeliveryBus {
         }
         try {
             // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
-            interceptorConfig.deliverThrowableExecute(request, throwable);
+            interceptorContainer.deliverThrowableExecute(request, throwable);
         } catch (Exception var2) {
             log.error("deliveryBus.failHandle error", var2);
         }
@@ -300,16 +233,16 @@ public class DeliveryBus {
         if (isOver) {
             return;
         }
-        int pollingCount = null == request.getPollingCount() ? 0 : request.getPollingCount();
+        int pollingCount = request.getPollingCount();
         if (pollingCount >= polling.count()) {
             return;
         }
         pollingCount++;
-        Long delayTime = request.getDelayTime();
+        long delayTime = request.getDelayTime();
         String interval = polling.interval();
         interval = interval.replace("$count", String.valueOf(pollingCount))
                 .replace("$deliverCount", String.valueOf(request.getDeliverCount()))
-                .replace("$intervalTime", String.valueOf(null == delayTime ? 1 : delayTime));
+                .replace("$intervalTime", String.valueOf(0 == delayTime ? 1 : delayTime));
         // 获取下次投递失败时间
         delayTime = CalculateUtil.fixEvalExpression(interval);
 
@@ -343,8 +276,8 @@ public class DeliveryBus {
             return false;
         }
         // 如果配置为首次投递即转为延时消息，且当前消息属于同一主题，则不需要继续发送延时消息
-        if (Boolean.TRUE.equals(request.getToDelay())) {
-            return null == request.getDelayTime();
+        if (request.isToDelay()) {
+            return 0 == request.getDelayTime();
         }
         // 发送延时消息，并返回转换成功
         request.setToDelay(true);
@@ -365,6 +298,7 @@ public class DeliveryBus {
         request.setDelayTime(delayTime);
         // 投递次数加一，表示消息已经尝试投递过一次
         request.setDeliverCount(request.getDeliverCount() + 1);
+        request.setRetry(true);
         msgSender.sendDelayMessage(request);
     }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.metadata;
+package com.github.likavn.eventbus.core.base;
 
 import com.github.likavn.eventbus.core.api.interceptor.*;
 import com.github.likavn.eventbus.core.metadata.data.Request;
@@ -21,24 +21,24 @@ import com.github.likavn.eventbus.core.utils.Func;
 import lombok.Setter;
 
 /**
- * 拦截器配置信息
+ * 全局拦截器容器
  *
  * @author likavn
  * @date 2024/01/01
  **/
 @Setter
 @SuppressWarnings("all")
-public class InterceptorConfig {
+public class InterceptorContainer {
     private final SendBeforeInterceptor sendBeforeInterceptor;
     private final SendAfterInterceptor sendAfterInterceptor;
     private final DeliverSuccessInterceptor deliverSuccessInterceptor;
     private final DeliverThrowableEveryInterceptor deliverThrowableEveryInterceptor;
     private final DeliverThrowableInterceptor deliverThrowableInterceptor;
 
-    public InterceptorConfig(SendBeforeInterceptor sendBeforeInterceptor,
-                             SendAfterInterceptor sendAfterInterceptor,
-                             DeliverSuccessInterceptor deliverSuccessInterceptor,
-                             DeliverThrowableEveryInterceptor deliverThrowableEveryInterceptor, DeliverThrowableInterceptor deliverThrowableInterceptor) {
+    public InterceptorContainer(SendBeforeInterceptor sendBeforeInterceptor,
+                                SendAfterInterceptor sendAfterInterceptor,
+                                DeliverSuccessInterceptor deliverSuccessInterceptor,
+                                DeliverThrowableEveryInterceptor deliverThrowableEveryInterceptor, DeliverThrowableInterceptor deliverThrowableInterceptor) {
         this.sendBeforeInterceptor = sendBeforeInterceptor;
         this.sendAfterInterceptor = sendAfterInterceptor;
         this.deliverSuccessInterceptor = deliverSuccessInterceptor;
@@ -86,6 +86,7 @@ public class InterceptorConfig {
 
     /**
      * 接收异常拦截
+     * <p>
      * 每次投递消息异常时都会调用
      *
      * @param request   请求
@@ -100,6 +101,8 @@ public class InterceptorConfig {
 
     /**
      * 接收异常拦截
+     * <p>
+     * 最后一次重试调用后任然异常调用
      *
      * @param request   请求
      * @param throwable 异常

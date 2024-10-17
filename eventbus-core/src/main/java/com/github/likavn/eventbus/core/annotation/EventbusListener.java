@@ -45,8 +45,8 @@ public @interface EventbusListener {
      * 监听器订阅的消息类型，用于区分不同的消息类型。
      * <p>
      * 为空时：
-     * 1.如果实体不继承{@link MsgBody}，则默认为当前监听器的类名。
-     * 2.如果实体继承{@link MsgBody}，则默认为{@link MsgBody#code()}。
+     * 1.如果消息实体不继承接口{@link MsgBody}，则默认为当前监听器的类名。
+     * 2.如果消息实体继承接口{@link MsgBody}，则默认为{@link MsgBody#code()}。
      * <p>
      * 监听器订阅code优先如下：
      *
@@ -57,9 +57,16 @@ public @interface EventbusListener {
     String[] codes() default {};
 
     /**
-     * 定义并发级别，默认值为-1。
+     * 消息接收并发数，默认值为-1。
      *
      * @return 返回并发级别的整数值。设置-1表示未设置，默认{@link BusConfig#getConcurrency()}。
      */
     int concurrency() default -1;
+
+    /**
+     * 重试消息接收并发数，默认值为-1。
+     *
+     * @return 返回并发级别的整数值。设置-1表示未设置，默认{@link BusConfig#getRetryConcurrency()} ()}。
+     */
+    int retryConcurrency() default -1;
 }

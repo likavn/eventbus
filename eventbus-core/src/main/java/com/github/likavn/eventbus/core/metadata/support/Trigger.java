@@ -39,6 +39,12 @@ public class Trigger {
     private final Object invokeBean;
 
     /**
+     * 调用对象class
+     */
+    @Getter
+    private final Class<?> primitiveClass;
+
+    /**
      * 方法
      */
     @Getter
@@ -73,7 +79,7 @@ public class Trigger {
     protected Trigger(Object invokeBean, Method method) {
         this.invokeBean = invokeBean;
         this.method = method;
-        Class<?> primitiveClass = Func.originalClass(invokeBean);
+        this.primitiveClass = Func.originalClass(invokeBean);
         this.deliverId = null == primitiveClass ? null : primitiveClass.getName();
         // 构建参数
         buildParams(invokeBean, method);
@@ -141,7 +147,6 @@ public class Trigger {
         try {
             Assert.isTrue(Modifier.isPublic(modifiers),
                     String.format("Method %s of %s must be public", method.getName(), method.getDeclaringClass().getName()));
-            Class<?> primitiveClass = Func.originalClass(invokeBean);
             method = primitiveClass.getMethod(method.getName(), method.getParameterTypes());
             Type[] parameterTypes = method.getGenericParameterTypes();
             this.paramsCount = parameterTypes.length;

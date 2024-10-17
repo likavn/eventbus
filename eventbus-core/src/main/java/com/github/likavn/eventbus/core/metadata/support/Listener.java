@@ -17,6 +17,7 @@ package com.github.likavn.eventbus.core.metadata.support;
 
 import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.annotation.ToDelay;
+import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.utils.Assert;
@@ -48,6 +49,11 @@ public class Listener {
      * 定义并发级别，默认{@link BusConfig#getConcurrency()}。
      */
     private int concurrency;
+
+    /**
+     * 异常重试消息接收并发数，默认{@link BusConfig#getRetryConcurrency()} ()}。
+     */
+    private int retryConcurrency;
     /**
      * 监听器类型
      */
@@ -71,17 +77,11 @@ public class Listener {
      */
     private ToDelay toDelay;
 
-    public Listener(String serviceId, List<String> codes, int concurrency, MsgType type) {
+    public Listener(String serviceId, List<String> codes, int concurrency, int retryConcurrency, Trigger trigger, FailTrigger failTrigger, Polling polling) {
         this.serviceId = serviceId;
         this.codes = codes;
         this.concurrency = concurrency;
-        this.type = type;
-    }
-
-    public Listener(String serviceId, List<String> codes, int concurrency, Trigger trigger, FailTrigger failTrigger, Polling polling) {
-        this.serviceId = serviceId;
-        this.codes = codes;
-        this.concurrency = concurrency;
+        this.retryConcurrency = retryConcurrency;
         this.trigger = trigger;
         this.failTrigger = failTrigger;
         this.polling = polling;
@@ -93,6 +93,10 @@ public class Listener {
         }
         if (null != toDelay) {
             Assert.isTrue(toDelay.delayTime() > 0, "@ToDelay.delayTime must be greater than 0");
+        }
+        Assert.isTrue(Func.valid(getTrigger().getPrimitiveClass().getSimpleName()), "%s 消息监听器类名%s", getDeliverId(), BusConstant.TIPS_VALID_NAME);
+        for (String code : codes) {
+            Assert.isTrue(Func.valid(code), "%s 消息编码%s", code, BusConstant.TIPS_VALID_NAME);
         }
     }
 

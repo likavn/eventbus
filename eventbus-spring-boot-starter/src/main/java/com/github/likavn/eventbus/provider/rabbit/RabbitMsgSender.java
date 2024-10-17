@@ -18,10 +18,9 @@ package com.github.likavn.eventbus.provider.rabbit;
 import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
+import com.github.likavn.eventbus.core.base.InterceptorContainer;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.data.Request;
-import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.provider.rabbit.constant.RabbitConstant;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -36,17 +35,17 @@ public class RabbitMsgSender extends AbstractSenderAdapter {
     private final RabbitTemplate rabbitTemplate;
 
     public RabbitMsgSender(RabbitTemplate rabbitTemplate, BusConfig config,
-                           InterceptorConfig interceptorConfig, RequestIdGenerator requestIdGenerator, ListenerRegistry registry) {
-        super(config, interceptorConfig, requestIdGenerator, registry);
+                           InterceptorContainer interceptorContainer, RequestIdGenerator requestIdGenerator, ListenerRegistry registry) {
+        super(config, interceptorContainer, requestIdGenerator, registry);
         this.rabbitTemplate = rabbitTemplate;
     }
 
     @Override
     public void toSend(Request<?> request) {
         rabbitTemplate.convertAndSend(
-                String.format(RabbitConstant.EXCHANGE, request.getServiceId()),
-                String.format(RabbitConstant.ROUTING_KEY, request.topic()),
-                Func.toJson(request),
+                String.format(RabbitConstant.TIMELY_EXCHANGE, request.getServiceId()),
+                String.format(RabbitConstant.TIMELY_ROUTING_KEY, request.topic()),
+                request.toJson(),
                 message -> {
                     message.getMessageProperties().setContentEncoding("utf-8");
                     return message;
@@ -58,8 +57,8 @@ public class RabbitMsgSender extends AbstractSenderAdapter {
     public void toSendDelayMessage(Request<?> request) {
         rabbitTemplate.convertAndSend(
                 String.format(RabbitConstant.DELAY_EXCHANGE, request.getServiceId()),
-                String.format(RabbitConstant.DELAY_ROUTING_KEY, request.topic()),
-                Func.toJson(request),
+                getDelayRoutingKey(request),
+                request.toJson(),
                 message -> {
                     //配置消息的过期时间,单位：毫秒
                     message.getMessageProperties().setHeader("x-delay", 1000L * request.getDelayTime());
@@ -67,5 +66,13 @@ public class RabbitMsgSender extends AbstractSenderAdapter {
                 },
                 new CorrelationData(request.getRequestId())
         );
+    }
+
+    /**
+     * 根据请求对象获取路由键
+     */
+    private String getDelayRoutingKey(Request<?> request) {
+        return getDelayKey(request, RabbitConstant.DELAY_ROUTING_KEY,
+                RabbitConstant.DELAY_RETRY_ROUTING_KEY, RabbitConstant.TIMELY_RETRY_ROUTING_KEY);
     }
 }

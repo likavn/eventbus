@@ -18,7 +18,11 @@ package com.github.likavn.eventbus.core.metadata.data;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
 import com.github.likavn.eventbus.core.utils.Func;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 通知消息体，eventbus原始消息体
@@ -27,6 +31,7 @@ import lombok.*;
  * @date 2024/01/01
  */
 @Data
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
@@ -47,17 +52,17 @@ public class Request<T> extends Topic implements Message<T> {
     /**
      * 消息投递次数
      */
-    private Integer deliverCount;
+    private int deliverCount;
 
     /**
      * 消费者轮询次数
      */
-    private Integer pollingCount;
+    private int pollingCount;
 
     /**
      * 消费者接收失败后时，发起失败重试的次数
      */
-    private Integer failRetryCount;
+    private int failRetryCount;
 
     /**
      * 消息类型,默认及时消息
@@ -67,70 +72,34 @@ public class Request<T> extends Topic implements Message<T> {
     /**
      * 延时消息的延时时间，单位：秒
      */
-    private Long delayTime;
+    private long delayTime;
 
     /**
-     * 是否已转为延迟消息
+     * 及时消息是否已转为延迟消息
      */
-    private Boolean toDelay;
+    private boolean toDelay;
+
+    /**
+     * 是否为消息重发
+     */
+    private boolean retry;
 
     /**
      * 业务消息体
      * 注：必须包含无参构造函数
      */
+    @SuppressWarnings("all")
     private T body;
-
-    @Builder
-    public Request(String serviceId,
-                   String code,
-                   String requestId,
-                   String deliverId,
-                   Integer deliverCount,
-                   Integer pollingCount,
-                   Integer failRetryCount,
-                   MsgType type,
-                   Long delayTime,
-                   Boolean toDelay,
-                   T body) {
-        super(serviceId, code);
-        this.requestId = requestId;
-        this.deliverId = deliverId;
-        this.deliverCount = deliverCount;
-        this.pollingCount = pollingCount;
-        this.failRetryCount = failRetryCount;
-        this.type = type;
-        this.delayTime = delayTime;
-        this.toDelay = toDelay;
-        this.body = body;
-    }
-
-    @Override
-    public String getRequestId() {
-        return requestId;
-    }
-
-    @Override
-    public Integer getDeliverCount() {
-        return null == this.deliverCount ? 1 : this.deliverCount;
-    }
-
-    @Override
-    public Integer getPollingCount() {
-        return null == this.pollingCount ? 0 : this.pollingCount;
-    }
-
-    @Override
-    public Integer getFailRetryCount() {
-        return null == this.failRetryCount ? 0 : this.failRetryCount;
-    }
-
-    @Override
-    public T getBody() {
-        return this.body;
-    }
 
     @Override
     public String topic() {
         return Func.getTopic(serviceId, code);
+    }
+
+    /**
+     * 将当前对象转换为JSON字符串
+     */
+    public String toJson() {
+        return Func.toJson(this);
     }
 }

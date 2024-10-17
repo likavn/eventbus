@@ -19,6 +19,7 @@ import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.support.task.CronTask;
+import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.support.RedisListener;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +46,7 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
     private final StringRedisTemplate redisTemplate;
     private final List<RedisListener> redisSubscribers;
     private final DefaultRedisScript<Long> script;
-    private boolean versionGE6_2 = false;
+    private boolean versionGe62 = false;
     private CronTask task;
     private final TaskRegistry taskRegistry;
 
@@ -60,7 +61,7 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
         this.redisTemplate = redisTemplate;
 
         // 及时消息订阅
-        this.redisSubscribers = RedisListener.fullRedisListeners(registry);
+        this.redisSubscribers = Func.distinct(RedisListener.getAllListeners(registry), RedisListener::getStreamKey);
         String redisVersion = busProperties.getRedis().getRedisVersion();
         // 判断最低版本是否大于等于 6.2
         if (redisVersion.contains("-")) {
@@ -70,10 +71,10 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
         String bigVersion = versions[0];
         if (bigVersion.compareTo("6") >= 0
                 && (bigVersion.compareTo("7") >= 0 || (versions.length >= 2 && versions[1].compareTo("2") >= 0))) {
-            versionGE6_2 = true;
+            versionGe62 = true;
         }
         // 过期消息处理脚本
-        String cmd = versionGE6_2 ? "'MINID'" : "'MAXLEN', '~'";
+        String cmd = versionGe62 ? "'MINID'" : "'MAXLEN', '~'";
         this.script = new DefaultRedisScript<>("return redis.call('XTRIM', KEYS[1]," + cmd + ", ARGV[1]);", Long.class);
     }
 
@@ -85,10 +86,7 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
 
     @Override
     public void run() {
-        redisSubscribers.stream()
-                .map(RedisListener::getStreamKey)
-                .distinct()
-                .forEach(this::cleanExpired);
+        redisSubscribers.stream().map(RedisListener::getStreamKey).forEach(this::cleanExpired);
     }
 
     /**
@@ -102,7 +100,7 @@ public class RedisStreamExpiredTask implements Runnable, Lifecycle {
                 return;
             }
             String param;
-            if (versionGE6_2) {
+            if (versionGe62) {
                 // stream 过期时间，单位：小时
                 Long expiredHours = busProperties.getRedis().getStreamExpiredHours();
                 // 过期时间毫秒数

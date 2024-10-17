@@ -16,7 +16,6 @@
 package com.github.likavn.eventbus.core.base;
 
 
-import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -50,26 +49,16 @@ public class MsgListenerContainer {
         if (Func.isEmpty(listeners)) {
             return;
         }
-        try {
-            this.active = true;
-            registerListeners();
-        } catch (Exception e) {
-            log.error("eventbus startup", e);
-            throw new EventBusException(e);
-        }
+        this.active = true;
+        registerListeners();
     }
 
     /**
      * 停止检测状态
      */
     public void shutdown() {
-        try {
-            this.active = false;
-            this.destroyListeners();
-        } catch (Exception e) {
-            log.error("eventbus shutdown", e);
-            throw new EventBusException(e);
-        }
+        this.active = false;
+        this.destroyListeners();
     }
 
     /**

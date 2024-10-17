@@ -42,6 +42,7 @@ public class ConnectionWatchdog extends MsgListenerContainer {
     private final NodeTestConnect testConnect;
     private final BusConfig.TestConnect properties;
     private ScheduledExecutorService scheduler;
+    private volatile boolean started = false;
 
     public ConnectionWatchdog(NodeTestConnect testConnect,
                               BusConfig.TestConnect testConnectProperties, Collection<Lifecycle> listeners) {
@@ -53,12 +54,19 @@ public class ConnectionWatchdog extends MsgListenerContainer {
     @Override
     public void startup() {
         // 启动监听器,连不上会抛出异常
-        super.startup();
-
-        // 连接成功
-        this.connect = true;
-        // 创建连接检测定时任务
-        createTask();
+        try {
+            super.startup();
+            // 连接成功
+            this.connect = true;
+            // 创建连接检测定时任务
+            createTask();
+            started = true;
+        } catch (Exception e) {
+            log.error("listeners register error", e);
+            if (!started) {
+                System.exit(1);
+            }
+        }
     }
 
     /**

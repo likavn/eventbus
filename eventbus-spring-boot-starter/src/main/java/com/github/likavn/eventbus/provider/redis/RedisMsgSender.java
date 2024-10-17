@@ -19,11 +19,10 @@ import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
+import com.github.likavn.eventbus.core.base.InterceptorContainer;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.support.task.Task;
-import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.Record;
@@ -41,40 +40,42 @@ import java.util.Collections;
 @Slf4j
 public class RedisMsgSender extends AbstractSenderAdapter {
     private final StringRedisTemplate stringRedisTemplate;
-    private final DefaultRedisScript<Long> zsetAddRedisScript;
+    private final DefaultRedisScript<Long> zSetAddRedisScript;
     private final TaskRegistry taskRegistry;
 
     public RedisMsgSender(StringRedisTemplate stringRedisTemplate,
                           BusConfig config,
-                          InterceptorConfig interceptorConfig,
-                          DefaultRedisScript<Long> zsetAddRedisScript,
+                          InterceptorContainer interceptorContainer,
+                          DefaultRedisScript<Long> zSetAddRedisScript,
                           TaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, ListenerRegistry registry) {
-        super(config, interceptorConfig, requestIdGenerator, registry);
+        super(config, interceptorContainer, requestIdGenerator, registry);
         this.stringRedisTemplate = stringRedisTemplate;
-        this.zsetAddRedisScript = zsetAddRedisScript;
+        this.zSetAddRedisScript = zSetAddRedisScript;
         this.taskRegistry = taskRegistry;
     }
 
     @Override
     public void toSend(Request<?> request) {
-        toSend(String.format(RedisConstant.BUS_SUBSCRIBE_PREFIX, request.topic()), request);
+        toSend(String.format(RedisConstant.TIMELY_QUEUE, request.topic()), request);
     }
 
     public void toSend(String streamKey, Request<?> request) {
-        stringRedisTemplate.opsForStream().add(Record.of(Func.toJson(request)).withStreamKey(streamKey));
+        stringRedisTemplate.opsForStream().add(Record.of(request.toJson()).withStreamKey(streamKey));
     }
 
     @Override
     public void toSendDelayMessage(Request<?> request) {
+        String zSetKey = getZsetKey(request);
         // 计算延迟时间
         Long timeMillis = System.currentTimeMillis() + (1000L * request.getDelayTime());
-        String zSetKey = String.format(RedisConstant.BUS_DELAY_PREFIX, request.topic());
-        if (request.getType().isTimely()) {
-            zSetKey = String.format(RedisConstant.BUS_DELAY_PREFIX, Func.getDelayTopic(request.getServiceId(), request.getCode(), request.getDeliverId()));
-        }
-        timeMillis = stringRedisTemplate.execute(zsetAddRedisScript, Collections.singletonList(zSetKey), String.valueOf(timeMillis), Func.toJson(request));
+        timeMillis = stringRedisTemplate.execute(zSetAddRedisScript,
+                Collections.singletonList(zSetKey), String.valueOf(timeMillis), request.toJson());
         // 重置延迟任务
         setNextTriggerTimeMillis(zSetKey, timeMillis);
+    }
+
+    public String getZsetKey(Request<?> request) {
+        return getDelayKey(request, RedisConstant.DELAY_ZSET, RedisConstant.DELAY_RETRY_ZSET, RedisConstant.TIMELY_RETRY_ZSET);
     }
 
     /**

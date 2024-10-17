@@ -13,24 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.base;
+package com.github.likavn.eventbus;
 
-import com.github.likavn.eventbus.core.metadata.support.Listener;
+import com.github.likavn.eventbus.core.metadata.BusType;
+import org.springframework.context.annotation.Conditional;
 
-import java.util.List;
+import java.lang.annotation.*;
 
 /**
- * 获取消息监听器列表
+ * 消息中间件激活配置注解
  *
  * @author likavn
- * @date 2024/5/15
- */
-public interface AcquireListeners<T extends Listener> {
+ * @date 2024/10/08
+ **/
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Conditional(OnEventbusActiveCondition.class)
+public @interface ConditionalOnEventbusActive {
 
     /**
-     * 获取消费者
+     * 消息中间件类型{@link BusType}
      *
-     * @return 消费者
+     * @return type
      */
-    List<T> getListeners();
+    BusType value();
+
+    /**
+     * 是否是消息生产者
+     *
+     * @return true/false
+     */
+    boolean sender() default false;
 }

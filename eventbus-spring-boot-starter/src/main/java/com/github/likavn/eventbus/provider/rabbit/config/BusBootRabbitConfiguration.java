@@ -15,13 +15,13 @@
  */
 package com.github.likavn.eventbus.provider.rabbit.config;
 
+import com.github.likavn.eventbus.ConditionalOnEventbusActive;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.ListenerRegistry;
-import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
+import com.github.likavn.eventbus.core.base.InterceptorContainer;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
-import com.github.likavn.eventbus.provider.rabbit.RabbitMsgDelayListener;
+import com.github.likavn.eventbus.core.metadata.BusType;
 import com.github.likavn.eventbus.provider.rabbit.RabbitMsgSender;
 import com.github.likavn.eventbus.provider.rabbit.RabbitMsgSubscribeListener;
 import com.github.likavn.eventbus.provider.rabbit.RabbitNodeTestConnect;
@@ -29,12 +29,9 @@ import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
-
-import static com.github.likavn.eventbus.core.constant.BusConstant.*;
 
 /**
  * rabbitMq实现配置
@@ -44,35 +41,28 @@ import static com.github.likavn.eventbus.core.constant.BusConstant.*;
  */
 @Configuration
 @ConditionalOnClass(RabbitTemplate.class)
-@ConditionalOnProperty(prefix = CONFIG_PREFIX, name = TYPE_NAME, havingValue = RABBITMQ)
+@ConditionalOnEventbusActive(value = BusType.RABBITMQ)
 public class BusBootRabbitConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean(MsgSender.class)
-    public MsgSender msgSender(RabbitTemplate rabbitTemplate,
-                               BusConfig config,
-                               @Lazy InterceptorConfig interceptorConfig,
-                               RequestIdGenerator requestIdGenerator,
-                               @Lazy ListenerRegistry registry) {
-        return new RabbitMsgSender(rabbitTemplate, config, interceptorConfig, requestIdGenerator, registry);
+    @ConditionalOnMissingBean(RabbitMsgSubscribeListener.class)
+    public RabbitMsgSubscribeListener rabbitMsgSubscribeListener(
+            CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
+        return new RabbitMsgSubscribeListener(connectionFactory, config, deliveryBus, registry);
     }
 
     @Configuration
-    @ConditionalOnProperty(prefix = CONFIG_PREFIX, name = {TYPE_NAME, OLD_TYPE_NAME}, havingValue = RABBITMQ)
-    static class RabbitConsumerConfiguration {
+    @ConditionalOnEventbusActive(value = BusType.RABBITMQ, sender = true)
+    static class RabbitSenderConfiguration {
 
         @Bean
-        @ConditionalOnMissingBean(RabbitMsgSubscribeListener.class)
-        public RabbitMsgSubscribeListener rabbitMsgSubscribeListener(
-                CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
-            return new RabbitMsgSubscribeListener(connectionFactory, config, deliveryBus, registry);
-        }
-
-        @Bean
-        @ConditionalOnMissingBean(RabbitMsgDelayListener.class)
-        public RabbitMsgDelayListener rabbitMsgDelayListener(
-                CachingConnectionFactory connectionFactory, BusConfig config, DeliveryBus deliveryBus, ListenerRegistry registry) {
-            return new RabbitMsgDelayListener(connectionFactory, config, deliveryBus, registry);
+        @ConditionalOnMissingBean(RabbitMsgSender.class)
+        public RabbitMsgSender msgSender(RabbitTemplate rabbitTemplate,
+                                         BusConfig config,
+                                         @Lazy InterceptorContainer interceptorContainer,
+                                         RequestIdGenerator requestIdGenerator,
+                                         @Lazy ListenerRegistry registry) {
+            return new RabbitMsgSender(rabbitTemplate, config, interceptorContainer, requestIdGenerator, registry);
         }
 
         @Bean

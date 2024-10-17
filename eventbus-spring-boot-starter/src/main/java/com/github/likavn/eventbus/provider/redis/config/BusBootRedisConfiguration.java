@@ -15,20 +15,23 @@
  */
 package com.github.likavn.eventbus.provider.redis.config;
 
+import com.github.likavn.eventbus.ConditionalOnEventbusActive;
 import com.github.likavn.eventbus.config.EventBusAutoConfiguration;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
+import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.metadata.InterceptorConfig;
+import com.github.likavn.eventbus.core.base.InterceptorContainer;
+import com.github.likavn.eventbus.core.metadata.BusType;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -51,14 +54,16 @@ import java.util.Properties;
 @Configuration
 @AutoConfigureAfter(EventBusAutoConfiguration.class)
 @ConditionalOnClass(RedisConnectionFactory.class)
-@ConditionalOnProperty(prefix = "eventbus", name = "type", havingValue = "redis")
+@ConditionalOnEventbusActive(value = BusType.REDIS)
 public class BusBootRedisConfiguration {
+
     @Bean
     public StringRedisTemplate busStringRedisTemplate(RedisConnectionFactory connectionFactory) {
         return new StringRedisTemplate(connectionFactory);
     }
 
     @Bean
+    @ConditionalOnMissingBean(RLock.class)
     public RLock rLock(StringRedisTemplate busStringRedisTemplate, BusProperties busProperties, @Qualifier("lockRedisScript") DefaultRedisScript<Boolean> lockRedisScript) {
         checkRedisVersion(busStringRedisTemplate, busProperties);
         return new RLock(busStringRedisTemplate, lockRedisScript);
@@ -86,54 +91,64 @@ public class BusBootRedisConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(RedisMsgSubscribeListener.class)
     public RedisMsgSubscribeListener redisMsgSubscribeListener(
-            StringRedisTemplate busStringRedisTemplate,
-            BusProperties busProperties, ListenerRegistry registry, DeliveryBus deliveryBus) {
+            StringRedisTemplate busStringRedisTemplate, BusProperties busProperties, ListenerRegistry registry, DeliveryBus deliveryBus) {
         return new RedisMsgSubscribeListener(busStringRedisTemplate, busProperties, registry, deliveryBus);
-    }
-
-    @Bean
-    public RedisMsgDelayListener redisMsgDelayListener(
-            StringRedisTemplate busStringRedisTemplate, TaskRegistry taskRegistry,
-            BusProperties busProperties,
-            @Qualifier("pushMsgStreamRedisScript") DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, ListenerRegistry registry, DeliveryBus deliveryBus) {
-        return new RedisMsgDelayListener(busStringRedisTemplate, taskRegistry, busProperties, pushMsgStreamRedisScript, rLock, registry, deliveryBus);
-    }
-
-    @Bean
-    public RedisMsgSender msgSender(StringRedisTemplate busStringRedisTemplate,
-                                    BusConfig config,
-                                    @Lazy InterceptorConfig interceptorConfig,
-                                    @Qualifier("zsetAddRedisScript")
-                                    DefaultRedisScript<Long> zsetAddRedisScript,
-                                    TaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, @Lazy ListenerRegistry registry) {
-        return new RedisMsgSender(busStringRedisTemplate, config, interceptorConfig, zsetAddRedisScript, taskRegistry, requestIdGenerator, registry);
     }
 
     /**
      * 任务注册器
      */
     @Bean
+    @ConditionalOnMissingBean(TaskRegistry.class)
     public TaskRegistry taskRegistry() {
         return new TaskRegistry();
     }
 
     @Bean
+    @ConditionalOnMissingBean(RedisPendingMsgResendTask.class)
     public RedisPendingMsgResendTask redisPendingMsgResendTask(
-            StringRedisTemplate busStringRedisTemplate, TaskRegistry taskRegistry,
-            BusProperties busProperties, ListenerRegistry registry, RLock rLock, RedisMsgSender msgSender) {
+            StringRedisTemplate busStringRedisTemplate, TaskRegistry taskRegistry, BusProperties busProperties, ListenerRegistry registry, RLock rLock, MsgSender msgSender) {
         return new RedisPendingMsgResendTask(busStringRedisTemplate, taskRegistry, busProperties, registry, rLock, msgSender);
     }
 
     @Bean
+    @ConditionalOnMissingBean(RedisStreamExpiredTask.class)
     public RedisStreamExpiredTask redisStreamExpiredTask(
             StringRedisTemplate busStringRedisTemplate, TaskRegistry taskRegistry, BusProperties busProperties, ListenerRegistry registry, RLock rLock) {
         return new RedisStreamExpiredTask(busStringRedisTemplate, taskRegistry, busProperties, registry, rLock);
     }
 
-    @Bean
-    public RedisNodeTestConnect redisNodeTestConnect(StringRedisTemplate busStringRedisTemplate, BusConfig config) {
-        return new RedisNodeTestConnect(busStringRedisTemplate, config);
+    @Configuration
+    @ConditionalOnEventbusActive(value = BusType.REDIS, sender = true)
+    static class RedisSenderConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean(RedisMsgSender.class)
+        public RedisMsgSender msgSender(StringRedisTemplate busStringRedisTemplate,
+                                        BusConfig config,
+                                        @Lazy InterceptorContainer interceptorContainer,
+                                        @Qualifier("zsetAddRedisScript")
+                                        DefaultRedisScript<Long> zsetAddRedisScript,
+                                        TaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, @Lazy ListenerRegistry registry) {
+            return new RedisMsgSender(busStringRedisTemplate, config, interceptorContainer, zsetAddRedisScript, taskRegistry, requestIdGenerator, registry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(RedisZSetPushMsgStreamTask.class)
+        public RedisZSetPushMsgStreamTask redisZsetPushMsgStreamTask(
+                StringRedisTemplate busStringRedisTemplate,TaskRegistry taskRegistry,
+                @Qualifier("pushMsgStreamRedisScript")
+                DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, ListenerRegistry registry) {
+            return new RedisZSetPushMsgStreamTask(busStringRedisTemplate, taskRegistry,pushMsgStreamRedisScript,rLock,registry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(RedisNodeTestConnect.class)
+        public RedisNodeTestConnect redisNodeTestConnect(StringRedisTemplate busStringRedisTemplate, BusConfig config) {
+            return new RedisNodeTestConnect(busStringRedisTemplate, config);
+        }
     }
 
     @Configuration

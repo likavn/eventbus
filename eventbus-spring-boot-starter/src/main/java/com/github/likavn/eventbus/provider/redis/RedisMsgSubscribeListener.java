@@ -47,12 +47,12 @@ public class RedisMsgSubscribeListener extends AbstractStreamListenerContainer {
     }
 
     @Override
-    protected List<RedisListener> getListeners() {
-        return RedisListener.timelyListeners(registry.getTimelyListeners());
+    public List<RedisListener> getListeners() {
+        return RedisListener.getAllListeners(registry);
     }
 
     @Override
     protected void deliver(RedisListener listener, Record<String, String> msg) {
-        deliveryBus.deliverTimely(listener, msg.getValue());
+        deliveryBus.deliver(listener, msg.getValue());
     }
 }

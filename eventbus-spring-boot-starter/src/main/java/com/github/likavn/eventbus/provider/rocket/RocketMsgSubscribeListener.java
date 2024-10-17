@@ -20,6 +20,7 @@ import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.provider.rocket.support.AbstractRocketRegisterContainer;
+import com.github.likavn.eventbus.provider.rocket.support.RocketListener;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.spring.autoconfigure.RocketMQProperties;
 
@@ -44,12 +45,12 @@ public class RocketMsgSubscribeListener extends AbstractRocketRegisterContainer 
     }
 
     @Override
-    public List<Listener> getListeners() {
-        return registry.getTimelyListeners();
+    public List<RocketListener> getListeners() {
+        return RocketListener.getAllListeners(registry);
     }
 
     @Override
     protected void deliver(Listener subscriber, MessageExt msg) {
-        deliveryBus.deliverTimely(subscriber, msg.getBody());
+        deliveryBus.deliver(subscriber, msg.getBody());
     }
 }

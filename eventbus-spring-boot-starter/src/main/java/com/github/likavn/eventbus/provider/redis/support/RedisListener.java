@@ -16,13 +16,18 @@
 package com.github.likavn.eventbus.provider.redis.support;
 
 import com.github.likavn.eventbus.core.ListenerRegistry;
+import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
-import com.github.likavn.eventbus.core.utils.Func;
+import com.github.likavn.eventbus.provider.SingleCodeListener;
 import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static com.github.likavn.eventbus.provider.SingleCodeListener.FieldExpression.*;
 
 /**
  * redis消息订阅监听器消费者实体数据
@@ -30,67 +35,75 @@ import java.util.stream.Collectors;
  * @author likavn
  * @date 2023/1/7
  **/
-@Data
-@SuppressWarnings("all")
-public class RedisListener extends Listener {
-
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
+public class RedisListener extends SingleCodeListener {
     /**
      * 消费者监听stream key
      */
-    private final String streamKey;
+    private String streamKey;
 
     /**
      * 消费者所在消费者组
      */
-    private final String group;
+    private String group;
+
     /**
-     * 消息编码
+     * 延时队列 zSet key
      */
-    private String code;
-    private String topic;
+    private String zSetKey;
 
-    public RedisListener(Listener listener, String code, String subscribePrefix) {
-        super(listener.getServiceId(),
-                listener.getCodes(),
-                listener.getConcurrency(),
-                listener.getTrigger(), listener.getFailTrigger(), listener.getPolling());
-        setType(listener.getType());
-        this.code = code;
-        this.topic = Func.getTopic(listener.getServiceId(), code);
-        this.streamKey = String.format(subscribePrefix, topic);
-        this.group = listener.getDeliverId();
+    /**
+     * 分布式锁 key
+     */
+    private String lockKey;
+
+    public RedisListener(SingleCodeListener listener) {
+        super(listener, listener.getCode());
     }
 
-    public String getStreamKey() {
-        return streamKey;
-    }
-
-    public String getGroup() {
-        return group;
-    }
-
-    public static List<RedisListener> fullRedisListeners(ListenerRegistry registry) {
-        List<RedisListener> listeners = timelyListeners(registry.getTimelyListeners());
-        // 延时的消息订阅
-        listeners.addAll(delayListeners(registry.getDelayListeners()));
+    public static List<RedisListener> getAllListeners(ListenerRegistry registry) {
+        List<RedisListener> listeners = getTypeAllListeners(registry.getTimelyListeners());
+        listeners.addAll(getTypeAllListeners(registry.getDelayListeners()));
         return listeners;
     }
 
-    public static List<RedisListener> timelyListeners(List<Listener> listeners) {
-        return listeners.stream().flatMap(t -> {
-            List<String> codes = t.getCodes();
-            return codes.stream().map(code -> new RedisListener(t, code, RedisConstant.BUS_SUBSCRIBE_PREFIX));
-        }).collect(Collectors.toList());
+    public static List<RedisListener> getTypeAllListeners(List<Listener> listeners) {
+        return getMsgTypeAllListeners(listeners, EXPRESSION_FUNCTION, RedisListener.class);
     }
 
-    public static List<RedisListener> redisFullDelayListeners(ListenerRegistry registry) {
-        return delayListeners(registry.getFullListeners());
-    }
+    private static final FieldExpressionFunction EXPRESSION_FUNCTION = (MsgType busType, boolean retry) -> {
+        List<FieldExpression> expressions = new ArrayList<>(4);
+        // 及时消息
+        if (busType.isTimely()) {
+            if (retry) {
+                expressions.add(create(RedisListener::getStreamKey, RedisConstant.TIMELY_RETRY_QUEUE, Param.FULL_TOPIC));
+                expressions.add(create(RedisListener::getZSetKey, RedisConstant.TIMELY_RETRY_ZSET, Param.FULL_TOPIC));
+                expressions.add(create(RedisListener::getLockKey, RedisConstant.TIMELY_RETRY_LOCK, Param.FULL_TOPIC));
+            } else {
+                expressions.add(create(RedisListener::getStreamKey, RedisConstant.TIMELY_QUEUE, Param.TOPIC));
+            }
+        } else {
+            if (retry) {
+                expressions.add(create(RedisListener::getStreamKey, RedisConstant.DELAY_RETRY_QUEUE, Param.FULL_TOPIC));
+                expressions.add(create(RedisListener::getZSetKey, RedisConstant.DELAY_RETRY_ZSET, Param.FULL_TOPIC));
+                expressions.add(create(RedisListener::getLockKey, RedisConstant.DELAY_RETRY_LOCK, Param.FULL_TOPIC));
+            } else {
+                expressions.add(create(RedisListener::getStreamKey, RedisConstant.DELAY_QUEUE, Param.TOPIC));
+                expressions.add(create(RedisListener::getZSetKey, RedisConstant.DELAY_ZSET, Param.TOPIC));
+                expressions.add(create(RedisListener::getLockKey, RedisConstant.DELAY_LOCK, Param.TOPIC));
+            }
+        }
+        // 固定消费者组
+        expressions.add(createGroup());
+        return expressions;
+    };
 
-    public static List<RedisListener> delayListeners(List<Listener> listeners) {
-        return listeners.stream().flatMap(t -> {
-            List<String> codes = t.getCodes();
-            return codes.stream().map(code -> new RedisListener(t, code, RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX));
-        }).collect(Collectors.toList());
+    /**
+     * 创建消费者组
+     */
+    private static FieldExpression createGroup() {
+        return create(RedisListener::getGroup, "%s", Param.DELIVER_ID);
     }
 }

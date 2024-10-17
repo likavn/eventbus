@@ -20,6 +20,7 @@ import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.provider.rabbit.support.AbstractRabbitRegisterContainer;
+import com.github.likavn.eventbus.provider.rabbit.support.RabbitListener;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 
 import java.util.List;
@@ -44,12 +45,12 @@ public class RabbitMsgSubscribeListener extends AbstractRabbitRegisterContainer 
     }
 
     @Override
-    public List<Listener> getListeners() {
-        return registry.getTimelyListeners();
+    public List<RabbitListener> getListeners() {
+        return RabbitListener.getAllListeners(registry);
     }
 
     @Override
     protected void deliver(Listener listener, byte[] body) {
-        deliveryBus.deliverTimely(listener, body);
+        deliveryBus.deliver(listener, body);
     }
 }

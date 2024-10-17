@@ -15,18 +15,13 @@
  */
 package com.github.likavn.eventbus.provider.redis;
 
-import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
+import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.support.task.PeriodTask;
 import com.github.likavn.eventbus.core.utils.Func;
-import com.github.likavn.eventbus.prop.BusProperties;
-import com.github.likavn.eventbus.provider.redis.constant.RedisConstant;
-import com.github.likavn.eventbus.provider.redis.support.AbstractStreamListenerContainer;
 import com.github.likavn.eventbus.provider.redis.support.RedisListener;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.connection.stream.Record;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
@@ -34,13 +29,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 延时消息处理类
+ * redis 推送zset消息至stream队列任务
  *
  * @author likavn
  * @since 2023/01/01
- */
+ **/
 @Slf4j
-public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
+public class RedisZSetPushMsgStreamTask implements Lifecycle {
     /**
      * 最大轮询时间间隔，单位：毫秒
      */
@@ -52,46 +47,27 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final RLock rLock;
-    private final ListenerRegistry registry;
-    private final DeliveryBus deliveryBus;
     private final DefaultRedisScript<Long> pushMsgStreamRedisScript;
     private final TaskRegistry taskRegistry;
-    private final List<PollTaskKeys> listeners = new ArrayList<>();
+    private final List<RedisListener> listeners;
     private final Set<String> pollLockKeys = Collections.synchronizedSet(new HashSet<>());
     private List<PeriodTask> tasks;
 
-    public RedisMsgDelayListener(StringRedisTemplate stringRedisTemplate,
-                                 TaskRegistry taskRegistry,
-                                 BusProperties config,
-                                 DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, ListenerRegistry registry, DeliveryBus deliveryBus) {
-        super(stringRedisTemplate, config);
+    public RedisZSetPushMsgStreamTask(StringRedisTemplate stringRedisTemplate,
+                                      TaskRegistry taskRegistry, DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, ListenerRegistry registry) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.taskRegistry = taskRegistry;
         this.pushMsgStreamRedisScript = pushMsgStreamRedisScript;
         this.rLock = rLock;
-        this.registry = registry;
-        this.deliveryBus = deliveryBus;
-        List<PollTaskKeys> keys = RedisListener.redisFullDelayListeners(registry).stream().map(PollTaskKeys::new).collect(Collectors.toList());
-        keys.forEach(t -> {
-            if (!listeners.contains(t)) {
-                listeners.add(t);
-            }
-        });
-    }
-
-    @Override
-    protected List<? extends RedisListener> getListeners() {
-        return RedisListener.delayListeners(registry.getDelayListeners());
-    }
-
-    @Override
-    protected void deliver(RedisListener listener, Record<String, String> msg) {
-        deliveryBus.deliverDelay(listener, msg.getValue());
+        this.listeners = Func.distinct(RedisListener.getAllListeners(registry), RedisListener::getZSetKey)
+                .stream()
+                // zSetKey必须配置
+                .filter(t -> t.getZSetKey() != null)
+                .collect(Collectors.toList());
     }
 
     @Override
     public synchronized void register() {
-        super.register();
         this.tasks = listeners.stream().map(t -> {
             PeriodTask task = PeriodTask.create(t.getZSetKey(), POLL_MILLIS, null);
             task.setRunnable(() -> pollPushTask(task, t));
@@ -103,7 +79,7 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
     /**
      * 循环获取延时队列到期消息
      */
-    private void pollPushTask(PeriodTask task, PollTaskKeys listener) {
+    private void pollPushTask(PeriodTask task, RedisListener listener) {
         boolean isLock = false;
         try {
             isLock = rLock.getLock(listener.getLockKey());
@@ -140,35 +116,6 @@ public class RedisMsgDelayListener extends AbstractStreamListenerContainer {
             }
             iterator.remove();
         }
-        super.destroy();
         tasks.forEach(taskRegistry::removeTask);
-    }
-
-    @Data
-    static class PollTaskKeys {
-
-        /**
-         * 延时消息key,zSet
-         */
-        private String zSetKey;
-        /**
-         * 轮询锁
-         */
-        private String lockKey;
-        /**
-         * 延时消息流key
-         */
-        private String streamKey;
-
-        public PollTaskKeys(RedisListener listener) {
-            this.zSetKey = String.format(RedisConstant.BUS_DELAY_PREFIX, listener.getTopic());
-            this.lockKey = String.format(RedisConstant.BUS_DELAY_LOCK_PREFIX, listener.getTopic());
-            this.streamKey = String.format(RedisConstant.BUS_DELAY_SUBSCRIBE_PREFIX, listener.getTopic());
-            if (listener.getType().isTimely()) {
-                this.zSetKey = String.format(RedisConstant.BUS_DELAY_PREFIX, Func.getDelayTopic(listener.getServiceId(), listener.getCode(), listener.getDeliverId()));
-                this.lockKey = String.format(RedisConstant.BUS_DELAY_LOCK_PREFIX, Func.getDelayTopic(listener.getServiceId(), listener.getCode(), listener.getDeliverId()));
-                this.streamKey = String.format(RedisConstant.BUS_SUBSCRIBE_PREFIX, listener.getTopic());
-            }
-        }
     }
 }

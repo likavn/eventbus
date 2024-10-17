@@ -22,21 +22,21 @@ import java.io.Serializable;
 public class DemoMsgListener implements Serializable, Cloneable, MsgListener<TestBody> {
 
     @Override
-    @ToDelay(delayTime = 5)
-    @Polling(count = 5, interval = "3")
-    @FailRetry(count = 3, nextTime = 5)
+    @ToDelay(delayTime = 2)
+    @Polling(count = 3, interval = "2")
+    @FailRetry(count = 2, nextTime = 2)
     public void onMessage(Message<TestBody> msg) {
         TestBody body = msg.getBody();
         log.info("接收数据,第{}次投递，轮询{}次，失败重试{}次:RequestId:{}", msg.getDeliverCount(), msg.getPollingCount(), msg.getFailRetryCount(), msg.getRequestId());
-        if (msg.getDeliverCount() == 3) {
+        if (msg.getDeliverCount() ==2) {
             throw new RuntimeException("DemoMsgListener test");
         }
 
-        if (msg.getPollingCount() >= 2) {
+       // if (msg.getPollingCount() >= 3) {
             // 终止轮询
-            Polling.Keep.over();
-            log.info("终止轮询");
-        }
+        //    Polling.Keep.over();
+        //    log.info("终止轮询");
+       // }
     }
 
     @Override
