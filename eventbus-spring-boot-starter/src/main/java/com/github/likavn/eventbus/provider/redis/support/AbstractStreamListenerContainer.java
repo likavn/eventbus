@@ -21,6 +21,7 @@ import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.core.utils.GroupedThreadPoolExecutor;
 import com.github.likavn.eventbus.core.utils.NamedThreadFactory;
+import com.github.likavn.eventbus.core.utils.PollThreadPoolExecutor;
 import com.github.likavn.eventbus.prop.BusProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -48,7 +49,6 @@ import java.util.stream.Collectors;
 public abstract class AbstractStreamListenerContainer implements AcquireListeners<RedisListener>, Lifecycle {
     protected final StringRedisTemplate redisTemplate;
     protected final BusProperties config;
-    protected ThreadPoolExecutor pollExecutor;
     protected StreamMessageListenerContainer<String, ObjectRecord<String, String>> container;
 
     protected AbstractStreamListenerContainer(StringRedisTemplate redisTemplate, BusProperties config) {
@@ -79,7 +79,7 @@ public abstract class AbstractStreamListenerContainer implements AcquireListener
         // 根据监听器列表和阻塞配置创建执行器
         Object[] executors = createExecutor();
         // 保存线程池执行器，用于后续的配置
-        pollExecutor = (ThreadPoolExecutor) executors[0];
+        ThreadPoolExecutor pollExecutor = (PollThreadPoolExecutor) executors[0];
         // 开始构建监听容器的配置对象
         StreamMessageListenerContainerOptions<String, ObjectRecord<String, String>> options
                 = StreamMessageListenerContainerOptions.builder()
@@ -111,10 +111,10 @@ public abstract class AbstractStreamListenerContainer implements AcquireListener
      * @return 线程池
      */
     private Object[] createExecutor() {
-        // 根据配置创建不同的线程池
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 1,
-                TimeUnit.MINUTES, new LinkedBlockingDeque<>(), new NamedThreadFactory(this.getClass().getSimpleName() + "-"));
         BusProperties.RedisProperties redis = config.getRedis();
+        // 根据配置创建不同的线程池
+        PollThreadPoolExecutor executor = new PollThreadPoolExecutor(redis.getPollThreadPoolSize(), redis.getPollThreadPoolSize(), 1,
+                TimeUnit.MINUTES, new LinkedBlockingDeque<>(1), new NamedThreadFactory(this.getClass().getSimpleName() + "-"));
         // 分发消息的线程池
         GroupedThreadPoolExecutor excExecutor = new GroupedThreadPoolExecutor(1, 1000 * redis.getPollThreadKeepAliveTime(),
                 new NamedThreadFactory(this.getClass().getSimpleName() + ".exc-"));
@@ -194,7 +194,6 @@ public abstract class AbstractStreamListenerContainer implements AcquireListener
         if (null != container) {
             container.stop();
         }
-        pollExecutor.purge();
     }
 
     /**

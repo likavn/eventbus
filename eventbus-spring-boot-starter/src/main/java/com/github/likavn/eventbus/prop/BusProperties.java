@@ -42,6 +42,10 @@ public class BusProperties extends BusConfig {
     @Data
     public static class RedisProperties {
         /**
+         * 轮询时拉取redis stream 中消息的线程最大数，默认为：2个
+         */
+        private Integer pollThreadPoolSize = 2;
+        /**
          * 轮询时，接收消息的线程池中空闲线程存活时长，单位：秒，默认为：300s
          */
         private Integer pollThreadKeepAliveTime = 300;

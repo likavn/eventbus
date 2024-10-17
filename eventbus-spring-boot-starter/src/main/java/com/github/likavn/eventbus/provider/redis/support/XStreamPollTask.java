@@ -158,9 +158,9 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
 
             // allow interruption
             Thread.sleep(0);
-            long l = System.currentTimeMillis();
+        //    long l = System.currentTimeMillis();
             List<V> read = readFunction.apply(key, ReadOffset.lastConsumed());
-            System.out.println("拉取数据操作，耗时：" + (System.currentTimeMillis() - l));
+          //  System.out.println("拉取数据操作，耗时：" + (System.currentTimeMillis() - l));
             if (read.isEmpty()) {
                 return true;
             }

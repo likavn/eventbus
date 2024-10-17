@@ -16,6 +16,7 @@
 package com.github.likavn.eventbus.provider.redis.support;
 
 import com.github.likavn.eventbus.core.utils.GroupedThreadPoolExecutor;
+import com.github.likavn.eventbus.core.utils.PollThreadPoolExecutor;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +57,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
 
     private final Object lifecycleMonitor = new Object();
 
-    private final Executor taskExecutor;
+    private final PollThreadPoolExecutor poolPullExecutor;
 
     private final GroupedThreadPoolExecutor taskExcExecutor;
     private final ErrorHandler errorHandler;
@@ -82,7 +83,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         Assert.notNull(connectionFactory, "RedisConnectionFactory must not be null!");
         Assert.notNull(containerOptions, "StreamMessageListenerContainerOptions must not be null!");
 
-        this.taskExecutor = containerOptions.getExecutor();
+        this.poolPullExecutor = (PollThreadPoolExecutor) containerOptions.getExecutor();
         this.taskExcExecutor = taskExcExecutor;
         this.errorHandler = containerOptions.getErrorHandler();
         this.readOptions = getStreamReadOptions(containerOptions);
@@ -162,10 +163,8 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
                     .map(TaskSubscription.class::cast) //
                     .map(TaskSubscription::getTask) //
                     .collect(Collectors.toList());
-            taskExecutor.execute(() -> {
-                running = true;
-                doloop(tasks);
-            });
+            running = true;
+            doloop(tasks);
         }
     }
 
@@ -174,17 +173,19 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         taskExcExecutor.setAfterConsumer(t -> {
             blockingTasks.add((XStreamPollTask) t.getTask().getData());
         });
-        while (running && !Thread.interrupted()) {
-            try {
-                XStreamPollTask task = blockingTasks.take();
-                if (task.pull()) {
-                    blockingTasks.add(task);
+        int corePoolSize = poolPullExecutor.getCorePoolSize();
+        while (corePoolSize-- > 0) {
+            poolPullExecutor.execute(() -> {
+                try {
+                    XStreamPollTask task = blockingTasks.take();
+                    if (task.pull()) {
+                        blockingTasks.add(task);
+                    }
+                } catch (InterruptedException e) {
+                    log.error("XDefaultStreamMessageListenerContainer.stop", e);
                 }
-            } catch (InterruptedException e) {
-                log.error("XDefaultStreamMessageListenerContainer.stop", e);
-            }
+            });
         }
-        stop();
     }
 
     /*
@@ -201,6 +202,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
                 subscriptions.forEach(Cancelable::cancel);
 
                 running = false;
+                poolPullExecutor.terminated();
             }
         }
     }
@@ -282,9 +284,6 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
 
             this.subscriptions.add(subscription);
 
-            if (this.running) {
-                taskExecutor.execute(task);
-            }
         }
 
         return subscription;

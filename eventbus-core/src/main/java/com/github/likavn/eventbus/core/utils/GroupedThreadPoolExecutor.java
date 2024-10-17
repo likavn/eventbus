@@ -1,3 +1,18 @@
+/**
+ * Copyright 2023-2033, likavn (likavn@163.com).
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.likavn.eventbus.core.utils;
 
 import com.github.likavn.eventbus.core.exception.EventBusException;
@@ -6,26 +21,54 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
+/**
+ * 分组线程池
+ * <p>
+ * 多分组任务共享线程池
+ *
+ * @author likavn
+ * @date 2024/01/01
+ */
 @Slf4j
 public class GroupedThreadPoolExecutor {
+    /**
+     * 线程池中空闲的线程队列，用于存放空闲的线程对象
+     */
     private final Queue<WorkerThread> freePools = new ArrayDeque<>();
+    /**
+     * 线程池中正在使用的线程队列，用于存放正在使用的线程对象
+     */
     private final Set<WorkerThread> busyPools = new HashSet<>();
+    /**
+     * 存储每个任务的状态信息，包括剩余执行次数等
+     */
     private final Map<String, State> stateMap = new ConcurrentHashMap<>();
+    /**
+     * 主锁，用于保护核心线程池和空闲线程队列的并发访问
+     */
     private final ReentrantLock mainLock = new ReentrantLock();
+    /**
+     * 当前核心线程池大小，用于统计核心线程池中正在使用的线程数量
+     */
     private final AtomicInteger currentCorePoolSize = new AtomicInteger(0);
+
     private final int corePoolSize;
     private final int keepAliveTimeMillis;
     private final NamedThreadFactory threadFactory;
 
+    /**
+     * 执行前的回调函数，用于在任务执行前对线程进行一些初始化操作，如设置线程名称等
+     */
     @Setter
     private Consumer<WorkerThread> beforeConsumer;
 
+    /**
+     * 执行后的回调函数，用于在任务执行结束后对线程进行一些收尾工作，如清理线程名称等
+     */
     @Setter
     private Consumer<WorkerThread> afterConsumer;
 
@@ -35,64 +78,24 @@ public class GroupedThreadPoolExecutor {
         this.threadFactory = threadFactory;
     }
 
+    /**
+     * 执行给定的任务并返回任务的执行状态
+     * 此方法首先验证任务是否有效，然后在适当的线程上执行任务，并检查任务执行后的剩余次数
+     *
+     * @param task 要执行的任务对象，不能为空
+     * @return 返回任务执行后的剩余次数是否大于0
+     */
     public boolean execute(GTask task) {
+        // 验证任务是否有效，这是执行任务前的必要检查
         task.isValid();
+        // 获取适当的线程来执行任务
         takeThread(task).execute();
+        // 检查任务执行后的剩余次数是否大于0，这是判断任务执行状态的重要依据
         return getState(task).getLeftCount() > 0;
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        GroupedThreadPoolExecutor executor = new GroupedThreadPoolExecutor(
-                1, 1000 * 5, new NamedThreadFactory("test-thread-pool-"));
-        AtomicInteger time = new AtomicInteger(0);
-        AtomicInteger executeNum = new AtomicInteger(0);
-        AtomicInteger index = new AtomicInteger(0);
-
-        int pollNum = 100;
-        int streamSize = 100;
-        int realNum = pollNum * streamSize;
-        CountDownLatch latch = new CountDownLatch(Math.toIntExact(realNum));
-        Stream.of(new Byte[pollNum]).parallel().forEach(t -> {
-            index.incrementAndGet();
-            new Thread(() -> Stream.of(new Byte[streamSize]).parallel().forEach(t1 -> {
-                //   int timeNum = time.incrementAndGet();
-                GroupedThreadPoolExecutor.GTask task = new GroupedThreadPoolExecutor.GTask();
-                task.setName("task-" + index.get());
-                task.setConcurrency(2);
-                //     System.out.println("task-" + index + "->" + timeNum + "，threadName->" + Thread.currentThread().getName());
-                task.target(() -> {
-                    //    System.out.println("execute name->" + task.getName() + "   " + Thread.currentThread().getName());
-                    executeNum.incrementAndGet();
-                    latch.countDown();
-                });
-                executor.execute(task);
-            })).start();
-        });
-        latch.await();
-        if (executeNum.get() == realNum) {
-            System.out.println("成功...  " + executeNum.get());
-        } else {
-            System.out.println("失败...  " + executeNum.get() + ",相差：" + (realNum - executeNum.get()));
-        }
-    }
-
     private WorkerThread takeThread(GTask task) {
-        State state = getState(task);
-        // 按分组进行分段式锁控制
-        state.lock();
-        try {
-            while (state.getLeftCount() < 1) {
-                synchronized (state.update) {
-                    state.update.wait(1000);
-                }
-            }
-            state.decrement();
-        } catch (InterruptedException e) {
-            throw new EventBusException(e);
-        } finally {
-            state.unlock();
-        }
-
+        State state = blockState(task);
         mainLock.lock();
         WorkerThread workThread = freePools.poll();
         try {
@@ -110,6 +113,25 @@ public class GroupedThreadPoolExecutor {
         }
         workThread.addTask(task);
         return workThread;
+    }
+
+    private State blockState(GTask task) {
+        State state = getState(task);
+        // 按分组进行分段式锁控制
+        state.lock();
+        try {
+            while (state.getLeftCount() < 1) {
+                synchronized (state.update) {
+                    state.update.wait(1000);
+                }
+            }
+            state.decrement();
+        } catch (InterruptedException e) {
+            throw new EventBusException(e);
+        } finally {
+            state.unlock();
+        }
+        return state;
     }
 
     public void beforeExecute(WorkerThread worker) {
@@ -201,19 +223,26 @@ public class GroupedThreadPoolExecutor {
         }
     }
 
-
+    /**
+     * 根据任务获取其对应的状态
+     * 如果状态不存在，则创建一个新的状态并将其与任务关联
+     *
+     * @param task 任务对象，包含任务的名称和并发度
+     * @return 返回与任务关联的状态对象
+     */
     private State getState(GTask task) {
+        // 从状态映射中获取与任务名称关联的状态
         State state = stateMap.get(task.getName());
         if (null == state) {
-            synchronized (this) {
+            // 如果没有找到关联的状态，创建一个新的状态对象
+            state = new State();
+            state.setGroupName(task.getName());
+            state.setConcurrency(task.getConcurrency());
+            state.setLeftCount(task.getConcurrency());
+            // 使用 putIfAbsent 方法实现线程安全的插入操作
+            state = stateMap.putIfAbsent(task.getName(), state);
+            if (state == null) {
                 state = stateMap.get(task.getName());
-                if (null == state) {
-                    state = new State();
-                    state.setGroupName(task.getName());
-                    state.setConcurrency(task.getConcurrency());
-                    state.setLeftCount(task.getConcurrency());
-                    stateMap.put(task.getName(), state);
-                }
             }
         }
         return state;
