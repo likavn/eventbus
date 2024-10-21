@@ -42,13 +42,21 @@ public class BusProperties extends BusConfig {
     @Data
     public static class RedisProperties {
         /**
-         * 轮询时拉取redis stream 中消息的线程最大数，默认为：2个
+         * 轮询时拉取Redis Stream中消息的线程池大小，默认为：2
          */
         private Integer pollThreadPoolSize = 2;
         /**
-         * 轮询时，接收消息的线程池中空闲线程存活时长，单位：秒，默认为：300s
+         * 轮询时拉取Redis Stream中消息的阻塞时间，单位：毫秒，默认为：5ms
          */
-        private Integer pollThreadKeepAliveTime = 300;
+        private Long pollBlockMillis = 5L;
+        /**
+         * 投递消息线程池大小，默认为：5
+         */
+        private Integer deliverGroupThreadPoolSize = 5;
+        /**
+         * 投递消息线程池中空闲线程存活时长，单位：毫秒，默认为：60s
+         */
+        private Long deliverGroupThreadKeepAliveTime = 1000L * 60;
         /**
          * 消息超时时间，超时消息未被确认，才会被重新投递，单位：秒，默认：5分钟
          */

@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  **/
 @Slf4j
 @Component
-@EventbusListener
+@EventbusListener(retryConcurrency = 5)
 public class DemoMsgDelayListener implements MsgDelayListener<TestDelayBody> {
     @Override
     @Polling(count = 3, interval = "3")

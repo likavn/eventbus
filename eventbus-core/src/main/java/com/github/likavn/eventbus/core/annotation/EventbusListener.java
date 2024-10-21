@@ -64,7 +64,7 @@ public @interface EventbusListener {
     int concurrency() default -1;
 
     /**
-     * 重试消息接收并发数，默认值为-1。
+     * 重发/重试消息接收并发数，默认值为-1。
      *
      * @return 返回并发级别的整数值。设置-1表示未设置，默认{@link BusConfig#getRetryConcurrency()} ()}。
      */

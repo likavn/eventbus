@@ -45,7 +45,7 @@ public class MsgListenerContainer {
     /**
      * 启动检测状态
      */
-    public void startup() {
+    public synchronized void startup() {
         if (Func.isEmpty(listeners)) {
             return;
         }
@@ -56,7 +56,7 @@ public class MsgListenerContainer {
     /**
      * 停止检测状态
      */
-    public void shutdown() {
+    public synchronized void shutdown() {
         this.active = false;
         this.destroyListeners();
     }
@@ -64,7 +64,7 @@ public class MsgListenerContainer {
     /**
      * 注册所有监听组件
      */
-    protected void registerListeners() {
+    protected synchronized void registerListeners() {
         if (!this.active) {
             return;
         }
@@ -79,7 +79,7 @@ public class MsgListenerContainer {
     /**
      * 销毁所有监听组件
      */
-    protected void destroyListeners() {
+    protected synchronized void destroyListeners() {
         // 遍历组件列表
         for (Lifecycle listener : listeners) {
             // 销毁组件

@@ -51,7 +51,7 @@ public class Listener {
     private int concurrency;
 
     /**
-     * 异常重试消息接收并发数，默认{@link BusConfig#getRetryConcurrency()} ()}。
+     * 重发/重试消息接收并发数，默认{@link BusConfig#getRetryConcurrency()} ()}。
      */
     private int retryConcurrency;
     /**

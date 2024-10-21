@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
                 MsgConstant.DEMO_MSG_LISTENER_CODE,
                 MsgConstant.DEMO_MSG_LISTENER_CODE_V2
         },
-        concurrency = 1)
+        concurrency = 2)
 public class DemoMsgListenerCode implements MsgListener<TMsg> {
 
     @Override

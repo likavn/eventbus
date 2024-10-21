@@ -49,7 +49,7 @@ public class BusConfig {
     private Integer concurrency = 2;
 
     /**
-     * 重试消息接收并发数，默认为：1
+     * 重发/重试消息接收并发数，默认为：1
      */
     private Integer retryConcurrency = 1;
 
@@ -95,7 +95,7 @@ public class BusConfig {
         private Integer retryCount = 3;
 
         /**
-         * 下次触发时间，单位：秒，默认10秒 ，（rocketMq对应为18个延时消息级别）
+         * 失败重试下次触发时间，单位：秒，默认10秒 ，（rocketMq对应为18个延时消息级别）
          */
         private Long nextTime = 10L;
     }

@@ -53,10 +53,6 @@ public class BsHelper {
     @Resource
     private MsgSender msgSender;
 
-    @Lazy
-    @Resource
-    private ListenerRegistry registry;
-
     /**
      * 发送消息
      *

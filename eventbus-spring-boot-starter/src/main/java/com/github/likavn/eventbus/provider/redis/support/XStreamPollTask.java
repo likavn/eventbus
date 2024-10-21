@@ -43,7 +43,7 @@ import java.util.function.Predicate;
  */
 @SuppressWarnings("all")
 class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
-    private final GroupedThreadPoolExecutor taskExcExecutor;
+    private final GroupedThreadPoolExecutor deliverExecutor;
     private final StreamReadRequest<K> request;
     private final StreamListener<K, V> listener;
     private final ErrorHandler errorHandler;
@@ -56,8 +56,8 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
     private volatile boolean isInEventLoop = false;
 
     XStreamPollTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener, ErrorHandler errorHandler,
-                    BiFunction<K, ReadOffset, List<V>> readFunction, GroupedThreadPoolExecutor taskExcExecutor, RedisListener redisListener) {
-        this.taskExcExecutor = taskExcExecutor;
+                    BiFunction<K, ReadOffset, List<V>> readFunction, GroupedThreadPoolExecutor deliverExecutor, RedisListener redisListener) {
+        this.deliverExecutor = deliverExecutor;
         this.request = streamRequest;
         this.listener = listener;
         this.errorHandler = Optional.ofNullable(streamRequest.getErrorHandler()).orElse(errorHandler);
@@ -164,7 +164,7 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
             if (read.isEmpty()) {
                 return true;
             }
-            this.taskExcExecutor.execute(task.target(() -> {
+            this.deliverExecutor.execute(task.target(() -> {
                 for (V message : read) {
 
                     listener.onMessage(message);

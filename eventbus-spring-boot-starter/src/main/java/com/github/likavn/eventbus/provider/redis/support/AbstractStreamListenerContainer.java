@@ -89,7 +89,7 @@ public abstract class AbstractStreamListenerContainer implements AcquireListener
                 // 设置消息消费异常的处理程序
                 .errorHandler(t -> log.error("[Eventbus error] ", t))
                 // 设置轮询超时时间，如果设置为0，则表示不超时
-                .pollTimeout(Duration.ofMillis(5))
+                .pollTimeout(Duration.ofMillis(config.getRedis().getPollBlockMillis()))
                 // 设置序列化器
                 .serializer(new StringRedisSerializer())
                 // 设置目标类型为String
@@ -114,11 +114,11 @@ public abstract class AbstractStreamListenerContainer implements AcquireListener
         BusProperties.RedisProperties redis = config.getRedis();
         // 根据配置创建不同的线程池
         PollThreadPoolExecutor executor = new PollThreadPoolExecutor(redis.getPollThreadPoolSize(), redis.getPollThreadPoolSize(), 1,
-                TimeUnit.MINUTES, new LinkedBlockingDeque<>(1), new NamedThreadFactory(this.getClass().getSimpleName() + "-"));
+                TimeUnit.MINUTES, new LinkedBlockingDeque<>(1), new NamedThreadFactory(this.getClass().getSimpleName() + ".poll-"));
         // 分发消息的线程池
-        GroupedThreadPoolExecutor excExecutor = new GroupedThreadPoolExecutor(1, 1000 * redis.getPollThreadKeepAliveTime(),
-                new NamedThreadFactory(this.getClass().getSimpleName() + ".exc-"));
-        return new Object[]{executor, excExecutor};
+        GroupedThreadPoolExecutor deliverExecutor = new GroupedThreadPoolExecutor(redis.getDeliverGroupThreadPoolSize(), redis.getDeliverGroupThreadKeepAliveTime(),
+                new NamedThreadFactory(this.getClass().getSimpleName() + ".deliver-"));
+        return new Object[]{executor, deliverExecutor};
     }
 
     /**

@@ -57,7 +57,7 @@ public class GroupedThreadPoolExecutor {
     private final AtomicInteger currentCorePoolSize = new AtomicInteger(0);
 
     private final int corePoolSize;
-    private final int keepAliveTimeMillis;
+    private final long keepAliveTimeMillis;
     private final NamedThreadFactory threadFactory;
 
     /**
@@ -72,7 +72,7 @@ public class GroupedThreadPoolExecutor {
     @Setter
     private Consumer<WorkerThread> afterConsumer;
 
-    public GroupedThreadPoolExecutor(int corePoolSize, int keepAliveTimeMillis, NamedThreadFactory threadFactory) {
+    public GroupedThreadPoolExecutor(int corePoolSize, long keepAliveTimeMillis, NamedThreadFactory threadFactory) {
         this.corePoolSize = corePoolSize;
         this.keepAliveTimeMillis = keepAliveTimeMillis;
         this.threadFactory = threadFactory;

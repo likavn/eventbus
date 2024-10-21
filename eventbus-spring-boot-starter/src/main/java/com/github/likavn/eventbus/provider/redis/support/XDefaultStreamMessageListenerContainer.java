@@ -32,9 +32,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.ErrorHandler;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -57,9 +55,13 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
 
     private final Object lifecycleMonitor = new Object();
 
-    private final PollThreadPoolExecutor poolPullExecutor;
+    private final PollThreadPoolExecutor streamPollExecutor;
 
-    private final GroupedThreadPoolExecutor taskExcExecutor;
+    private final GroupedThreadPoolExecutor deliverExecutor;
+    /**
+     * stream 轮询拉取任务
+     */
+    private final BlockingDeque<XStreamPollTask> streamPollTasks = new LinkedBlockingDeque<>();
     private final ErrorHandler errorHandler;
     private final StreamReadOptions readOptions;
     private final RedisTemplate<K, ?> template;
@@ -77,14 +79,16 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
      * @param containerOptions  must not be {@literal null}.
      * @param taskExcExecutor
      */
-    XDefaultStreamMessageListenerContainer(RedisConnectionFactory connectionFactory,
-                                           StreamMessageListenerContainerOptions<K, V> containerOptions, GroupedThreadPoolExecutor taskExcExecutor) {
+    XDefaultStreamMessageListenerContainer(RedisConnectionFactory connectionFactory, StreamMessageListenerContainerOptions<K, V> containerOptions, GroupedThreadPoolExecutor deliverExecutor) {
 
         Assert.notNull(connectionFactory, "RedisConnectionFactory must not be null!");
         Assert.notNull(containerOptions, "StreamMessageListenerContainerOptions must not be null!");
 
-        this.poolPullExecutor = (PollThreadPoolExecutor) containerOptions.getExecutor();
-        this.taskExcExecutor = taskExcExecutor;
+        this.streamPollExecutor = (PollThreadPoolExecutor) containerOptions.getExecutor();
+        this.deliverExecutor = deliverExecutor;
+        this.deliverExecutor.setAfterConsumer(t -> {
+            streamPollTasks.add((XStreamPollTask) t.getTask().getData());
+        });
         this.errorHandler = containerOptions.getErrorHandler();
         this.readOptions = getStreamReadOptions(containerOptions);
         this.template = createRedisTemplate(connectionFactory, containerOptions);
@@ -112,8 +116,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         return readOptions;
     }
 
-    private RedisTemplate<K, V> createRedisTemplate(RedisConnectionFactory connectionFactory,
-                                                    StreamMessageListenerContainerOptions<K, V> containerOptions) {
+    private RedisTemplate<K, V> createRedisTemplate(RedisConnectionFactory connectionFactory, StreamMessageListenerContainerOptions<K, V> containerOptions) {
 
         RedisTemplate<K, V> template = new RedisTemplate<>();
         template.setKeySerializer(containerOptions.getKeySerializer());
@@ -169,23 +172,49 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
     }
 
     public void doloop(List<XStreamPollTask> tasks) {
-        BlockingDeque<XStreamPollTask> blockingTasks = new LinkedBlockingDeque<>(tasks);
-        taskExcExecutor.setAfterConsumer(t -> {
-            blockingTasks.add((XStreamPollTask) t.getTask().getData());
-        });
-        int corePoolSize = poolPullExecutor.getCorePoolSize();
+        tasks.forEach(task -> streamPollTasks.add(task));
+        int corePoolSize = streamPollExecutor.getCorePoolSize();
         while (corePoolSize-- > 0) {
-            poolPullExecutor.execute(() -> {
+            streamPollExecutor.execute(() -> {
                 try {
-                    XStreamPollTask task = blockingTasks.take();
+                    validColdTasks();
+                    XStreamPollTask task = streamPollTasks.take();
                     if (task.pull()) {
-                        blockingTasks.add(task);
+                        addColdTask(task);
                     }
                 } catch (InterruptedException e) {
-                    log.error("XDefaultStreamMessageListenerContainer.stop", e);
+                    log.error("XDefaultStreamMessageListenerContainer.doloop", e);
                 }
             });
         }
+    }
+    private volatile SortedMap<Long, List<XStreamPollTask>> coldStreamPollTasks = new TreeMap<>((o1, o2) -> -o1.compareTo(o2));
+    private synchronized void addColdTask(XStreamPollTask task) {
+        long l = System.currentTimeMillis();
+        List<XStreamPollTask> tasks = coldStreamPollTasks.get(l);
+        if (null == tasks) {
+            tasks = new ArrayList<>(1);
+            tasks.add(task);
+            coldStreamPollTasks.put(l, tasks);
+            return;
+        }
+        tasks.add(task);
+    }
+    private synchronized void validColdTasks() {
+        SortedMap<Long, List<XStreamPollTask>> subMap = coldStreamPollTasks.tailMap(System.currentTimeMillis() - 1000L * 2);
+        if (!subMap.isEmpty()) {
+            streamPollTasksAdd(subMap);
+            return;
+        }
+        if (streamPollTasks.isEmpty()) {
+            streamPollTasksAdd(coldStreamPollTasks);
+        }
+    }
+    private void streamPollTasksAdd(SortedMap<Long, List<XStreamPollTask>> map) {
+        map.forEach((k, tasks) ->
+                tasks.forEach(task ->
+                        streamPollTasks.add(task)));
+        map.clear();
     }
 
     /*
@@ -202,7 +231,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
                 subscriptions.forEach(Cancelable::cancel);
 
                 running = false;
-                poolPullExecutor.terminated();
+                streamPollExecutor.terminated();
             }
         }
     }
@@ -246,7 +275,7 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
 
         BiFunction<K, ReadOffset, List<? extends Record<?, ?>>> readFunction = getReadFunction(streamRequest);
 
-        return new XStreamPollTask<>(streamRequest, listener, errorHandler, (BiFunction) readFunction, taskExcExecutor, redisListener);
+        return new XStreamPollTask<>(streamRequest, listener, errorHandler, (BiFunction) readFunction, deliverExecutor, redisListener);
     }
 
     @SuppressWarnings("unchecked")
@@ -256,21 +285,18 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
 
             ConsumerStreamReadRequest<K> consumerStreamRequest = (ConsumerStreamReadRequest<K>) streamRequest;
 
-            StreamReadOptions readOptions = consumerStreamRequest.isAutoAcknowledge() ? this.readOptions.autoAcknowledge()
-                    : this.readOptions;
+            StreamReadOptions readOptions = consumerStreamRequest.isAutoAcknowledge() ? this.readOptions.autoAcknowledge() : this.readOptions;
             Consumer consumer = consumerStreamRequest.getConsumer();
 
             if (this.containerOptions.getHashMapper() != null) {
-                return (key, offset) -> streamOperations.read(this.containerOptions.getTargetType(), consumer, readOptions,
-                        StreamOffset.create(key, offset));
+                return (key, offset) -> streamOperations.read(this.containerOptions.getTargetType(), consumer, readOptions, StreamOffset.create(key, offset));
             }
 
             return (key, offset) -> streamOperations.read(consumer, readOptions, StreamOffset.create(key, offset));
         }
 
         if (this.containerOptions.getHashMapper() != null) {
-            return (key, offset) -> streamOperations.read(this.containerOptions.getTargetType(), readOptions,
-                    StreamOffset.create(key, offset));
+            return (key, offset) -> streamOperations.read(this.containerOptions.getTargetType(), readOptions, StreamOffset.create(key, offset));
         }
 
         return (key, offset) -> streamOperations.read(readOptions, StreamOffset.create(key, offset));

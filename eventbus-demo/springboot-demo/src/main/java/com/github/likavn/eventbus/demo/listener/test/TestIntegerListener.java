@@ -18,13 +18,14 @@ package com.github.likavn.eventbus.demo.listener.test;
 import com.github.likavn.eventbus.core.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
+import org.springframework.stereotype.Component;
 
 /**
  * @author likavn
  * @date 2024/5/25
  */
-//@Component
-@EventbusListener(codes = "testArrayListener")
+@Component
+@EventbusListener(codes = "testIntegerListener")
 public class TestIntegerListener implements MsgListener<Integer> {
 
     @Override

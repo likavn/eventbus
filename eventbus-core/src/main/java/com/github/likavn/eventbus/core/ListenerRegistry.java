@@ -133,7 +133,7 @@ public class ListenerRegistry {
         List<String> codes = getListenerCodes(originalClass, eventbusListener);
         // 确定并发模式
         Integer concurrency = getConcurrency(eventbusListener.concurrency(), config.getConcurrency());
-        // 异常重试消息接收并发数
+        // 重发/重试消息接收并发数
         Integer retryConcurrency = getConcurrency(eventbusListener.retryConcurrency(), config.getRetryConcurrency());
         // 获取事件触发器
         Trigger trigger = getTrigger(obj, BusConstant.ON_MESSAGE);
