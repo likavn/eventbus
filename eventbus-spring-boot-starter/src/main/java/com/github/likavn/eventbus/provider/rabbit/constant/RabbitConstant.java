@@ -28,7 +28,7 @@ public class RabbitConstant {
     /**
      * 前缀
      */
-    private static final String SUFFIX = "eventbus.";
+    private static final String SUFFIX = "ebus.";
 
     /**
      * 及时消息交换机
@@ -36,7 +36,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId;
      */
-    public static final String TIMELY_EXCHANGE = SUFFIX + "timely.exchange.%s";
+    public static final String TIMELY_EXCHANGE = SUFFIX + "t.exchange.%s";
 
     /**
      * 及时消息路由key；
@@ -44,7 +44,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId|消息编码;
      */
-    public static final String TIMELY_ROUTING_KEY = SUFFIX + "timely.routingKey.%s";
+    public static final String TIMELY_ROUTING_KEY = SUFFIX + "t.routingKey.%s";
 
     /**
      * 及时消息队列key；
@@ -52,7 +52,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId|消息编码|监听器全类名;
      */
-    public static final String TIMELY_QUEUE = SUFFIX + "timely.queue.%s";
+    public static final String TIMELY_QUEUE = SUFFIX + "t.queue.%s";
 
     /**
      * 及时消息重试路由key；
@@ -60,7 +60,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId|消息编码|监听器全类名;
      */
-    public static final String TIMELY_RETRY_ROUTING_KEY = SUFFIX + "timely.retry.routingKey.%s";
+    public static final String TIMELY_RETRY_ROUTING_KEY = SUFFIX + "t.retry.routingKey.%s";
 
     /**
      * 及时消息重试队列key；
@@ -68,7 +68,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId|消息编码|监听器全类名;
      */
-    public static final String TIMELY_RETRY_QUEUE = SUFFIX + "timely.retry.queue.%s";
+    public static final String TIMELY_RETRY_QUEUE = SUFFIX + "t.retry.queue.%s";
 
     /**
      * 延时队列交换机
@@ -76,7 +76,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId;
      */
-    public static final String DELAY_EXCHANGE = SUFFIX + "delay.exchange.%s";
+    public static final String DELAY_EXCHANGE = SUFFIX + "d.exchange.%s";
 
     /**
      * 延时队列路由key
@@ -84,7 +84,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId|消息编码
      */
-    public static final String DELAY_ROUTING_KEY = SUFFIX + "delay.routingKey.%s";
+    public static final String DELAY_ROUTING_KEY = SUFFIX + "d.routingKey.%s";
 
     /**
      * 延时队列名
@@ -92,7 +92,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId|消息编码|监听器全类名;
      */
-    public static final String DELAY_QUEUE = SUFFIX + "delay.queue.%s";
+    public static final String DELAY_QUEUE = SUFFIX + "d.queue.%s";
 
     /**
      * 延时队列路由key,异常重试路由
@@ -100,7 +100,7 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId|消息编码|监听器全类名;
      */
-    public static final String DELAY_RETRY_ROUTING_KEY = SUFFIX + "delay.retry.routingKey.%s";
+    public static final String DELAY_RETRY_ROUTING_KEY = SUFFIX + "d.retry.routingKey.%s";
 
     /**
      * 延时消息重试队列key
@@ -108,5 +108,5 @@ public class RabbitConstant {
      * <p>
      * 1.服务serviceId|消息编码|监听器全类名;
      */
-    public static final String DELAY_RETRY_QUEUE = SUFFIX + "delay.retry.queue.%s";
+    public static final String DELAY_RETRY_QUEUE = SUFFIX + "d.retry.queue.%s";
 }

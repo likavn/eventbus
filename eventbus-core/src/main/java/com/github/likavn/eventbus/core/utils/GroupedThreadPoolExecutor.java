@@ -169,28 +169,6 @@ public class GroupedThreadPoolExecutor {
         return new WorkerThread(threadFactory, core);
     }
 
-    /**
-     * 当工作线程退出时的处理方法
-     * 主要用于从空闲池中移除线程，并减小核心线程池大小
-     *
-     * @param thread 退出的工作线程
-     */
-    private void workerThreadExit(WorkerThread thread) {
-        mainLock.lock();
-        try {
-            System.out.println("准备销毁线程..." + thread.getName() + " ,freePools size=" + freePools.size() + ",busyPools size=" + busyPools.size() + ",currentCorePoolSize=" + currentCorePoolSize.get());
-            // 从空闲池中移除指定的工作线程
-            boolean removed = freePools.removeIf(t -> t.equals(thread));
-            // 如果线程被成功移除，则减小核心线程池大小并中断线程
-            if (removed) {
-                thread.interrupt();
-                currentCorePoolSize.decrementAndGet();
-                threadFactory.decrement();
-            }
-        } finally {
-            mainLock.unlock();
-        }
-    }
 
     /**
      * 清空所有线程池
@@ -204,7 +182,7 @@ public class GroupedThreadPoolExecutor {
             clearThreadsIterator(busyPools.iterator());
             stateMap.clear();
             currentCorePoolSize.set(0);
-            threadFactory.getThreadNumber().set(1);
+            threadFactory.clear();
         } finally {
             mainLock.unlock();
         }
@@ -376,6 +354,10 @@ public class GroupedThreadPoolExecutor {
     public class WorkerThread extends Thread {
         @EqualsAndHashCode.Include
         private final String id;
+        /**
+         * 线程编号
+         */
+        private final int number;
 
         // 标识该线程是否为核心线程
         private final boolean core;
@@ -399,6 +381,7 @@ public class GroupedThreadPoolExecutor {
         public WorkerThread(NamedThreadFactory factory, boolean core) {
             super(factory.getPrefix() + factory.increment());
             this.id = getName();
+            this.number = Integer.parseInt(this.id.replace(factory.getPrefix(), ""));
             this.core = core;
             this.lastRunTimeMillis = System.currentTimeMillis();
             start();
@@ -420,7 +403,7 @@ public class GroupedThreadPoolExecutor {
             // 确保任务不为空
             Assert.isTrue(null != task, "task must not null");
             synchronized (monitor) {
-                monitor.notify();
+                monitor.notifyAll();
             }
         }
 
@@ -429,13 +412,14 @@ public class GroupedThreadPoolExecutor {
          */
         @Override
         public void run() {
-            while (!interrupted()) {
+            while (!isInterrupted()) {
                 try {
                     runTask();
                     synchronized (monitor) {
                         monitor.wait(keepAliveTimeMillis);
                     }
-                } catch (InterruptedException ignored) {
+                } catch (InterruptedException e) {
+                    log.error("线程被中断", e);
                     interrupt();
                 }
             }
@@ -449,7 +433,7 @@ public class GroupedThreadPoolExecutor {
         private void runTask() {
             if (null == task) {
                 if (!core) {
-                    exit();
+                    workerExit();
                 }
                 return;
             }
@@ -469,11 +453,25 @@ public class GroupedThreadPoolExecutor {
         /**
          * 判断是否退出线程的方法，根据上次运行时间和保持时间对比决定
          */
-        private void exit() {
+        private void workerExit() {
             if (System.currentTimeMillis() - this.lastRunTimeMillis < keepAliveTimeMillis) {
                 return;
             }
-            workerThreadExit(this);
+            // 主要用于从空闲池中移除线程
+            mainLock.lock();
+            try {
+                System.out.println("准备销毁线程..." + this.getName() + " ,freePools size=" + freePools.size() + ",busyPools size=" + busyPools.size() + ",currentCorePoolSize=" + currentCorePoolSize.get());
+                // 从空闲池中移除指定的工作线程
+                boolean removed = freePools.removeIf(t -> t.equals(this));
+                // 如果线程被成功移除，则减小核心线程池大小并中断线程
+                if (removed) {
+                    currentCorePoolSize.decrementAndGet();
+                    threadFactory.decrement(number);
+                    this.interrupt();
+                }
+            } finally {
+                mainLock.unlock();
+            }
         }
     }
 }

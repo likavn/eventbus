@@ -50,13 +50,11 @@ public class RocketMsgSender extends AbstractSenderAdapter {
 
     @Override
     public void toSend(Request<?> request) {
-        rocketMqTemplate.syncSend(keyFormat(String.format(RocketConstant.TIMELY_QUEUE, request.topic()))
-                + ":" + request.getServiceId(), request.toJson());
+        rocketMqTemplate.syncSend(keyFormat(String.format(RocketConstant.TIMELY_QUEUE, request.topic())), request.toJson());
     }
 
     @Override
     public void toSendDelayMessage(Request<?> request) {
-        String destination = getDestination(request);
         // 构建消息对象
         Message<String> message = MessageBuilder
                 .withPayload(request.toJson())
@@ -64,14 +62,14 @@ public class RocketMsgSender extends AbstractSenderAdapter {
                 .setHeader(MessageHeaders.CONTENT_TYPE, "text/plain")
                 .build();
         rocketMqTemplate.syncSend(
-                destination + ":" + request.getServiceId(),
+                getDelayDestination(request),
                 message,
                 // 发送超时时间,十秒
                 10000,
                 Math.toIntExact(request.getDelayTime()));
     }
 
-    private String getDestination(Request<?> request) {
+    private String getDelayDestination(Request<?> request) {
         return keyFormat(getDelayKey(request, RocketConstant.DELAY_QUEUE, RocketConstant.DELAY_RETRY_QUEUE, RocketConstant.TIMELY_RETRY_QUEUE));
     }
 }

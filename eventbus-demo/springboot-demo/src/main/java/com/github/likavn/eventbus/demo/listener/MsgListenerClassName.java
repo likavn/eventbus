@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @EventbusListener
-public class DemoMsgListenerClassName implements MsgListener<String> {
+public class MsgListenerClassName implements MsgListener<String> {
 
     @Override
     @ToDelay(delayTime = 3)

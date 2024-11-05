@@ -29,7 +29,7 @@ public class RocketConstant {
     /**
      * 前缀
      */
-    private static final String SUFFIX = "eventbus_";
+    private static final String SUFFIX = "ebus_";
 
     /**
      * 及时消息队列key
@@ -37,7 +37,7 @@ public class RocketConstant {
      * <p>
      * 1.服务ID|消息编码;
      */
-    public static final String TIMELY_QUEUE = SUFFIX + "timely_queue_%s";
+    public static final String TIMELY_QUEUE = SUFFIX + "t_%s";
 
     /**
      * 及时消息重试队列key
@@ -45,7 +45,7 @@ public class RocketConstant {
      * <p>
      * 1.服务ID|消息编码|消息监听器全类名;
      */
-    public static final String TIMELY_RETRY_QUEUE = SUFFIX + "timely_retry_queue_%s";
+    public static final String TIMELY_RETRY_QUEUE = SUFFIX + "t_retry_%s";
 
     /**
      * 延时消息队列名key
@@ -53,7 +53,7 @@ public class RocketConstant {
      * <p>
      * 1.服务ID|消息编码;
      */
-    public static final String DELAY_QUEUE = SUFFIX + "delay_queue_%s";
+    public static final String DELAY_QUEUE = SUFFIX + "d_%s";
 
     /**
      * 延时消息重试队列名key
@@ -61,5 +61,5 @@ public class RocketConstant {
      * <p>
      * 1.服务ID|消息编码|消息监听器全类名;
      */
-    public static final String DELAY_RETRY_QUEUE = SUFFIX + "delay_retry_queue_%s";
+    public static final String DELAY_RETRY_QUEUE = SUFFIX + "d_retry_%s";
 }

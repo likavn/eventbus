@@ -43,7 +43,7 @@ public class MsgListenerContainer {
     }
 
     /**
-     * 启动检测状态
+     * 启动bus组件
      */
     public synchronized void startup() {
         if (Func.isEmpty(listeners)) {
@@ -54,7 +54,7 @@ public class MsgListenerContainer {
     }
 
     /**
-     * 停止检测状态
+     * 停止bus组件
      */
     public synchronized void shutdown() {
         this.active = false;

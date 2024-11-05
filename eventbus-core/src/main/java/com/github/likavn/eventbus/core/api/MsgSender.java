@@ -17,6 +17,8 @@ package com.github.likavn.eventbus.core.api;
 
 import com.github.likavn.eventbus.core.metadata.data.MsgBody;
 import com.github.likavn.eventbus.core.metadata.data.Request;
+import com.github.likavn.eventbus.core.utils.Func;
+
 
 /**
  * 消息发送者接口
@@ -49,7 +51,7 @@ public interface MsgSender {
      */
     default void send(Class<? extends MsgListener<?>> handlerClz, Object body) {
         // 构建请求并发送
-        send(handlerClz.getSimpleName(), body);
+        send(Func.getMsgCode(handlerClz), body);
     }
 
     /**
@@ -89,7 +91,7 @@ public interface MsgSender {
      * @param delayTime  延迟时间，单位：秒
      */
     default void sendDelayMessage(Class<? extends MsgDelayListener<?>> handlerClz, Object body, long delayTime) {
-        sendDelayMessage(handlerClz.getSimpleName(), body, delayTime);
+        sendDelayMessage(Func.getMsgCode(handlerClz), body, delayTime);
     }
 
     /**

@@ -18,7 +18,6 @@ package com.github.likavn.eventbus.demo.listener.test;
 import com.github.likavn.eventbus.core.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
@@ -26,7 +25,7 @@ import java.util.Map;
  * @author likavn
  * @date 2024/5/25
  */
-@Component
+//@Component
 @EventbusListener(codes = "testMapListener")
 public class TestMapListener implements MsgListener<Map<String, Object>> {
 

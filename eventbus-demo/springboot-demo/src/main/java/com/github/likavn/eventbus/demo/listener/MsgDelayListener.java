@@ -3,7 +3,6 @@ package com.github.likavn.eventbus.demo.listener;
 import com.github.likavn.eventbus.core.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.annotation.FailRetry;
 import com.github.likavn.eventbus.core.annotation.Polling;
-import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.domain.TestDelayBody;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +14,8 @@ import org.springframework.stereotype.Component;
  **/
 @Slf4j
 @Component
-@EventbusListener(retryConcurrency = 5)
-public class DemoMsgDelayListener implements MsgDelayListener<TestDelayBody> {
+@EventbusListener
+public class MsgDelayListener implements com.github.likavn.eventbus.core.api.MsgDelayListener<TestDelayBody> {
     @Override
     @Polling(count = 3, interval = "3")
     @FailRetry(count = 1, nextTime = 2)

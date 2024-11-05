@@ -19,7 +19,6 @@ import com.github.likavn.eventbus.core.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.domain.TMsg;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -27,7 +26,7 @@ import java.util.List;
  * @author likavn
  * @date 2024/5/25
  */
-@Component
+//@Component
 @EventbusListener(codes = "testListListener")
 public class TestListListener implements MsgListener<List<TMsg>> {
 

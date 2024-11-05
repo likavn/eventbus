@@ -22,6 +22,7 @@ import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.utils.Func;
+import com.github.likavn.eventbus.provider.rabbit.constant.RabbitConstant;
 import com.rabbitmq.client.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -165,10 +166,12 @@ public abstract class AbstractRabbitRegisterContainer implements AcquireListener
      */
     private void createExchanges(Channel channel, List<RabbitListener> listeners) throws IOException {
         List<String> exNames = listeners.stream().map(RabbitListener::getExchange).distinct().collect(Collectors.toList());
+        // 获取延时交换机名称
+        String delayExName = String.format(RabbitConstant.DELAY_EXCHANGE, config.getServiceId());
         for (String exName : exNames) {
             String type = BuiltinExchangeType.TOPIC.getType();
             Map<String, Object> args = new HashMap<>(4);
-            if (exName.contains("delay")) {
+            if (exName.equals(delayExName)) {
                 // 如果交换机名称包含“delay”，则使用延迟交换机类型，并设置相应的参数
                 type = "x-delayed-message";
                 args.put("x-delayed-type", "direct");

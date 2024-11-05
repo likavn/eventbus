@@ -9,7 +9,8 @@ import com.github.likavn.eventbus.demo.domain.TMsg;
 import com.github.likavn.eventbus.demo.domain.TestBody;
 import com.github.likavn.eventbus.demo.domain.TestDelayBody;
 import com.github.likavn.eventbus.demo.helper.BsHelper;
-import com.github.likavn.eventbus.demo.listener.DemoMsgListenerClassName;
+import com.github.likavn.eventbus.demo.listener.MsgDelayListenerClassName;
+import com.github.likavn.eventbus.demo.listener.MsgListenerClassName;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.*;
@@ -68,20 +69,23 @@ public class TriggerController {
                         case 2:
                             TMsg msg2 = new TMsg();
                             msg2.setContent(content);
-                            msgSender.send(MsgConstant.DEMO_MSG_LISTENER_CODE, msg2);
+                            msgSender.send(MsgConstant.MSG_LISTENER_CODE, msg2);
                             break;
                         case 3:
-                            msgSender.send(DemoMsgListenerClassName.class, content);
+                            msgSender.send(MsgListenerClassName.class, content);
                             break;
-                        case 13:
+                        case 11:
                             TestDelayBody msg3 = new TestDelayBody();
                             msg3.setContent(content);
                             msgSender.sendDelayMessage(msg3, delayTime);
                             break;
-                        case 14:
+                        case 12:
                             TMsg msg4 = new TMsg();
                             msg4.setContent(content);
-                            msgSender.sendDelayMessage(MsgConstant.DEMO_MSG_DELAY_LISTENER_CODE, msg4, delayTime);
+                            msgSender.sendDelayMessage(MsgConstant.MSG_DELAY_LISTENER_CODE, msg4, delayTime);
+                            break;
+                        case 13:
+                            msgSender.sendDelayMessage(MsgDelayListenerClassName.class, content, delayTime);
                             break;
                         default:
                             log.error("发送失败...");

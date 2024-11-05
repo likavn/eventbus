@@ -17,6 +17,6 @@ public class TestBody implements MsgBody {
 
     @Override
     public String code() {
-        return MsgConstant.DEMO_MSG_LISTENER;
+        return MsgConstant.MSG_LISTENER;
     }
 }

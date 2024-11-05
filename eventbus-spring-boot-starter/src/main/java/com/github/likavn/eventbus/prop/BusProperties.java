@@ -50,7 +50,7 @@ public class BusProperties extends BusConfig {
          */
         private Long pollBlockMillis = 5L;
         /**
-         * 投递消息线程池大小，默认为：5
+         * 投递消息的初始化线程池大小，默认为：5
          */
         private Integer deliverGroupThreadPoolSize = 5;
         /**

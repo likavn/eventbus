@@ -120,6 +120,15 @@ public class BusBootRedisConfiguration {
         return new RedisStreamExpiredTask(busStringRedisTemplate, taskRegistry, busProperties, registry, rLock);
     }
 
+    @Bean
+    @ConditionalOnMissingBean(RedisZSetPushMsgStreamTask.class)
+    public RedisZSetPushMsgStreamTask redisZsetPushMsgStreamTask(
+            StringRedisTemplate busStringRedisTemplate,TaskRegistry taskRegistry,
+            @Qualifier("pushMsgStreamRedisScript")
+            DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, ListenerRegistry registry) {
+        return new RedisZSetPushMsgStreamTask(busStringRedisTemplate, taskRegistry,pushMsgStreamRedisScript,rLock,registry);
+    }
+
     @Configuration
     @ConditionalOnEventbusActive(value = BusType.REDIS, sender = true)
     static class RedisSenderConfiguration {
@@ -133,15 +142,6 @@ public class BusBootRedisConfiguration {
                                         DefaultRedisScript<Long> zsetAddRedisScript,
                                         TaskRegistry taskRegistry, RequestIdGenerator requestIdGenerator, @Lazy ListenerRegistry registry) {
             return new RedisMsgSender(busStringRedisTemplate, config, interceptorContainer, zsetAddRedisScript, taskRegistry, requestIdGenerator, registry);
-        }
-
-        @Bean
-        @ConditionalOnMissingBean(RedisZSetPushMsgStreamTask.class)
-        public RedisZSetPushMsgStreamTask redisZsetPushMsgStreamTask(
-                StringRedisTemplate busStringRedisTemplate,TaskRegistry taskRegistry,
-                @Qualifier("pushMsgStreamRedisScript")
-                DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, ListenerRegistry registry) {
-            return new RedisZSetPushMsgStreamTask(busStringRedisTemplate, taskRegistry,pushMsgStreamRedisScript,rLock,registry);
         }
 
         @Bean

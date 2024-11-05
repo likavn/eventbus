@@ -25,7 +25,6 @@ import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
-import com.github.likavn.eventbus.core.metadata.data.MsgBody;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
 import com.github.likavn.eventbus.core.metadata.support.Trigger;
@@ -33,11 +32,11 @@ import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.extern.slf4j.Slf4j;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
@@ -130,7 +129,7 @@ public class ListenerRegistry {
         // 确定服务ID
         String serviceId = Func.isEmpty(eventbusListener.serviceId()) ? config.getServiceId() : eventbusListener.serviceId();
         // 获取监听的事件代码列表
-        List<String> codes = getListenerCodes(originalClass, eventbusListener);
+        List<String> codes = Func.getListenerCodes(originalClass, eventbusListener);
         // 确定并发模式
         Integer concurrency = getConcurrency(eventbusListener.concurrency(), config.getConcurrency());
         // 重发/重试消息接收并发数
@@ -154,84 +153,6 @@ public class ListenerRegistry {
             listener.setToDelay(toDelay);
             putTimelyMap(listener);
         }
-    }
-
-    /**
-     * 根据类和注解获取事件监听器的代码
-     *
-     * @param originalClass    带有事件监听器注解的类
-     * @param eventbusListener 事件监听器注解
-     * @return 监听器代码列表
-     * <p>
-     * 该方法首先尝试通过注解中的codes属性获取代码如果未设置，则尝试通过继承关系
-     * 和MsgBody接口获取代码如果这两种方式都失败，则抛出异常
-     */
-    @SuppressWarnings("all")
-    private List<String> getListenerCodes(Class<?> originalClass, EventbusListener eventbusListener) {
-        // 检查注解中的codes属性是否已设置
-        String[] codes = eventbusListener.codes();
-        if (!Func.isEmpty(codes)) {
-            return Arrays.asList(codes);
-        }
-        Class<?> msgBodyClass = getMsgBodyClass(originalClass);
-        // 检查消息体类是否实现了MsgBody接口
-        if (Func.isInterfaceImpl(msgBodyClass, MsgBody.class)) {
-            try {
-                // 尝试获取消息体类的默认构造函数
-                Constructor<?> constructor = msgBodyClass.getConstructor();
-                // 如果构造函数不是可访问的，则设置为可访问
-                if (!constructor.isAccessible()) {
-                    constructor.setAccessible(true);
-                }
-                // 通过反射创建消息体类的实例，并获取其code方法的返回值
-                String code = ((MsgBody) msgBodyClass.newInstance()).code();
-                return Collections.singletonList(code);
-            } catch (Exception e) {
-                // 如果在反射过程中发生异常，则抛出EventBusException
-                throw new EventBusException(e);
-            }
-        }
-        return Collections.singletonList(originalClass.getSimpleName());
-    }
-
-    /**
-     * 获取消息体的类类型
-     *
-     * @param originalClass 原始类类型，预计从中找出实现消息监听器接口的泛型参数
-     * @return 返回实现消息监听器接口的泛型参数类类型
-     * @throws EventBusException 如果没有找到实现消息监听器接口的类类型，则抛出此异常
-     */
-    @SuppressWarnings("all")
-    private Class<?> getMsgBodyClass(Class<?> originalClass) {
-        // 初始化超级接口类型变量
-        Type superInf = null;
-
-        // 遍历原始类的所有泛型接口
-        for (Type inf : originalClass.getGenericInterfaces()) {
-            // 如果接口不是参数化类型，则跳过
-            if (!(inf instanceof ParameterizedType)) {
-                continue;
-            }
-
-            // 获取接口的原始类类型
-            Class<?> clz = (Class<?>) ((ParameterizedType) inf).getRawType();
-
-            // 判断当前接口是否为MsgListener或MsgDelayListener接口的实现
-            if (clz.getName().equals(MsgListener.class.getName())
-                    || Func.isInterfaceImpl(clz, MsgListener.class)
-                    || clz.getName().equals(MsgDelayListener.class.getName())
-                    || Func.isInterfaceImpl(clz, MsgDelayListener.class)) {
-                superInf = inf;
-            }
-        }
-
-        // 如果没有找到实现的消息监听器接口，则抛出异常
-        if (null == superInf) {
-            throw new EventBusException("The message listener implementation interface was not found");
-        }
-
-        // 返回消息监听器接口的泛型参数类型
-        return (Class<?>) ((ParameterizedType) superInf).getActualTypeArguments()[0];
     }
 
     /**

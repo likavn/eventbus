@@ -18,8 +18,9 @@ package com.github.likavn.eventbus.core.utils;
 
 import lombok.Getter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 带有前缀名称的线程工厂
@@ -38,7 +39,12 @@ public class NamedThreadFactory implements ThreadFactory {
     /**
      * 线程编号
      */
-    private final AtomicInteger threadNumber = new AtomicInteger(1);
+    private volatile int threadNumber = 0;
+
+    /**
+     * 回收的线程编号列表
+     */
+    private final List<Integer> returnThreadNumbers = new ArrayList<>(0);
 
     /**
      * 创建线程工厂
@@ -51,20 +57,32 @@ public class NamedThreadFactory implements ThreadFactory {
 
     @Override
     public Thread newThread(Runnable r) {
-        return new Thread(null, r, prefix + threadNumber.getAndIncrement());
+        return new Thread(null, r, prefix + increment());
     }
 
     /**
      * 增加一个可用资源，采用原子操作保证线程安全。
      */
-    public int increment() {
-        return threadNumber.getAndIncrement();
+    public synchronized int increment() {
+        if (!returnThreadNumbers.isEmpty()) {
+            return returnThreadNumbers.remove(returnThreadNumbers.size() - 1);
+        }
+        return ++threadNumber;
     }
 
     /**
-     * 减少一个可用资源，采用原子操作保证线程安全。
+     * 返回一个线程编号
      */
-    public int decrement() {
-        return threadNumber.getAndDecrement();
+    public synchronized void decrement(Integer theadNumber) {
+        returnThreadNumbers.add(theadNumber);
+        returnThreadNumbers.sort(Integer::compareTo);
+    }
+
+    /**
+     * 清空线程编号
+     */
+    public synchronized void clear() {
+        threadNumber = 0;
+        returnThreadNumbers.clear();
     }
 }

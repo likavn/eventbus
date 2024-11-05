@@ -17,6 +17,6 @@ public class TestDelayBody implements MsgBody {
 
     @Override
     public String code() {
-        return MsgConstant.DEMO_MSG_DELAY_LISTENER;
+        return MsgConstant.MSG_DELAY_LISTENER;
     }
 }

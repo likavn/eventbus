@@ -2,7 +2,7 @@ package com.github.likavn.eventbus.demo.listener;
 
 import com.github.likavn.eventbus.core.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.annotation.FailRetry;
-import com.github.likavn.eventbus.core.api.MsgDelayListener;
+import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import com.github.likavn.eventbus.demo.domain.TMsg;
@@ -15,18 +15,24 @@ import org.springframework.stereotype.Component;
  **/
 @Slf4j
 @Component
-@EventbusListener(codes = MsgConstant.DEMO_MSG_DELAY_LISTENER_CODE)
-public class DemoMsgDelayListenerCode implements MsgDelayListener<TMsg> {
+@EventbusListener(
+        codes = {
+                MsgConstant.MSG_LISTENER_CODE,
+                MsgConstant.MSG_LISTENER_CODE_V2
+        },
+        concurrency = 1)
+public class MsgListenerCode implements MsgListener<TMsg> {
+
     @Override
-    @FailRetry(count = 1, nextTime = 2)
+    @FailRetry(count = 1, nextTime = 7)
     public void onMessage(Message<TMsg> message) {
         TMsg body = message.getBody();
-        log.info("接收消息: {}", message.getRequestId());
-        throw new RuntimeException("DemoMsgDelayListener test");
+        log.info("接收数据: {}", message.getRequestId());
+        //throw new RuntimeException("DemoMsgListener3 test");
     }
 
+    @Override
     public void failHandler(Message<TMsg> message, Throwable throwable) {
-        TMsg body = message.getBody();
         log.error("消息投递失败！: {}，{}", message.getRequestId(), throwable.getMessage());
     }
 }

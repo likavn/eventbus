@@ -52,7 +52,7 @@ public class ConnectionWatchdog extends MsgListenerContainer {
     }
 
     @Override
-    public void startup() {
+    public synchronized void startup() {
         // 启动监听器,连不上会抛出异常
         try {
             super.startup();

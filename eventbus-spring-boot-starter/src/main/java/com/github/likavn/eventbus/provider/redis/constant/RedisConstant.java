@@ -28,7 +28,7 @@ public class RedisConstant {
     /**
      * 前缀
      */
-    private static final String SUFFIX = "eventbus:";
+    private static final String SUFFIX = "ebus:";
 
     /**
      * 及时消息队列,stream key
@@ -36,7 +36,7 @@ public class RedisConstant {
      * <p>
      * 1. 服务ID|消息编码
      */
-    public static final String TIMELY_QUEUE = SUFFIX + "timely:queue:{%s}";
+    public static final String TIMELY_QUEUE = SUFFIX + "t:queue:{%s}";
 
     /**
      * 及时消息重试,zset key
@@ -44,7 +44,7 @@ public class RedisConstant {
      * <p>
      * 1.服务ID|消息编码|消息监听器类全类名
      */
-    public static final String TIMELY_RETRY_ZSET = SUFFIX + "timely:retry:zset:{%s}";
+    public static final String TIMELY_RETRY_ZSET = SUFFIX + "t:retry:zset:{%s}";
 
     /**
      * 及时消息重试,lock key
@@ -52,7 +52,7 @@ public class RedisConstant {
      * <p>
      * 1.服务ID|消息编码|消息监听器类全类名
      */
-    public static final String TIMELY_RETRY_LOCK = SUFFIX + "timely:retry:lock:{%s}";
+    public static final String TIMELY_RETRY_LOCK = SUFFIX + "t:retry:lock:{%s}";
 
     /**
      * 及时消息重试,stream key
@@ -60,7 +60,7 @@ public class RedisConstant {
      * <p>
      * 1.服务ID|消息编码|消息监听器类全类名
      */
-    public static final String TIMELY_RETRY_QUEUE = SUFFIX + "timely:retry:queue:{%s}";
+    public static final String TIMELY_RETRY_QUEUE = SUFFIX + "t:retry:queue:{%s}";
 
     /**
      * 延时消息，zset key
@@ -68,21 +68,21 @@ public class RedisConstant {
      * <p>
      * 1.服务ID|消息编码
      */
-    public static final String DELAY_ZSET = SUFFIX + "delay:zset:{%s}";
+    public static final String DELAY_ZSET = SUFFIX + "d:zset:{%s}";
     /**
      * 延时消息，lock key
      * 参数：
      * <p>
      * 1.服务ID|消息编码
      */
-    public static final String DELAY_LOCK = SUFFIX + "delay:lock:{%s}";
+    public static final String DELAY_LOCK = SUFFIX + "d:lock:{%s}";
     /**
      * 延时消息，stream key
      * 参数：
      * <p>
      * 1.服务ID|消息编码
      */
-    public static final String DELAY_QUEUE = SUFFIX + "delay:queue:{%s}";
+    public static final String DELAY_QUEUE = SUFFIX + "d:queue:{%s}";
 
     /**
      * 延时消息重试，zset key
@@ -90,20 +90,20 @@ public class RedisConstant {
      * <p>
      * 1.服务ID|消息编码|消息监听器类全类名
      */
-    public static final String DELAY_RETRY_ZSET = SUFFIX + "delay:retry:zset:{%s}";
+    public static final String DELAY_RETRY_ZSET = SUFFIX + "d:retry:zset:{%s}";
     /**
      * 延时消息重试，lock key
      * 参数：
      * <p>
      * 1.服务ID|消息编码|消息监听器类全类名
      */
-    public static final String DELAY_RETRY_LOCK = SUFFIX + "delay:retry:lock:{%s}";
+    public static final String DELAY_RETRY_LOCK = SUFFIX + "d:retry:lock:{%s}";
     /**
      * 延时消息重试，stream key
      * 参数：
      * <p>
      * 1.服务ID|消息编码|消息监听器类全类名
      */
-    public static final String DELAY_RETRY_QUEUE = SUFFIX + "delay:retry:queue:{%s}";
+    public static final String DELAY_RETRY_QUEUE = SUFFIX + "d:retry:queue:{%s}";
 
 }
