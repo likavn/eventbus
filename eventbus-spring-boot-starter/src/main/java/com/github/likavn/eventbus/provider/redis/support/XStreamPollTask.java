@@ -55,6 +55,8 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
     private GroupedThreadPoolExecutor.GTask task;
     private volatile boolean isInEventLoop = false;
 
+    private long lastExecuteTime = 0;
+
     XStreamPollTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener, ErrorHandler errorHandler,
                     BiFunction<K, ReadOffset, List<V>> readFunction, GroupedThreadPoolExecutor deliverExecutor, RedisListener redisListener) {
         this.deliverExecutor = deliverExecutor;
@@ -186,6 +188,14 @@ class XStreamPollTask<K, V extends Record<K, ?>> implements Task {
         cancel();
         return false;
         //    } while (pollState.isSubscriptionActive());
+    }
+
+    public void setLastExecuteTime(long lastExecuteTime) {
+        this.lastExecuteTime = lastExecuteTime;
+    }
+
+    public long getLastExecuteTime() {
+        return lastExecuteTime;
     }
 
     @Override

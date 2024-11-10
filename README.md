@@ -56,7 +56,7 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 <dependency>
     <groupId>com.github.likavn</groupId>
   <artifactId>eventbus-spring-boot-starter</artifactId>
-  <version>2.5</version>
+  <version>2.5.0-RC1</version>
 </dependency>
 ```
 
@@ -647,7 +647,7 @@ public class DemoMsgListener extends MsgListener<TestBody> {
 
 ### 切换消息中间件
 
-eventbus支持多种消息引擎，如：redis、rabbitmq、rocketmq，如果项目前期使用redis，后续需要切换到rabbitmq，可不在修改代码的同事使得当前服务可以监听原有redis中的消息，配置如下：
+eventbus支持多种消息引擎，如：redis、rabbitmq、rocketmq，如果项目前期使用redis，后续需要切换到rabbitmq，可不在修改代码的同时使得当前服务可以监听原有redis中的消息，配置如下：
 
 ```yaml
 eventbus:

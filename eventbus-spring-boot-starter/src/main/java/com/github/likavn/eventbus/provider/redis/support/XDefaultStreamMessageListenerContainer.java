@@ -32,10 +32,11 @@ import org.springframework.util.Assert;
 import org.springframework.util.ErrorHandler;
 
 import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -177,10 +178,13 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
         while (corePoolSize-- > 0) {
             streamPollExecutor.execute(() -> {
                 try {
-                    validColdTasks();
-                    XStreamPollTask task = streamPollTasks.take();
+                    validWaitTasks();
+                    XStreamPollTask task = streamPollTasks.poll(100, TimeUnit.MILLISECONDS);
+                    if (null == task) {
+                        return;
+                    }
                     if (task.pull()) {
-                        addColdTask(task);
+                        addWaitTasks(task);
                     }
                 } catch (InterruptedException e) {
                     log.error("XDefaultStreamMessageListenerContainer.doloop", e);
@@ -188,33 +192,29 @@ class XDefaultStreamMessageListenerContainer<K, V extends Record<K, ?>> implemen
             });
         }
     }
-    private volatile SortedMap<Long, List<XStreamPollTask>> coldStreamPollTasks = new TreeMap<>((o1, o2) -> -o1.compareTo(o2));
-    private synchronized void addColdTask(XStreamPollTask task) {
-        long l = System.currentTimeMillis();
-        List<XStreamPollTask> tasks = coldStreamPollTasks.get(l);
-        if (null == tasks) {
-            tasks = new ArrayList<>(1);
-            tasks.add(task);
-            coldStreamPollTasks.put(l, tasks);
+
+    private volatile Queue<XStreamPollTask> waitStreamPollTasks = new ConcurrentLinkedQueue<>();
+    private final long waitTimeOut = 1500L;
+
+    private void addWaitTasks(XStreamPollTask task) {
+        task.setLastExecuteTime(System.currentTimeMillis());
+        waitStreamPollTasks.add(task);
+    }
+
+    private synchronized void validWaitTasks() {
+        if (waitStreamPollTasks.isEmpty()) {
             return;
         }
-        tasks.add(task);
-    }
-    private synchronized void validColdTasks() {
-        SortedMap<Long, List<XStreamPollTask>> subMap = coldStreamPollTasks.tailMap(System.currentTimeMillis() - 1000L * 2);
-        if (!subMap.isEmpty()) {
-            streamPollTasksAdd(subMap);
-            return;
+        XStreamPollTask task;
+        long now = System.currentTimeMillis();
+        while (true) {
+            task = waitStreamPollTasks.peek();
+            if (null == task || now - task.getLastExecuteTime() < waitTimeOut) {
+                break;
+            }
+            waitStreamPollTasks.poll();
+            streamPollTasks.add(task);
         }
-        if (streamPollTasks.isEmpty()) {
-            streamPollTasksAdd(coldStreamPollTasks);
-        }
-    }
-    private void streamPollTasksAdd(SortedMap<Long, List<XStreamPollTask>> map) {
-        map.forEach((k, tasks) ->
-                tasks.forEach(task ->
-                        streamPollTasks.add(task)));
-        map.clear();
     }
 
     /*

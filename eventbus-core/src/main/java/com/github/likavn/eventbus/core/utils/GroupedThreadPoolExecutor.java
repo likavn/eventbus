@@ -94,6 +94,13 @@ public class GroupedThreadPoolExecutor {
         return getState(task).getLeftCount() > 0;
     }
 
+    /**
+     * 从空闲线程池中获取一个线程来执行任务
+     * 首先获取一个状态对象，然后根据状态对象获取一个适当的线程来执行任务
+     *
+     * @param task 要执行的任务对象，不能为空
+     * @return 返回一个适当的线程对象
+     */
     private WorkerThread takeThread(GTask task) {
         State state = blockState(task);
         mainLock.lock();
@@ -115,6 +122,13 @@ public class GroupedThreadPoolExecutor {
         return workThread;
     }
 
+    /**
+     * 阻塞等待状态对象的剩余次数变为大于0，然后返回状态对象
+     *
+     * @param task 要执行的任务对象，不能为空
+     * @return 返回一个状态对象，用于后续任务执行
+     */
+    @SuppressWarnings("all")
     private State blockState(GTask task) {
         State state = getState(task);
         // 按分组进行分段式锁控制
@@ -134,28 +148,31 @@ public class GroupedThreadPoolExecutor {
         return state;
     }
 
+    /**
+     * 在任务执行前调用，用于执行前的回调函数
+     */
     public void beforeExecute(WorkerThread worker) {
         if (null != beforeConsumer) {
             beforeConsumer.accept(worker);
         }
     }
 
+    /**
+     * 在任务执行结束后调用，用于执行后的回调函数
+     */
     public void afterExecute(WorkerThread worker, Throwable t) {
-        //   System.out.println("afterExecute getLock= " + worker.getName());
         mainLock.lock();
         try {
-            //   System.out.println("afterExecute locked= " + worker.getName());
             freePools.add(worker);
             busyPools.remove(worker);
             State state = getState(worker.getTask());
-            //      System.out.println("afterExecute locked increment bf= " + worker.getName() + "    " + state.getSurplusCount());
-            //     System.out.println("afterExecute locked increment af= " + worker.getName() + "    " + state.getSurplusCount());
             state.increment();
+            if (null != afterConsumer) {
+                afterConsumer.accept(worker);
+            }
+            worker.clear();
         } finally {
             mainLock.unlock();
-        }
-        if (null != afterConsumer) {
-            afterConsumer.accept(worker);
         }
     }
 
@@ -320,8 +337,7 @@ public class GroupedThreadPoolExecutor {
         public void increment() {
             synchronized (update) {
                 leftCount++;
-                update.notify();
-                //   System.out.println("返回线程increment name=" + getGroupName() + "  " + leftCount());
+                update.notifyAll();
             }
         }
 
@@ -331,7 +347,6 @@ public class GroupedThreadPoolExecutor {
         public void decrement() {
             synchronized (update) {
                 leftCount--;
-                //  System.out.println("占用线程increment name=" + getGroupName() + "  " + leftCount());
             }
         }
 
@@ -397,11 +412,16 @@ public class GroupedThreadPoolExecutor {
         }
 
         /**
+         * 清除当前线程的任务
+         */
+        public void clear() {
+            this.task = null;
+        }
+
+        /**
          * 执行当前线程的任务
          */
         public void execute() {
-            // 确保任务不为空
-            Assert.isTrue(null != task, "task must not null");
             synchronized (monitor) {
                 monitor.notifyAll();
             }
@@ -419,18 +439,15 @@ public class GroupedThreadPoolExecutor {
                         monitor.wait(keepAliveTimeMillis);
                     }
                 } catch (InterruptedException e) {
-                    log.error("线程被中断", e);
                     interrupt();
                 }
             }
-            // 线程销毁时打印信息
-            System.out.println("线程已销毁=" + getName());
         }
 
         /**
          * 运行任务的方法，处理任务并记录运行时间
          */
-        private void runTask() {
+        private synchronized void runTask() {
             if (null == task) {
                 if (!core) {
                     workerExit();
@@ -446,7 +463,6 @@ public class GroupedThreadPoolExecutor {
                 throwable = e;
             } finally {
                 afterExecute(this, throwable);
-                this.task = null;
             }
         }
 
@@ -460,7 +476,6 @@ public class GroupedThreadPoolExecutor {
             // 主要用于从空闲池中移除线程
             mainLock.lock();
             try {
-                System.out.println("准备销毁线程..." + this.getName() + " ,freePools size=" + freePools.size() + ",busyPools size=" + busyPools.size() + ",currentCorePoolSize=" + currentCorePoolSize.get());
                 // 从空闲池中移除指定的工作线程
                 boolean removed = freePools.removeIf(t -> t.equals(this));
                 // 如果线程被成功移除，则减小核心线程池大小并中断线程

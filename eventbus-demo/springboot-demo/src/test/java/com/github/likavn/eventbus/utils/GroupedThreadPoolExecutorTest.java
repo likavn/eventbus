@@ -16,24 +16,20 @@ public class GroupedThreadPoolExecutorTest {
     public void testTask() throws InterruptedException {
         GroupedThreadPoolExecutor executor = new GroupedThreadPoolExecutor(
                 1, 1000 * 5, new NamedThreadFactory("test-thread-pool-"));
-        AtomicInteger time = new AtomicInteger(0);
         AtomicInteger executeNum = new AtomicInteger(0);
         AtomicInteger index = new AtomicInteger(0);
 
-        int pollNum = 100;
-        int streamSize = 500;
+        int concurrency = 5;
+        int pollNum = 1000;
+        int streamSize = 600;
         int realNum = pollNum * streamSize;
         CountDownLatch latch = new CountDownLatch(Math.toIntExact(realNum));
         Stream.of(new Byte[pollNum]).parallel().forEach(t -> {
-            index.incrementAndGet();
             new Thread(() -> Stream.of(new Byte[streamSize]).parallel().forEach(t1 -> {
-             //   int timeNum = time.incrementAndGet();
                 GroupedThreadPoolExecutor.GTask task = new GroupedThreadPoolExecutor.GTask();
-                task.setName("task-" + index.get());
-                task.setConcurrency(2);
-                //     System.out.println("task-" + index + "->" + timeNum + "，threadName->" + Thread.currentThread().getName());
+                task.setName("task index-" + index.incrementAndGet());
+                task.setConcurrency(concurrency);
                 task.target(() -> {
-                //    System.out.println("execute name->" + task.getName() + "   " + Thread.currentThread().getName());
                     executeNum.incrementAndGet();
                     latch.countDown();
                 });

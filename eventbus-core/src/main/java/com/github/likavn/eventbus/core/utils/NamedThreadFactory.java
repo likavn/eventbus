@@ -18,7 +18,7 @@ package com.github.likavn.eventbus.core.utils;
 
 import lombok.Getter;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ThreadFactory;
 
@@ -44,7 +44,7 @@ public class NamedThreadFactory implements ThreadFactory {
     /**
      * 回收的线程编号列表
      */
-    private final List<Integer> returnThreadNumbers = new ArrayList<>(0);
+    private final List<Integer> returnThreadNumbers = new LinkedList<>();
 
     /**
      * 创建线程工厂
@@ -65,7 +65,7 @@ public class NamedThreadFactory implements ThreadFactory {
      */
     public synchronized int increment() {
         if (!returnThreadNumbers.isEmpty()) {
-            return returnThreadNumbers.remove(returnThreadNumbers.size() - 1);
+            return returnThreadNumbers.remove(0);
         }
         return ++threadNumber;
     }

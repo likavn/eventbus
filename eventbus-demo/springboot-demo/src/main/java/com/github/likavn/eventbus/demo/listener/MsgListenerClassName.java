@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  **/
 @Slf4j
 @Component
-@EventbusListener
+@EventbusListener(concurrency = 5)
 public class MsgListenerClassName implements MsgListener<String> {
 
     @Override
