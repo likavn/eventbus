@@ -43,7 +43,8 @@ public class EventBusEnvironmentContextInitializer implements ApplicationContext
         // 创建条件属性对象，用于后续设置条件属性
         ConditionProperty property = new ConditionProperty("eventBusPropertySource", context);
         // 设置属性条件，如果环境里不存在则使用默认值
-        property.condition("eventbus.oldType", "${eventbus.type}")
+        property.condition("eventbus.type", "")
+                .condition("eventbus.oldType", "${eventbus.type}")
                 .condition("eventbus.serviceId", "${spring.application.name}");
         // 创建属性源
         MapPropertySource propertySource = property.create();

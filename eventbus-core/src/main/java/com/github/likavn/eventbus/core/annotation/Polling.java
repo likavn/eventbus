@@ -43,9 +43,9 @@ public @interface Polling {
      * 如果设置了具体的轮询次数，则方法会在接收到消息后按照指定次数进行轮询。
      * 可通过{@link Polling.Keep#over()}编码方式调用，提前结束轮询任务。
      *
-     * @return 轮询次数，默认为-1。
+     * @return 轮询次数。
      */
-    int count() default -1;
+    int count();
 
     /**
      * 定义了轮询的时间间隔，支持表达式配置。
@@ -56,9 +56,9 @@ public @interface Polling {
      * 1. interval=7，表示轮询间隔为7秒。
      * 2. interval=$count*$intervalTime，表示轮询间隔为当前轮询次数与上次轮询的时间间隔的乘积。
      *
-     * @return 轮询时间间隔的表达式，默认为空字符串。
+     * @return 轮询时间间隔的表达式。
      */
-    String interval() default "";
+    String interval();
 
     /**
      * Keep类提供了轮询控制的静态方法，用于标记轮询应该结束。

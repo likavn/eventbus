@@ -82,7 +82,10 @@ public class ListenerRegistry {
      * 注册器
      */
     public void register(Collection<Object> objs) {
-        Assert.notEmpty(objs, "初始化实例失败！");
+        if (Func.isEmpty(objs)) {
+            log.warn("eventbus init fail, Because there is no @EventbusListener listener");
+            return;
+        }
         objs.forEach(this::register);
     }
 
@@ -95,6 +98,8 @@ public class ListenerRegistry {
         if (null == eventbusListener) {
             return;
         }
+        // 检查是否为多监听接口实现
+        validMultiListener(originalClass);
         // 接口实现的消息订阅器
         if (obj instanceof MsgListener) {
             register(obj, originalClass, eventbusListener);
@@ -152,6 +157,26 @@ public class ListenerRegistry {
             listener.setType(MsgType.TIMELY);
             listener.setToDelay(toDelay);
             putTimelyMap(listener);
+        }
+    }
+
+    /**
+     * 检查是否为多监听接口实现
+     */
+    private void validMultiListener(Class<?> originalClass) {
+        boolean isClassListener = false;
+        Class<?> superclass = originalClass.getSuperclass();
+        if (Func.isInterfaceImpl(superclass, MsgListener.class)) {
+            isClassListener = true;
+        }
+        int infListenerCount = 0;
+        for (Class<?> inf : originalClass.getInterfaces()) {
+            if (Func.isInterfaceImpl(inf, MsgListener.class)) {
+                infListenerCount++;
+            }
+        }
+        if ((isClassListener && infListenerCount > 0) || infListenerCount > 1) {
+            throw new EventBusException(originalClass.getName() + " Not inherit together MsgListener and MsgDelayListener, or inherit multi MsgListener");
         }
     }
 

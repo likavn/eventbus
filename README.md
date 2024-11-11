@@ -376,7 +376,6 @@ public class DemoDelayMsgListener3 extends MsgDelayListener<String> {
 }
 ```
 
-
 ### 异常捕获与重试
 
 当消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（系统默认重复投递3次，每次间隔10秒），即便这样，消息还是有可能会存在投递不成功的问题，可以使用注解`@FailRetry`标识在消息处理器的接收方法上。<br/>如要捕获异常，需重写`failHandler`方法即可捕获投递错误异常及数据。如下：
@@ -718,7 +717,7 @@ eventbus:
 
 ## 注意事项
 
-**订阅、广播消息在消息引擎中是以订阅器实现类全类名加方法名进行分组（在rabbitMq中的存在是队列），当我们不在需要某个订阅器时请及时在消息引擎中删除此分组或队列，避免不必要的存储空间浪费。**
+**订阅、广播消息在消息引擎中是以监听器实现类全类名实现，请谨慎重新命名监听器，当我们不在需要某个监听器请及时在消息引擎中删除此分组或队列，避免不必要的存储空间浪费。消息监听器只能是及时/延时其中的一种类型，同一个消息监听器不可能同时监听及时和延时消息**
 
 Github项目地址：[https://github.com/likavn/eventbus](https://github.com/likavn/eventbus) <br/>
 Gitee项目地址：[https://gitee.com/likavn/eventbus](https://gitee.com/likavn/eventbus)
