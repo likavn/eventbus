@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.demo.interceptor;
 
-import com.github.likavn.eventbus.core.api.interceptor.DeliverThrowableInterceptor;
+import com.github.likavn.eventbus.core.api.interceptor.DeliverThrowableLastInterceptor;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.demo.helper.BsHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import javax.annotation.Resource;
  **/
 @Slf4j
 @Component
-public class DemoDeliverThrowableInterceptor implements DeliverThrowableInterceptor {
+public class DemoDeliverThrowableInterceptor implements DeliverThrowableLastInterceptor {
     @Lazy
     @Resource
     private BsHelper bsHelper;

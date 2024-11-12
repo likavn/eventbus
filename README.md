@@ -23,7 +23,7 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 - 消息：支持及时消息、延时消息的投递和接收，支持通过多种方式订阅消息，可通过统一的接口和注解方式去订阅接收消息；
 - 失败重试：支持消息投递失败时投递重试，可自定义失败重试投递次数及下次投递时间；
 - 拦截器：支持全局拦截器，可自主实现拦截逻辑，支持发送前拦截（`SendBeforeInterceptor `）、发送后拦截（`SendAfterInterceptor `
-  ）、投递成功后拦截（`DeliverSuccessInterceptor `）、投递失败时拦截（`DeliverThrowableEveryInterceptor ` `DeliverThrowableInterceptor `）；
+  ）、投递前拦截（`DeliverBeforeInterceptor`）、投递后拦截（`DeliverAfterInterceptor`）、投递失败时拦截（`DeliverThrowableLastInterceptor`）；
 - 消息轮询：通过注解[@Polling](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Polling.java)  自定义消息的轮询行为；
 - 及时消息转换为延时消息：通过注解[@ToDelay](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/ToDelay.java)定义消息类型转换，支持消息发送时，将消息转换为延时消息，延时消息支持延时投递，支持延时投递时间配置；
 - 提供消息持久化示例，可参考[BsHelper](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/helper/BsHelper.java)，持久化消息投递状态，可便于后续处理；
@@ -56,7 +56,7 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 <dependency>
     <groupId>com.github.likavn</groupId>
   <artifactId>eventbus-spring-boot-starter</artifactId>
-  <version>2.5.0-RC1</version>
+  <version>2.5.0-RC2</version>
 </dependency>
 ```
 

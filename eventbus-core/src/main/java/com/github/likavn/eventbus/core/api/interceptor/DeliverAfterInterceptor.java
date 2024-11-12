@@ -18,13 +18,12 @@ package com.github.likavn.eventbus.core.api.interceptor;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 
 /**
- * 投递异常，全局拦截器
- * 注：每次消息投递都失败发生异常时都会调用该拦截器
+ * 投递后，全局拦截器
  *
  * @author likavn
  * @date 2024/01/01
  **/
-public interface DeliverThrowableEveryInterceptor {
+public interface DeliverAfterInterceptor {
 
     /**
      * 拦截器执行

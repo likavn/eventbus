@@ -15,6 +15,8 @@
  */
 package com.github.likavn.eventbus.core.metadata.data;
 
+import java.util.Map;
+
 /**
  * 通知消息体
  *
@@ -70,6 +72,13 @@ public interface Message<T> {
      * @return 是否为重试消息
      */
     boolean isRetry();
+
+    /**
+     * 获取消息头
+     *
+     * @return 消息头
+     */
+    Map<String, String> getHeaders();
 
     /**
      * 获取消息体

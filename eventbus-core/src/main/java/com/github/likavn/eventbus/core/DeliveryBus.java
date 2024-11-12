@@ -130,7 +130,7 @@ public class DeliveryBus {
         }
         // 如果事件被投递，则执行投递成功后的操作
         if (isDeliver) {
-            interceptorContainer.deliverSuccessExecute(request);
+            interceptorContainer.deliverAfterExecute(request, null);
         }
         // 如果订阅者不应该被延迟投递，则进行轮询操作
         if (!toDelay(listener, request)) {
@@ -151,6 +151,8 @@ public class DeliveryBus {
      * @throws IllegalAccessException    如果触发器对象或其方法无法访问，此异常被抛出
      */
     private boolean invoke(Trigger trigger, Request<?> request) throws InvocationTargetException, IllegalAccessException {
+        // 执行投递前的拦截器
+        interceptorContainer.deliverBeforeExecute(request);
         trigger.invoke(request);
         return true;
     }
@@ -179,7 +181,7 @@ public class DeliveryBus {
         }
         try {
             // 每次投递消息异常时都会调用
-            interceptorContainer.deliverThrowableEveryExecute(request, throwable);
+            interceptorContainer.deliverAfterExecute(request, throwable);
             // 如果FailTrigger不为空，则执行订阅器的异常处理
             if (null != failTrigger && null != failTrigger.getMethod()) {
                 failTrigger.invoke(request, throwable);
@@ -198,7 +200,7 @@ public class DeliveryBus {
         }
         try {
             // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
-            interceptorContainer.deliverThrowableExecute(request, throwable);
+            interceptorContainer.deliverThrowableLastExecute(request, throwable);
         } catch (Exception var2) {
             log.error("deliveryBus.failHandle error", var2);
         }

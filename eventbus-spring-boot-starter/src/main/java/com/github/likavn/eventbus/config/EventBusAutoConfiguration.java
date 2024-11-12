@@ -101,12 +101,12 @@ public class EventBusAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(InterceptorContainer.class)
     public InterceptorContainer interceptorConfig(
-            @Autowired(required = false) SendBeforeInterceptor sendBeforeInterceptor,
-            @Autowired(required = false) SendAfterInterceptor sendAfterInterceptor,
-            @Autowired(required = false) DeliverSuccessInterceptor deliverSuccessInterceptor,
-            @Autowired(required = false) DeliverThrowableEveryInterceptor deliverThrowableEveryInterceptor,
-            @Autowired(required = false) DeliverThrowableInterceptor deliverExceptionInterceptor) {
-        return new InterceptorContainer(sendBeforeInterceptor, sendAfterInterceptor, deliverSuccessInterceptor, deliverThrowableEveryInterceptor, deliverExceptionInterceptor);
+            @Autowired(required = false) List<SendBeforeInterceptor> sendBeforeInterceptors,
+            @Autowired(required = false) List<SendAfterInterceptor> sendAfterInterceptors,
+            @Autowired(required = false) List<DeliverBeforeInterceptor> deliverBeforeInterceptors,
+            @Autowired(required = false) List<DeliverAfterInterceptor> deliverAfterInterceptors,
+            @Autowired(required = false) List<DeliverThrowableLastInterceptor> deliverThrowableLastInterceptors) {
+        return new InterceptorContainer(sendBeforeInterceptors, sendAfterInterceptors,deliverBeforeInterceptors, deliverAfterInterceptors, deliverThrowableLastInterceptors);
     }
 
     /**

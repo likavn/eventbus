@@ -24,6 +24,9 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 通知消息体，eventbus原始消息体
  *
@@ -85,6 +88,11 @@ public class Request<T> extends Topic implements Message<T> {
     private boolean retry;
 
     /**
+     * 消息头
+     */
+    private Map<String, String> headers;
+
+    /**
      * 业务消息体
      * 注：必须包含无参构造函数
      */
@@ -101,5 +109,22 @@ public class Request<T> extends Topic implements Message<T> {
      */
     public String toJson() {
         return Func.toJson(this);
+    }
+
+    /**
+     * 添加消息头
+     */
+    public void addHeader(String key, String value) {
+        if (headers == null) {
+            headers = new HashMap<>(4);
+        }
+        headers.put(key, value);
+    }
+
+    /**
+     * 获取消息头
+     */
+    public String header(String key) {
+        return headers == null ? null : headers.get(key);
     }
 }
