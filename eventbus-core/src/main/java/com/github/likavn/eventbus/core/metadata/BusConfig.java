@@ -26,7 +26,7 @@ import lombok.Data;
 @Data
 public class BusConfig {
     /**
-     * 服务ID/消息来源ID，可以不用配置，默认为：spring.application.name
+     * 服务ID/消息来源ID，可以不用配置，默认等于${spring.application.name}的值。
      */
     private String serviceId;
 
@@ -69,7 +69,7 @@ public class BusConfig {
     private Fail fail = new Fail();
 
     /**
-     * 节点联通性配置
+     * 消息引擎服务节点联通性配置
      */
     @Data
     public static class TestConnect {
@@ -95,7 +95,7 @@ public class BusConfig {
         private Integer retryCount = 3;
 
         /**
-         * 失败重试下次触发时间，单位：秒，默认10秒 ，（rocketMq对应为18个延时消息级别）
+         * 失败重试下次触发时间，单位：秒，默认10秒 ，（rocketMq请修改为对应为18个延时消息级别）
          */
         private Long nextTime = 10L;
     }

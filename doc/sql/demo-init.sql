@@ -19,7 +19,7 @@ CREATE TABLE `bs_consumer`
     `id`                    bigint(20) NOT NULL COMMENT 'id',
     `request_id`            varchar(64)  NOT NULL COMMENT '事件ID/消息ID,默认UUID,可自定义实现接口（RequestIdGenerator）获取消息的ID',
     `type`                  int(1) DEFAULT NULL COMMENT '消息类型,1及时消息、2延时消息',
-    `deliver_id`            varchar(256) NOT NULL COMMENT '消息接收处理器（消费者ID）ID=全类名+方法名{@link Trigger#getDeliverId()}',
+    `deliver_id`            varchar(256) NOT NULL COMMENT '消息接收处理器（消费者ID）ID=消息监听器全类名{@link Trigger#getDeliverId()}',
     `deliver_count`         int(11) DEFAULT NULL COMMENT '消息投递次数',
     `ip_address`            varchar(32)   DEFAULT NULL COMMENT '消息接收者IP地址',
     `polling_count`         int(11) DEFAULT NULL COMMENT '消费者轮询次数',

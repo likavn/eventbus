@@ -15,31 +15,23 @@
  */
 package com.github.likavn.eventbus.core.annotation;
 
-import com.github.likavn.eventbus.core.metadata.BusConfig;
-
 import java.lang.annotation.*;
 
 /**
- * 投递重试注解
+ * 顺序注解
  * <p>
- * 消息投递失败时，配置投递重试
+ * 值越小则优先级越高
+ * 可用于拦截器上, 多个同类型拦截器按顺序执行
  *
  * @author likavn
- * @date 2024/01/01
+ * @date 2024/11/19
  */
 @Documented
-@Target({ElementType.METHOD})
+@Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface FailRetry {
+public @interface Order {
     /**
-     * 消息投递失败时，一定时间内再次进行投递的次数
-     * <code>count < 0</code> 时根据全局配置{@link BusConfig.Fail#getRetryCount()} 默认为3次
+     * 值越小则优先级越高
      */
-    int count() default -1;
-
-    /**
-     * 投递失败时，下次下次投递触发的间隔时间,单位：秒
-     * <code>nextTime <= 0</code>时根据全局配置{@link BusConfig.Fail#getNextTime()} 默认为10秒
-     */
-    long nextTime() default -1L;
+    int value();
 }

@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.core.base;
 
+import com.github.likavn.eventbus.core.annotation.Order;
 import com.github.likavn.eventbus.core.api.interceptor.*;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Func;
@@ -43,10 +44,15 @@ public class InterceptorContainer {
                                 List<DeliverAfterInterceptor> deliverAfterInterceptors,
                                 List<DeliverThrowableLastInterceptor> deliverThrowableLastInterceptors) {
         this.sendBeforeInterceptors = sendBeforeInterceptors;
+        sort(this.sendBeforeInterceptors);
         this.sendAfterInterceptors = sendAfterInterceptors;
+        sort(this.sendAfterInterceptors);
         this.deliverBeforeInterceptors = deliverBeforeInterceptors;
+        sort(this.deliverBeforeInterceptors);
         this.deliverAfterInterceptors = deliverAfterInterceptors;
+        sort(this.deliverAfterInterceptors);
         this.deliverThrowableLastInterceptors = deliverThrowableLastInterceptors;
+        sort(this.deliverThrowableLastInterceptors);
     }
 
     /**
@@ -124,5 +130,23 @@ public class InterceptorContainer {
         if (!(request.getBody() instanceof String)) {
             request.setBody(Func.toJson(request.getBody()));
         }
+    }
+
+    /**
+     * 排序
+     *
+     * @param interceptors 拦截器
+     */
+    private void sort(List<?> interceptors) {
+        if (Func.isEmpty(interceptors)) {
+            return;
+        }
+        interceptors.sort((o1, o2) -> {
+            Order order1 = o1.getClass().getAnnotation(Order.class);
+            int sort1 = order1 == null ? Integer.MAX_VALUE : order1.value();
+            Order order2 = o2.getClass().getAnnotation(Order.class);
+            int sort2 = order2 == null ? Integer.MAX_VALUE : order2.value();
+            return sort1 - sort2;
+        });
     }
 }

@@ -111,9 +111,7 @@ public class Request<T> extends Topic implements Message<T> {
         return Func.toJson(this);
     }
 
-    /**
-     * 添加消息头
-     */
+    @Override
     public void addHeader(String key, String value) {
         if (headers == null) {
             headers = new HashMap<>(4);
@@ -121,9 +119,7 @@ public class Request<T> extends Topic implements Message<T> {
         headers.put(key, value);
     }
 
-    /**
-     * 获取消息头
-     */
+    @Override
     public String header(String key) {
         return headers == null ? null : headers.get(key);
     }

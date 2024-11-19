@@ -74,11 +74,21 @@ public interface Message<T> {
     boolean isRetry();
 
     /**
-     * 获取消息头
+     * 获取消息头Map
      *
      * @return 消息头
      */
     Map<String, String> getHeaders();
+
+    /**
+     * 添加消息头
+     */
+    void addHeader(String key, String value);
+
+    /**
+     * 获取消息头
+     */
+    String header(String key);
 
     /**
      * 获取消息体
