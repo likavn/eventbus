@@ -53,14 +53,24 @@ eventbus是分布式业务消息分发总线组件，支持广播及时消息、
 
 ### 引入依赖
 
-项目中必须引入`eventbus-spring-boot-starter`组件依赖
-
+项目中必须引入`eventbus-spring-boot-starter`组件依赖</br>
+Spring Boot2
 ```xml
 <!-- 必须引入 eventbus-spring-boot-starter组件-->
 <dependency>
     <groupId>com.github.likavn</groupId>
   <artifactId>eventbus-spring-boot-starter</artifactId>
-  <version>2.5.0-RC2</version>
+  <version>2.5.0-RC3</version>
+</dependency>
+```
+
+Spring Boot3
+```xml
+<!-- 必须引入 eventbus-spring-boot-starter组件-->
+<dependency>
+    <groupId>com.github.likavn</groupId>
+  <artifactId>eventbus-spring-boot3-starter</artifactId>
+  <version>2.5.0-RC3</version>
 </dependency>
 ```
 

@@ -25,6 +25,7 @@ import com.github.likavn.eventbus.core.utils.PollThreadPoolExecutor;
 import com.github.likavn.eventbus.prop.BusProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.stream.Record;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;

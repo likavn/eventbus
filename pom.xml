@@ -10,13 +10,14 @@
     <modules>
         <module>eventbus-core</module>
         <module>eventbus-spring-boot-starter</module>
+<!--        <module>eventbus-spring-boot3-starter</module>-->
         <module>eventbus-demo</module>
     </modules>
     <name>eventbus</name>
     <url>https://github.com/likavn/eventbus</url>
     <description>
-        eventbus是基于Spring Boot Starter的分布式业务消息分发总线组件（发布/订阅模式），
-        支持延时消息。可使用Redis、RabbitMQ、RocketMQ等任意一种做底层的消息引擎，点个Star关注更新。
+        eventbus基于Spring Boot Starter的分布式业务消息分发总线组件（发布/订阅模式），支持延时消息。
+        可使用Redis、RabbitMQ、RocketMQ等任意一种做底层的消息引擎，🔝 🔝 🔝开源不易，点个Star关注更新吧。
     </description>
 
     <developers>
@@ -42,7 +43,7 @@
     </scm>
 
     <properties>
-        <revision>2.5.0-RC2</revision>
+        <revision>2.5.0-RC3</revision>
         <!--maven配置信息-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
