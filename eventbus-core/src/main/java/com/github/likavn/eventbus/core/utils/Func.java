@@ -503,10 +503,12 @@ public final class Func {
         }
 
         // 返回消息监听器接口的泛型参数类型
-        Type bodyClass = ((ParameterizedType) superInf).getActualTypeArguments()[0];
-        if (bodyClass instanceof ParameterizedType) {
-            bodyClass = ((ParameterizedType) bodyClass).getRawType();
+        Type bodyType = ((ParameterizedType) superInf).getActualTypeArguments()[0];
+        if (bodyType instanceof ParameterizedType) {
+            throw new EventBusException("msg body cannot be a generic type");
         }
-        return (Class<?>) bodyClass;
+        Class<?> bodyClass = (Class<?>) bodyType;
+        Assert.isTrue(!bodyClass.isInterface(), "msg body cannot be a interface");
+        return bodyClass;
     }
 }
