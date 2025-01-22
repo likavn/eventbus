@@ -19,9 +19,9 @@ import com.github.likavn.eventbus.core.annotation.FailRetry;
 import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgSender;
+import com.github.likavn.eventbus.core.base.InterceptorContainer;
 import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.base.InterceptorContainer;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
 import com.github.likavn.eventbus.core.metadata.support.Listener;
@@ -179,15 +179,16 @@ public class DeliveryBus {
             // 如果FailTrigger不为空，则获取Fail对象
             failRetry = failTrigger.getFail();
         }
-        try {
-            // 每次投递消息异常时都会调用
-            interceptorContainer.deliverAfterExecute(request, throwable);
-            // 如果FailTrigger不为空，则执行订阅器的异常处理
-            if (null != failTrigger && null != failTrigger.getMethod()) {
+        // 每次投递消息异常时都会调用
+        interceptorContainer.deliverAfterExecute(request, throwable);
+        // 如果FailTrigger不为空，则执行订阅器的异常处理
+        if (null != failTrigger && null != failTrigger.getMethod()) {
+            try {
                 failTrigger.invoke(request, throwable);
+            } catch (InvocationTargetException | IllegalAccessException e) {
+                log.error("fail trigger error", e);
+                throw new EventBusException(e);
             }
-        } catch (Exception var2) {
-            log.error("deliveryBus.failHandle error", var2);
         }
         // 获取有效的投递次数
         int retryCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
@@ -198,12 +199,8 @@ public class DeliveryBus {
             failReTry(request, failRetry);
             return;
         }
-        try {
-            // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
-            interceptorContainer.deliverThrowableLastExecute(request, throwable);
-        } catch (Exception var2) {
-            log.error("deliveryBus.failHandle error", var2);
-        }
+        // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
+        interceptorContainer.deliverThrowableLastExecute(request, throwable);
     }
 
     /**

@@ -10,6 +10,7 @@
     <modules>
         <module>eventbus-core</module>
         <module>eventbus-spring-boot-starter</module>
+        <!-- boot3 需设置jdk17,顾编译时注释当前代码       -->
 <!--        <module>eventbus-spring-boot3-starter</module>-->
         <module>eventbus-demo</module>
     </modules>
@@ -43,7 +44,7 @@
     </scm>
 
     <properties>
-        <revision>2.5.0-RC3</revision>
+        <revision>2.5.0</revision>
         <!--maven配置信息-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>

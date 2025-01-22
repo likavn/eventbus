@@ -22,15 +22,14 @@ import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.TaskRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.RequestIdGenerator;
-import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.base.InterceptorContainer;
+import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.BusType;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.redis.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,7 +52,6 @@ import java.util.Properties;
  */
 @Configuration
 @AutoConfigureAfter(EventBusAutoConfiguration.class)
-@ConditionalOnClass(RedisConnectionFactory.class)
 @ConditionalOnEventbusActive(value = BusType.REDIS)
 public class BusBootRedisConfiguration {
 
@@ -123,10 +121,10 @@ public class BusBootRedisConfiguration {
     @Bean
     @ConditionalOnMissingBean(RedisZSetPushMsgStreamTask.class)
     public RedisZSetPushMsgStreamTask redisZsetPushMsgStreamTask(
-            StringRedisTemplate busStringRedisTemplate,TaskRegistry taskRegistry,
+            StringRedisTemplate busStringRedisTemplate, TaskRegistry taskRegistry,
             @Qualifier("pushMsgStreamRedisScript")
             DefaultRedisScript<Long> pushMsgStreamRedisScript, RLock rLock, ListenerRegistry registry) {
-        return new RedisZSetPushMsgStreamTask(busStringRedisTemplate, taskRegistry,pushMsgStreamRedisScript,rLock,registry);
+        return new RedisZSetPushMsgStreamTask(busStringRedisTemplate, taskRegistry, pushMsgStreamRedisScript, rLock, registry);
     }
 
     @Configuration

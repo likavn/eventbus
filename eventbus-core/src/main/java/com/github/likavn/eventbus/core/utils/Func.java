@@ -431,7 +431,7 @@ public final class Func {
     /**
      * 根据类和注解获取事件监听器的代码
      *
-     * @param originalClass    带有事件监听器注解的类
+     * @param listenerClass    带有事件监听器注解的类
      * @param eventbusListener 事件监听器注解
      * @return 监听器代码列表
      * <p>
@@ -439,13 +439,13 @@ public final class Func {
      * 和MsgBody接口获取代码如果这两种方式都失败，则抛出异常
      */
     @SuppressWarnings("all")
-    public List<String> getListenerCodes(Class<?> originalClass, EventbusListener eventbusListener) {
+    public List<String> getListenerCodes(Class<?> listenerClass, EventbusListener eventbusListener) {
         // 检查注解中的codes属性是否已设置
         String[] codes = eventbusListener.codes();
         if (!Func.isEmpty(codes)) {
             return Arrays.asList(codes);
         }
-        Class<?> msgBodyClass = getMsgBodyClass(originalClass);
+        Class<?> msgBodyClass = getMsgBodyClass(listenerClass);
         // 检查消息体类是否实现了MsgBody接口
         if (Func.isInterfaceImpl(msgBodyClass, MsgBody.class)) {
             try {
@@ -463,23 +463,23 @@ public final class Func {
                 throw new EventBusException(e);
             }
         }
-        return Collections.singletonList(originalClass.getSimpleName());
+        return Collections.singletonList(listenerClass.getSimpleName());
     }
 
     /**
      * 获取消息体的类类型
      *
-     * @param originalClass 原始类类型，预计从中找出实现消息监听器接口的泛型参数
+     * @param listenerClass 原始类类型，预计从中找出实现消息监听器接口的泛型参数
      * @return 返回实现消息监听器接口的泛型参数类类型
      * @throws EventBusException 如果没有找到实现消息监听器接口的类类型，则抛出此异常
      */
     @SuppressWarnings("all")
-    private Class<?> getMsgBodyClass(Class<?> originalClass) {
+    private Class<?> getMsgBodyClass(Class<?> listenerClass) {
         // 初始化超级接口类型变量
         Type superInf = null;
 
         // 遍历原始类的所有泛型接口
-        for (Type inf : originalClass.getGenericInterfaces()) {
+        for (Type inf : listenerClass.getGenericInterfaces()) {
             // 如果接口不是参数化类型，则跳过
             if (!(inf instanceof ParameterizedType)) {
                 continue;
@@ -503,6 +503,10 @@ public final class Func {
         }
 
         // 返回消息监听器接口的泛型参数类型
-        return (Class<?>) ((ParameterizedType) superInf).getActualTypeArguments()[0];
+        Type bodyClass = ((ParameterizedType) superInf).getActualTypeArguments()[0];
+        if (bodyClass instanceof ParameterizedType) {
+            bodyClass = ((ParameterizedType) bodyClass).getRawType();
+        }
+        return (Class<?>) bodyClass;
     }
 }

@@ -49,6 +49,22 @@ public class BsConsumer {
      */
     private String requestId;
     /**
+     * 消息监听器所属服务ID,服务名
+     */
+    private String serviceId;
+    /**
+     * 消息类型，用于区分不同的消息类型
+     */
+    private String code;
+    /**
+     * 消息类型,1及时消息、2延时消息
+     */
+    private Integer type;
+    /**
+     * 延时时间，单位：秒
+     */
+    private Long delayTime;
+    /**
      * 消息接收处理器（消费者ID）ID=全类名{@link Trigger#getDeliverId()}
      */
     private String deliverId;
@@ -62,16 +78,6 @@ public class BsConsumer {
      * 消费者IP
      */
     private String ipAddress;
-
-    /**
-     * 延时时间，单位：秒
-     */
-    private Long delayTime;
-
-    /**
-     * 消息类型,1及时消息、2延时消息
-     */
-    private Integer type;
 
     /**
      * 消息接收状态：0待处理、1处理成功、2处理失败

@@ -25,6 +25,6 @@ public class DemoSendBeforeInterceptor implements SendBeforeInterceptor {
         if (request.getDeliverCount() > 1) {
             return;
         }
-        bsHelper.sendMessage(request);
+        bsHelper.saveMessage(request);
     }
 }

@@ -60,7 +60,7 @@ Spring Boot2
 <dependency>
     <groupId>com.github.likavn</groupId>
   <artifactId>eventbus-spring-boot-starter</artifactId>
-  <version>2.5.0-RC3</version>
+  <version>2.5.0</version>
 </dependency>
 ```
 
@@ -70,7 +70,7 @@ Spring Boot3
 <dependency>
     <groupId>com.github.likavn</groupId>
   <artifactId>eventbus-spring-boot3-starter</artifactId>
-  <version>2.5.0-RC3</version>
+  <version>2.5.0</version>
 </dependency>
 ```
 

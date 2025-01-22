@@ -39,7 +39,7 @@ public class RedisZSetPushMsgStreamTask implements Lifecycle {
     /**
      * 最大轮询时间间隔，单位：毫秒
      */
-    private static final long POLL_MILLIS = 1000L * 100;
+    private static final long POLL_MILLIS = 1000L * 15;
     /**
      * 最大消息推送数量，默认10万条
      */

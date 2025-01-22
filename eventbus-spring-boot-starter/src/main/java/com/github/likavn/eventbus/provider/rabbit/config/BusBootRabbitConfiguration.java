@@ -27,7 +27,6 @@ import com.github.likavn.eventbus.provider.rabbit.RabbitMsgSubscribeListener;
 import com.github.likavn.eventbus.provider.rabbit.RabbitNodeTestConnect;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,7 +39,6 @@ import org.springframework.context.annotation.Lazy;
  * @date 2024/01/01
  */
 @Configuration
-@ConditionalOnClass(RabbitTemplate.class)
 @ConditionalOnEventbusActive(value = BusType.RABBITMQ)
 public class BusBootRabbitConfiguration {
 

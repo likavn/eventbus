@@ -54,6 +54,16 @@ public class BsData {
     private Integer type;
 
     /**
+     * 延时消息的延时时间，单位：秒
+     */
+    private Long delayTime;
+
+    /**
+     * 消息头数据
+     */
+    private String headers;
+
+    /**
      * 消息体，必须包含无参构造函数
      */
     private String body;

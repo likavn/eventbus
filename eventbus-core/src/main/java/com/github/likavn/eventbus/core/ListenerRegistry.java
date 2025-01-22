@@ -83,7 +83,7 @@ public class ListenerRegistry {
      */
     public void register(Collection<Object> objs) {
         if (Func.isEmpty(objs)) {
-            log.warn("eventbus init fail, Because there is no @EventbusListener listener");
+            log.warn("listener init fail, Because there is no @EventbusListener listener");
             return;
         }
         objs.forEach(this::register);
@@ -93,16 +93,16 @@ public class ListenerRegistry {
      * 注册器
      */
     public void register(Object obj) {
-        Class<?> originalClass = Func.originalClass(obj);
-        EventbusListener eventbusListener = originalClass.getAnnotation(EventbusListener.class);
+        Class<?> listenerClass = Func.originalClass(obj);
+        EventbusListener eventbusListener = listenerClass.getAnnotation(EventbusListener.class);
         if (null == eventbusListener) {
             return;
         }
         // 检查是否为多监听接口实现
-        validMultiListener(originalClass);
+        validMultiListener(listenerClass);
         // 接口实现的消息订阅器
         if (obj instanceof MsgListener) {
-            register(obj, originalClass, eventbusListener);
+            register(obj, listenerClass, eventbusListener);
         }
     }
 
@@ -122,19 +122,19 @@ public class ListenerRegistry {
      * 9. 最终将监听器实例注册到相应的数据结构中（根据消息类型不同，存储在不同的Map中）
      *
      * @param obj              注册的对象实例，通常是一个事件监听器
-     * @param originalClass    目标类的Class对象，用于反射操作
+     * @param listenerClass    目标类的Class对象，用于反射操作
      * @param eventbusListener 事件监听器标注，包含服务ID、监听代码、并发模式等信息
      */
-    private void register(Object obj, Class<?> originalClass, EventbusListener eventbusListener) {
+    private void register(Object obj, Class<?> listenerClass, EventbusListener eventbusListener) {
         // 确保目标类具有指定的事件处理方法
-        Method originalMethod = getMsgListenerMethod(originalClass, BusConstant.ON_MESSAGE);
+        Method originalMethod = getMsgListenerMethod(listenerClass, BusConstant.ON_MESSAGE);
         if (null == originalMethod) {
             return;
         }
         // 确定服务ID
         String serviceId = Func.isEmpty(eventbusListener.serviceId()) ? config.getServiceId() : eventbusListener.serviceId();
         // 获取监听的事件代码列表
-        List<String> codes = Func.getListenerCodes(originalClass, eventbusListener);
+        List<String> codes = Func.getListenerCodes(listenerClass, eventbusListener);
         // 确定并发模式
         Integer concurrency = getConcurrency(eventbusListener.concurrency(), config.getConcurrency());
         // 重发/重试消息接收并发数
@@ -163,20 +163,20 @@ public class ListenerRegistry {
     /**
      * 检查是否为多监听接口实现
      */
-    private void validMultiListener(Class<?> originalClass) {
+    private void validMultiListener(Class<?> listenerClass) {
         boolean isClassListener = false;
-        Class<?> superclass = originalClass.getSuperclass();
+        Class<?> superclass = listenerClass.getSuperclass();
         if (Func.isInterfaceImpl(superclass, MsgListener.class)) {
             isClassListener = true;
         }
         int infListenerCount = 0;
-        for (Class<?> inf : originalClass.getInterfaces()) {
+        for (Class<?> inf : listenerClass.getInterfaces()) {
             if (Func.isInterfaceImpl(inf, MsgListener.class)) {
                 infListenerCount++;
             }
         }
         if ((isClassListener && infListenerCount > 0) || infListenerCount > 1) {
-            throw new EventBusException(originalClass.getName() + " Not inherit together MsgListener and MsgDelayListener, or inherit multi MsgListener");
+            throw new EventBusException(listenerClass.getName() + " Not inherit together MsgListener and MsgDelayListener, or inherit multi MsgListener");
         }
     }
 

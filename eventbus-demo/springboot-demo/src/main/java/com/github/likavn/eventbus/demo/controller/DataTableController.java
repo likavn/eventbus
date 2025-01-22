@@ -29,7 +29,7 @@ public class DataTableController {
 
     @PostMapping(value = "/reSendMessage")
     public R<Boolean> reSendMessage(@RequestParam("consumerDataId") Long consumerDataId) {
-        bsHelper.reSendMessage(consumerDataId);
+        bsHelper.resend(consumerDataId);
         return R.ok(Boolean.TRUE);
     }
 

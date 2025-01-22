@@ -16,9 +16,9 @@
 package com.github.likavn.eventbus.demo.helper;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.exception.EventBusException;
+import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
@@ -28,24 +28,27 @@ import com.github.likavn.eventbus.demo.entity.BsData;
 import com.github.likavn.eventbus.demo.enums.ConsumerStatus;
 import com.github.likavn.eventbus.demo.mapper.BsConsumerMapper;
 import com.github.likavn.eventbus.demo.mapper.BsDataMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * @author likavn
  * @date 2024/3/31
  **/
+@Slf4j
 @Service
 public class BsHelper {
+    @Lazy
     @Resource
     private BsConsumerMapper consumerMapper;
-
+    @Lazy
     @Resource
     private BsDataMapper dataMapper;
 
@@ -53,17 +56,24 @@ public class BsHelper {
     @Resource
     private MsgSender msgSender;
 
+    @Lazy
+    @Resource
+    private BusConfig config;
+
     /**
-     * 发送消息
+     * 保存消息
      *
      * @param request 消息
      */
-    @Transactional(rollbackFor = Exception.class)
-    public void sendMessage(Request<String> request) {
+    public void saveMessage(Request<String> request) {
+        long delayTime = request.getDelayTime();
+        Map<String, String> headers = request.getHeaders();
         BsData data = BsData.builder().requestId(request.getRequestId())
                 .serviceId(request.getServiceId())
                 .code(request.getCode())
                 .type(request.getType().getValue())
+                .delayTime(0 == delayTime ? null : delayTime)
+                .headers(null == headers ? null : Func.toJson(headers))
                 .body(request.getBody())
                 .ipAddress(Func.getHostAddr())
                 .createTime(LocalDateTime.now())
@@ -74,7 +84,6 @@ public class BsHelper {
     /**
      * 消费成功
      */
-    @Transactional(rollbackFor = Exception.class)
     public void deliverSuccess(Request<String> request) {
         BsConsumer consumer = getBsConsumerByReqIdAndDeliveryId(request);
         LocalDateTime now = LocalDateTime.now();
@@ -96,7 +105,6 @@ public class BsHelper {
     /**
      * 消费异常
      */
-    @Transactional(rollbackFor = Exception.class)
     public void deliverException(Request<String> request, Throwable throwable) {
         BsConsumer consumer = getBsConsumerByReqIdAndDeliveryId(request);
         LocalDateTime now = LocalDateTime.now();
@@ -132,12 +140,15 @@ public class BsHelper {
     private BsConsumer buildConsumer(Request<String> request) {
         BsConsumer consumer = BsConsumer.builder()
                 .requestId(request.getRequestId())
+                // 这里设置的是当前监听器所在服务的ID
+                .serviceId(config.getServiceId())
+                .code(request.getCode())
+                .type(request.getType().getValue())
+                .delayTime(request.getDelayTime())
                 // 消息接收处理器（消费者ID）
                 .deliverId(request.getDeliverId())
                 .deliverCount(request.getDeliverCount())
                 .ipAddress(Func.getHostAddr())
-                .delayTime(request.getDelayTime())
-                .type(request.getType().getValue())
                 // 消息状态,待处理
                 .status(ConsumerStatus.PROCESSING.getValue())
                 .build();
@@ -150,27 +161,54 @@ public class BsHelper {
     /**
      * 重新发送消息
      */
-    public void reSendMessage(Long id) {
-        BsConsumer consumer = consumerMapper.selectById(id);
+    public void resend(Long consumerDataId) {
+        BsConsumer consumer = consumerMapper.selectById(consumerDataId);
         Assert.notNull(consumer, "consumer is null");
 
         BsData data = dataMapper.selectById(consumer.getRequestId());
         Assert.notNull(data, "data is null");
 
-        MsgType msgType = MsgType.of(consumer.getType());
+        // 重新发送消息
+        resend(data, consumer);
+    }
+
+    /**
+     * 重新发送消息
+     */
+    public void resend(Long requestId, String consumerDeliverId) {
+        BsData data = dataMapper.selectById(requestId);
+        Assert.notNull(data, "data is null");
+
+        // 构建消息接收处理器
+        BsConsumer consumer = BsConsumer.builder()
+                .deliverId(consumerDeliverId)
+                .deliverCount(1)
+                .pollingCount(0)
+                .failRetryCount(0)
+                .build();
+
+        // 重新发送消息
+        resend(data, consumer);
+    }
+
+    /**
+     * 重新发送消息
+     */
+    public void resend(BsData data, BsConsumer consumer) {
+        MsgType msgType = MsgType.of(data.getType());
         if (null == msgType) {
             throw new EventBusException("msgType is null");
         }
-
         Request<?> request = Request.builder().requestId(data.getRequestId())
                 .serviceId(data.getServiceId())
                 .code(data.getCode())
+                .type(msgType)
+                .headers(null == data.getHeaders() ? null : Func.parseObject(data.getHeaders(), Map.class))
                 .body(data.getBody())
                 // 消息接收处理器（消费者ID）ID=全类名+方法名{@link Trigger#getDeliverId()}
                 .deliverId(consumer.getDeliverId())
                 // 消息投递次数+1
                 .deliverCount(consumer.getDeliverCount() + 1)
-                .type(msgType)
                 .build();
         // 特殊说明
         // 设置的轮询次数小于监听器配置的轮询次数，次数会触发轮询，否则不进行轮询
@@ -182,9 +220,9 @@ public class BsHelper {
         // 延时时间设置1秒,所有消息重试都走延时消息
         request.setDelayTime(1L);
         request.setRetry(Boolean.TRUE);
+        log.info("重发ebs消息:requestId={},deliverId={}", request.getRequestId(), request.getDeliverId());
         msgSender.sendDelayMessage(request);
     }
-
 
     public static String getStackTrace(final Throwable throwable) {
         final StringWriter sw = new StringWriter();

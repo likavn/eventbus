@@ -77,7 +77,7 @@ public interface MsgSender {
      * 该方法通过MsgBody对象的code方法获取消息代码，并调用带Request参数的sendDelayMessage方法发送延迟消息
      *
      * @param body      消息体，包含消息代码和内容
-     * @param delayTime 延迟时间，单位为毫秒
+     * @param delayTime 延迟时间，单位：秒
      */
     default void sendDelayMessage(MsgBody body, long delayTime) {
         sendDelayMessage(body.code(), body, delayTime);
