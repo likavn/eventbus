@@ -390,9 +390,67 @@ public class DemoDelayMsgListener3 extends MsgDelayListener<String> {
 }
 ```
 
+
+
+## 高级使用
+
+### 定义监听器
+
+使用`@EventbusListener`注解定义消息监听器，通常与`@Component`或`@Service`组合使用，提供4个参数进行配置：
+
+1.  `serviceId` 消息所属来源服务ID或服务名。默认订阅本服务{@link BusConfig#getServiceId()}配置的ID，需要跨服务订阅消息时，可设置此值为对应的服务名；
+2. `codes` 消息编码数组，可订阅多个不同的业务消息；
+3. `concurrency` 消费者并发数量，及消费者数，默认：2；
+4. `retryConcurrency`  重试消息的并发数量，默认：1。
+
+如下：
+
+```java
+@Component
+@EventbusListener(
+    	serviceId = "EBServer",  // 监听消息所属服务ID 
+        codes = "testStringListener", // 消息编码
+        concurrency = 3,  // 消息接收并发数量
+        retryConcurrency = 2 // 重试消息并发数量)
+public class TestStringListener implements MsgListener<String> {
+
+    @Override
+    public void onMessage(Message<String> message) {
+        System.out.println(message.getRequestId());
+    }
+}
+```
+
+
+
+1. 
+
 ### 异常捕获与重试
 
-当消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（系统默认重复投递3次，每次间隔10秒），即便这样，消息还是有可能会存在投递不成功的问题，可以使用注解`@FailRetry`标识在消息处理器的接收方法上。<br/>如要捕获异常，需重写`failHandler`方法即可捕获投递错误异常及数据。如下：
+当消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（系统默认重复投递3次，每次间隔10秒），即便这样，消息还是有可能会存在投递不成功的问题，可以使用注解`@FailRetry`标识在消息处理器的接收方法上。<br/>
+
+提供三个参数进行配置：
+
+1. `count` 消息投递失败时，一定时间内再次进行投递的次数，<code>count < 0</code> 时根据全局配置{@link BusConfig.Fail#getRetryCount()} 默认为3次；
+
+2. `nextTime` 投递失败时，下次投递触发的间隔时间,单位：秒，用于固定间隔时间；
+
+3. `interval` 定义了投递失败时，下次重试消息的时间间隔，可通过表达式（支持“+”、“-”、“*”、“/”等运算符）配置，表达式中可以使用三个变量：count（当前失败重试次数）、deliverCount（当前投递次数）和intervalTime（本次重试与上次投递的时间间隔，单位：秒）， 这使得可以灵活地根据重试次数和时间间隔来动态确定下一次重试的时间。
+
+   引用变量时使用"$"+变量名，例如"$count"。 示例：
+
+   - interval=7，表示重试间隔为7秒;
+   - interval=$count*$intervalTime，表示重试间隔为当前重试次数与上次投递的时间间隔的乘积。
+
+另外可通过编码`FailRetry.Keep.setNextTime()`方式动态设置下次重试时间，单位：秒。
+
+几种获取有效的（间隔时间>0）下一次重试时间的方式，优先级从上至下：
+1.通过{@link FailRetry.Keep#setNextTime(long)}设置下次重试时间；
+2.通过{@link FailRetry#nextTime()}设置下次重试时间；
+3.通过{@link FailRetry#interval()}设置下次重试时间的表达式；
+4.根据全局配置{@link BusConfig.Fail#getNextTime()} 设置下次重试时间。
+
+如要捕获异常，需重写`failHandler`方法即可捕获投递错误异常及数据。如下：
 
 ```java
 @Slf4j
@@ -419,7 +477,76 @@ public class DemoMsgSubscribeListener extends MsgListener<String> {
 }
 ```
 
-## 高级使用
+### 消息轮询
+
+在消息监听器的方法上配置注解[@Polling](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Polling.java)
+即可让同一消息重复轮询接收，可配置count（最大轮询次数，可通过编码方式`Polling.Keep.over()`
+提前终止轮询）、interval（轮询间隔时间，单位：秒），值可以为数字也可为计算间隔时间的表达式（引用变量时使用"$"+变量名，例如"$
+count"）。
+
+注：表达式中可以使用以下三个变量，count（当前轮询次数）、deliverCount（当前投递次数）和intervalTime（本次轮询与上次轮询的时间间隔，单位为秒，非延时消息初始时为:1）
+
+示例：
+
+1. `interval=7`，表示轮询间隔为7秒。
+2. `interval=$count*$intervalTime`，表示轮询间隔为当前轮询次数与上次轮询的时间间隔的乘积。
+
+另外可通过编码`Polling.Keep.setNextTime()`方式动态设置下次轮巡时间间隔，单位：秒。
+
+几种计算下一次轮巡时间的方式，优先级从上至下：
+1.通过{@link Polling.Keep#over()}或{@link Keep#setNextTime(long)}设置；
+2.通过{@link Polling#nextTime()}设置；
+3.通过{@link Polling#interval()}设置；
+
+如下：
+
+```java
+@Component
+@EventbusListener(codes = MsgConstant.DEMO_MSG_LISTENER, concurrency = 2)
+public class DemoMsgListener extends MsgListener<TestBody> {
+    @Override
+    @Polling(count = 2, interval = "$count * $intervalTime + 5")
+    public void onMessage(Message<TestBody> message) {
+        TestBody body = message.getBody();
+        log.info("接收数据: {}", message.getRequestId());
+        //   throw new RuntimeException("DemoMsgListener test");
+
+        if (message.getDeliverCount() > 1) {
+            // 终止轮询
+            Polling.Keep.over();
+        }
+    }
+}
+```
+
+
+
+### 及时转成延时消息
+
+在及时消息监听器的方法上配置注解[@ToDelay](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/ToDelay.java)  即可让及时消息转成延时消息并接收处理。示例：[DemoMsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java) </br>
+
+参数配置：</br>
+delayTime ：延迟时间，单位：秒。</br>
+firstDeliver ：是否需要及时消息进行首次投递，默认：false (第一次接收到及时消息时不投递，只投递延时消息）。</br>
+
+```java
+/**
+ * codes : 消息code
+ * concurrency : 并发数
+ */
+@Component
+@EventbusListener(codes = MsgConstant.DEMO_MSG_LISTENER, concurrency = 2)
+public class DemoMsgListener extends MsgListener<TestBody> {
+
+    @Override
+    @ToDelay(delayTime = 3)
+    public void onMessage(Message<TestBody> msg) {
+        TestBody body = msg.getBody();
+    }
+}
+```
+
+
 
 ### 自定义消息ID
 
@@ -541,11 +668,23 @@ msgListenerContainer.startup();
 msgListenerContainer.shutdown();
 ```
 
+### 切换消息中间件
+
+eventbus支持多种消息引擎，如：redis、rabbitmq、rocketmq，如果项目前期使用redis，后续需要切换到rabbitmq，可不在修改代码的同时使得当前服务可以监听原有redis中的消息，配置如下：
+
+```yaml
+eventbus:
+  oldType: redis # 原消息引擎类别，消息引擎没做迁移时可不做配置
+  type: rabbitmq # 切换后的消息引擎类别
+```
+
+
+
 ### 全局消息拦截器
 
-`eventbus`
-提供全局的消息拦截器，包含消息发送前拦截器、消息发送后拦截器、消息投递前拦截器、消息投递后拦截器、异常重试最后一次投递仍然失败拦截器。可根据消息的重要性需求实现对应的拦截器接口，如对消息及消息的投递消费者状态进行数据库持久化操作，参考：[BsHelper](eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/helper/BsHelper.java)。
+`eventbus`提供全局的消息拦截器，包含消息发送前拦截器、消息发送后拦截器、消息投递前拦截器、消息投递后拦截器、异常重试最后一次投递仍然失败拦截器。可根据消息的重要性需求实现对应的拦截器接口，如对消息及消息的投递消费者状态进行数据库持久化操作，参考：[BsHelper](eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/helper/BsHelper.java)。
 如果存在多个同类型拦截器实例可使用[@Order](eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Order.java)注解标识优先级。
+
 #### 发送前拦截器
 
 消息发送前拦截器：[SendBeforeInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendBeforeInterceptor.java)实现接口方法`execute`即可，如下示例是消息发送前持久化消息的实例代码，参考：[DemoSendBeforeInterceptor](eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendBeforeInterceptor.java)
@@ -610,7 +749,7 @@ public class DemoDeliverAfterInterceptor implements DeliverAfterInterceptor {
 }
 ```
 
-#### 消费失败拦截器
+#### 消费异常最后一次重试拦截器
 
 消息投递消费者失败拦截器（消息重试投递都失败时，最后一次消息投递仍然失败时会调用该拦截器）：[DeliverThrowableLastInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableLastInterceptor.java)
 实现接口方法`execute`即可，
@@ -629,73 +768,9 @@ public class DemoDeliverThrowableInterceptor implements DeliverThrowableIntercep
 }
 ```
 
-### 及时转成延时消息
 
-在及时消息监听器的方法上配置注解[@ToDelay](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/ToDelay.java)  即可让及时消息转成延时消息并接收处理。示例：[DemoMsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java) </br>
 
-参数配置：</br>
-delayTime ：延迟时间，单位：秒。</br>
-firstDeliver ：是否需要及时消息进行首次投递，默认：false (第一次接收到及时消息时不投递，只投递延时消息）。</br>
 
-```java
-/**
- * codes : 消息code
- * concurrency : 并发数
- */
-@Component
-@EventbusListener(codes = MsgConstant.DEMO_MSG_LISTENER, concurrency = 2)
-public class DemoMsgListener extends MsgListener<TestBody> {
-
-    @Override
-    @ToDelay(delayTime = 3)
-    public void onMessage(Message<TestBody> msg) {
-        TestBody body = msg.getBody();
-    }
-}
-```
-
-### 消息轮询
-
-在消息监听器的方法上配置注解[@Polling](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Polling.java)
-即可让同一消息重复轮询接收，可配置count（最大轮询次数，可通过编码方式`Polling.Keep.over()`
-提前终止轮询）、interval（轮询间隔时间，单位：秒），值可以为数字也可为计算间隔时间的表达式（引用变量时使用"$"+变量名，例如"$
-count"）。[MsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/MsgListener.java)
-
-示例：
-
-1. `interval=7`，表示轮询间隔为7秒。
-2. `interval=$count*$intervalTime`，表示轮询间隔为当前轮询次数与上次轮询的时间间隔的乘积。
-
-注：表达式中可以使用以下三个变量，count（当前轮询次数）、deliverCount（当前投递次数）和intervalTime（本次轮询与上次轮询的时间间隔，单位为秒，非延时消息初始时为:1）
-
-```java
-@Component
-@EventbusListener(codes = MsgConstant.DEMO_MSG_LISTENER, concurrency = 2)
-public class DemoMsgListener extends MsgListener<TestBody> {
-    @Override
-    @Polling(count = 2, interval = "$count * $intervalTime + 5")
-    public void onMessage(Message<TestBody> message) {
-        TestBody body = message.getBody();
-        log.info("接收数据: {}", message.getRequestId());
-        //   throw new RuntimeException("DemoMsgListener test");
-
-        if (message.getDeliverCount() > 1) {
-            // 终止轮询
-            Polling.Keep.over();
-        }
-    }
-}
-```
-
-### 切换消息中间件
-
-eventbus支持多种消息引擎，如：redis、rabbitmq、rocketmq，如果项目前期使用redis，后续需要切换到rabbitmq，可不在修改代码的同时使得当前服务可以监听原有redis中的消息，配置如下：
-
-```yaml
-eventbus:
-  oldType: redis # 原消息引擎类别，消息引擎没做迁移时可不做配置
-  type: rabbitmq # 切换后的消息引擎类别
-```
 
 ## 配置
 
