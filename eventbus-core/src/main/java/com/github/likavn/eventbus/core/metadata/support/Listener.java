@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.core.metadata.support;
 
+import com.github.likavn.eventbus.core.annotation.FailRetry;
 import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.constant.BusConstant;
@@ -89,10 +90,17 @@ public class Listener {
 
     public void isValid() {
         if (null != polling) {
-            Polling.ValidatorInterval.isValid(polling.interval());
+            Func.isValidIntervalTimeExpression(polling.interval());
         }
         if (null != toDelay) {
             Assert.isTrue(toDelay.delayTime() > 0, "@ToDelay.delayTime must be greater than 0");
+        }
+
+        if (null != failTrigger) {
+            FailRetry fail = failTrigger.getFail();
+            if (null != fail) {
+                Func.isValidIntervalTimeExpression(fail.interval());
+            }
         }
         Assert.isTrue(Func.valid(getTrigger().getPrimitiveClass().getSimpleName()), "%s 消息监听器类名%s", getDeliverId(), BusConstant.TIPS_VALID_NAME);
         for (String code : codes) {

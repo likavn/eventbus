@@ -16,6 +16,7 @@
 package com.github.likavn.eventbus.core.metadata;
 
 import com.github.likavn.eventbus.core.utils.Assert;
+import com.github.likavn.eventbus.core.utils.Func;
 import lombok.Getter;
 
 /**
@@ -54,6 +55,8 @@ public enum BusType {
     }
 
     public static void isValid(String name) {
+        Assert.isTrue(!Func.isEmpty(name), "Eventbus type must not be empty");
+
         BusType busType = BusType.of(name);
         Assert.notNull(busType, "Eventbus type is not supported: " + name);
     }

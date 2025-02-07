@@ -511,4 +511,25 @@ public final class Func {
         Assert.isTrue(!bodyClass.isInterface(), "msg body cannot be a interface");
         return bodyClass;
     }
+
+    /**
+     * 验证间隔时间表达式是否合法
+     *
+     * @param interval 间隔时间表达式
+     */
+    public void isValidIntervalTimeExpression(String interval) {
+        if (Func.isEmpty(interval)) {
+            return;
+        }
+        try {
+            interval = interval.replace("$count", "1")
+                    .replace("$deliverCount", "1")
+                    .replace("$intervalTime", "1");
+            double v = CalculateUtil.evalExpression(interval);
+            Assert.isTrue(v > 0, "interval must be greater than 0");
+        } catch (Exception e) {
+            log.error("isValidIntervalTimeExpression.error", e);
+            throw new EventBusException("interval must be a valid expression", e);
+        }
+    }
 }

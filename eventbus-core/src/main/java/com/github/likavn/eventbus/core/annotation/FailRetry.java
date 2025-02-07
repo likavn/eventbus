@@ -16,13 +16,21 @@
 package com.github.likavn.eventbus.core.annotation;
 
 import com.github.likavn.eventbus.core.metadata.BusConfig;
+import lombok.experimental.UtilityClass;
 
 import java.lang.annotation.*;
 
 /**
  * 投递重试注解
  * <p>
- * 消息投递失败时，配置投递重试
+ * 定义了一个注解@FailRetry，用于标注在方法上以控制消息订阅的轮询行为。
+ * 轮询可以通过注解的属性count设置重试次数，nextTime或interval进行配置下次消息的重试时间。
+ * <p>
+ * 获取有效的（间隔时间>0）下一次重试时间，优先级从上至下：
+ * 1.通过{@link FailRetry.Keep#setNextTime(long)}设置下次重试时间；
+ * 2.通过{@link FailRetry#nextTime()}设置下次重试时间；
+ * 3.通过{@link FailRetry#interval()}设置下次重试时间的表达式；
+ * 4.根据全局配置{@link BusConfig.Fail#getNextTime()} 设置下次重试时间。
  *
  * @author likavn
  * @date 2024/01/01
@@ -38,8 +46,58 @@ public @interface FailRetry {
     int count() default -1;
 
     /**
-     * 投递失败时，下次下次投递触发的间隔时间,单位：秒
-     * <code>nextTime <= 0</code>时根据全局配置{@link BusConfig.Fail#getNextTime()} 默认为10秒
+     * 投递失败时，下次投递触发的间隔时间,单位：秒
      */
     long nextTime() default -1L;
+
+    /**
+     * 定义了投递失败时，下次重试消息的时间间隔，可通过表达式（支持“+”、“-”、“*”、“/”等运算符）配置。
+     * 表达式中可以使用三个变量：count（当前失败重试次数）、deliverCount（当前投递次数）和intervalTime（本次重试与上次投递的时间间隔，单位：秒）。
+     * 这使得可以灵活地根据重试次数和时间间隔来动态确定下一次重试的时间。
+     * 引用变量时使用"$"+变量名，例如"$count"。
+     * 示例：
+     * 1. interval=7，表示重试间隔为7秒。
+     * 2. interval=$count*$intervalTime，表示重试间隔为当前重试次数与上次投递的时间间隔的乘积。
+     *
+     * @return 重试时间间隔的表达式。
+     */
+    String interval() default "";
+
+    /**
+     * 编码方式设置失败重试时间
+     *
+     * @author likavn
+     * @date 2025/02/07
+     * @since 2.5.0
+     */
+    @UtilityClass
+    class Keep {
+        // 当前任务下次重试时间
+        private static final ThreadLocal<Long> NEXT_TIME = new ThreadLocal<>();
+
+        /**
+         * 获取当前消息下次重试时间
+         *
+         * @return 下次重试时间，单位：秒
+         */
+        public long nextTime() {
+            return NEXT_TIME.get() == null ? 0 : NEXT_TIME.get();
+        }
+
+        /**
+         * 设置当前消息下次重试时间
+         *
+         * @param nextTime 下次重试时间，单位：秒
+         */
+        public void setNextTime(long nextTime) {
+            NEXT_TIME.set(nextTime);
+        }
+
+        /**
+         * 清除
+         */
+        public void clear() {
+            NEXT_TIME.remove();
+        }
+    }
 }

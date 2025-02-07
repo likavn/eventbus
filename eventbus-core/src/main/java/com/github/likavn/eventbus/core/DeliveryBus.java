@@ -20,7 +20,6 @@ import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.base.InterceptorContainer;
-import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
@@ -29,8 +28,6 @@ import com.github.likavn.eventbus.core.metadata.support.Trigger;
 import com.github.likavn.eventbus.core.utils.CalculateUtil;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.extern.slf4j.Slf4j;
-
-import java.lang.reflect.InvocationTargetException;
 
 /**
  * 消息投递分发器
@@ -96,6 +93,10 @@ public class DeliveryBus {
         } catch (Exception exception) {
             // 处理投递失败的情况
             failHandle(listener, request, exception);
+        } finally {
+            // 清除上下文
+            Polling.Keep.clear();
+            FailRetry.Keep.clear();
         }
     }
 
@@ -106,10 +107,8 @@ public class DeliveryBus {
      * @param listener 事件的订阅者，实现了Listener接口
      * @param trigger  事件触发器
      * @param request  请求对象，包含了触发事件所需的信息
-     * @throws InvocationTargetException 如果触发事件的方法抛出异常
-     * @throws IllegalAccessException    如果无法访问触发事件的方法
      */
-    private void trigger(Listener listener, Trigger trigger, Request<?> request) throws InvocationTargetException, IllegalAccessException {
+    private void trigger(Listener listener, Trigger trigger, Request<?> request) {
         // 标记是否最终投递事件
         boolean isDeliver = false;
         // 获取订阅者的延迟投递策略
@@ -147,10 +146,8 @@ public class DeliveryBus {
      * @param trigger 触发器对象，其invoke方法将被调用
      * @param request 请求对象，作为触发器方法的参数
      * @return 总是返回true，表示调用总是尝试执行
-     * @throws InvocationTargetException 如果触发器方法抛出异常，则此异常被抛出
-     * @throws IllegalAccessException    如果触发器对象或其方法无法访问，此异常被抛出
      */
-    private boolean invoke(Trigger trigger, Request<?> request) throws InvocationTargetException, IllegalAccessException {
+    private boolean invoke(Trigger trigger, Request<?> request) {
         // 执行投递前的拦截器
         interceptorContainer.deliverBeforeExecute(request);
         trigger.invoke(request);
@@ -165,35 +162,23 @@ public class DeliveryBus {
      * @param throwable throwable
      */
     private void failHandle(Listener listener, Request<?> request, Throwable throwable) {
-        if (!(throwable instanceof InvocationTargetException)) {
-            throw new EventBusException(throwable);
-        }
-        // 获取异常的真正原因
+        // 获取真实异常
         throwable = throwable.getCause();
-        // 发生异常时记录错误日志
-        log.error("deliver error", throwable);
         // 获取订阅器的FailTrigger
         FailTrigger failTrigger = listener.getFailTrigger();
+        // 每次投递消息异常时都会调用
+        interceptorContainer.deliverAfterExecute(request, throwable);
         FailRetry failRetry = null;
+        // 如果FailTrigger不为空，则执行订阅器的异常处理
         if (null != failTrigger) {
+            failTrigger.invoke(request, throwable);
             // 如果FailTrigger不为空，则获取Fail对象
             failRetry = failTrigger.getFail();
         }
-        // 每次投递消息异常时都会调用
-        interceptorContainer.deliverAfterExecute(request, throwable);
-        // 如果FailTrigger不为空，则执行订阅器的异常处理
-        if (null != failTrigger && null != failTrigger.getMethod()) {
-            try {
-                failTrigger.invoke(request, throwable);
-            } catch (InvocationTargetException | IllegalAccessException e) {
-                log.error("fail trigger error", e);
-                throw new EventBusException(e);
-            }
-        }
         // 获取有效的投递次数
-        int retryCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
+        int retryLimitCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
         int failRetryCount = request.getFailRetryCount();
-        if (failRetryCount < retryCount) {
+        if (failRetryCount < retryLimitCount) {
             // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
             request.setFailRetryCount(failRetryCount + 1);
             failReTry(request, failRetry);
@@ -210,8 +195,23 @@ public class DeliveryBus {
      * @param fail    fail
      */
     private void failReTry(Request<?> request, FailRetry fail) {
-        // 获取下次投递失败时间
-        long delayTime = (null != fail && fail.nextTime() > 0) ? fail.nextTime() : config.getFail().getNextTime();
+        // 获取下次重试时间
+        long delayTime = FailRetry.Keep.nextTime();
+        if (delayTime < 1 && null != fail) {
+            // {@link Polling#nextTime}轮询间隔时间
+            delayTime = fail.nextTime();
+            if (delayTime < 1) {
+                // {@link Polling#interval}轮询间隔表达式
+                delayTime = nextIntervalTime(fail.interval(), request, request.getFailRetryCount());
+            }
+        }
+        // 如果轮询间隔时间小于1，则不进行轮询投递
+        if (delayTime < 1) {
+            delayTime = config.getFail().getNextTime();
+            if (delayTime < 1) {
+                return;
+            }
+        }
         sendDelayMessage(request, delayTime);
     }
 
@@ -227,24 +227,30 @@ public class DeliveryBus {
             return;
         }
         // 已轮询次数大于轮询次数，则不进行轮询投递
-        // 是否已退出轮询
-        boolean isOver = Polling.Keep.clear();
-        if (isOver) {
-            return;
-        }
         int pollingCount = request.getPollingCount();
         if (pollingCount >= polling.count()) {
             return;
         }
         pollingCount++;
-        long delayTime = request.getDelayTime();
-        String interval = polling.interval();
-        interval = interval.replace("$count", String.valueOf(pollingCount))
-                .replace("$deliverCount", String.valueOf(request.getDeliverCount()))
-                .replace("$intervalTime", String.valueOf(0 == delayTime ? 1 : delayTime));
-        // 获取下次投递失败时间
-        delayTime = CalculateUtil.fixEvalExpression(interval);
-
+        // 是否提前退出轮询
+        boolean isOver = Polling.Keep.isOver();
+        if (isOver) {
+            return;
+        }
+        // 获取下次轮询时间
+        long delayTime = Polling.Keep.nextTime();
+        if (delayTime < 1) {
+            // {@link Polling#nextTime}轮询间隔时间
+            delayTime = polling.nextTime();
+            if (delayTime < 1) {
+                // {@link Polling#interval}轮询间隔表达式
+                delayTime = nextIntervalTime(polling.interval(), request, pollingCount);
+            }
+        }
+        // 如果轮询间隔时间小于1，则不进行轮询投递
+        if (delayTime < 1) {
+            return;
+        }
         request.setPollingCount(pollingCount);
         sendDelayMessage(request, delayTime);
     }
@@ -299,5 +305,22 @@ public class DeliveryBus {
         request.setDeliverCount(request.getDeliverCount() + 1);
         request.setRetry(true);
         msgSender.sendDelayMessage(request);
+    }
+
+    /**
+     * 计算下次投递时间
+     *
+     * @param intervalExp 间隔表达式
+     * @param request     请求对象
+     * @param count       投递次数
+     * @return 下次投递时间
+     */
+    private long nextIntervalTime(String intervalExp, Request<?> request, long count) {
+        if (Func.isEmpty(intervalExp)) {
+            return 0;
+        }
+        String exp = intervalExp.replace("$count", String.valueOf(count)).replace("$deliverCount",
+                String.valueOf(request.getDeliverCount())).replace("$intervalTime", String.valueOf(0 == request.getDelayTime() ? 1 : request.getDelayTime()));
+        return CalculateUtil.fixEvalExpression(exp);
     }
 }

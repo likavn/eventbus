@@ -15,6 +15,7 @@
  */
 package com.github.likavn.eventbus.core.metadata.support;
 
+import com.github.likavn.eventbus.core.exception.EventBusException;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
@@ -105,7 +106,7 @@ public class Trigger {
      * @param message 消息
      */
     @SuppressWarnings("all")
-    public void invoke(Message message) throws InvocationTargetException, IllegalAccessException {
+    public void invoke(Message message) {
         invoke(message, null);
     }
 
@@ -116,7 +117,10 @@ public class Trigger {
      * @param throwable 异常
      */
     @SuppressWarnings("all")
-    public void invoke(Message message, Throwable throwable) throws InvocationTargetException, IllegalAccessException {
+    public void invoke(Message message, Throwable throwable) {
+        if (null == method) {
+            return;
+        }
         Request request = (Request) message;
         Object oldBody = request.getBody();
         try {
@@ -131,6 +135,14 @@ public class Trigger {
                 }
             }
             method.invoke(invokeBean, args);
+        } catch (Exception ex) {
+            throwable = ex;
+            if (ex instanceof InvocationTargetException) {
+                throwable = ex.getCause();
+                // 接收消息时抛出异常
+                log.error("trigger invoke error", throwable);
+            }
+            throw new EventBusException(throwable);
         } finally {
             request.setBody(oldBody);
         }

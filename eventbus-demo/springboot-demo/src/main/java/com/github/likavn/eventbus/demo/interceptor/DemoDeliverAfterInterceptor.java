@@ -26,7 +26,7 @@ public class DemoDeliverAfterInterceptor implements DeliverAfterInterceptor {
 
     @Override
     public void execute(Request<String> request, Throwable throwable) {
-        log.info("DemoDeliverAfterInterceptor execute->{}", request.getRequestId());
+       // log.info("DemoDeliverAfterInterceptor execute->{}", request.getRequestId());
         // 异常为空时标识成功投递，否则为投递失败
         if (null == throwable) {
             bsHelper.deliverSuccess(request);

@@ -25,6 +25,6 @@ public class DemoDeliverBeforeInterceptor implements DeliverBeforeInterceptor {
 
     @Override
     public void execute(Request<String> request) {
-        log.info("DemoDeliverBeforeInterceptor execute->{}", request.getBody());
+        //log.info("DemoDeliverBeforeInterceptor execute->{}", request.getBody());
     }
 }
