@@ -138,6 +138,7 @@ public abstract class AbstractSenderAdapter implements MsgSender {
         // 恢复原始的投递ID和延迟时间
         request.setDeliverId(deliverId);
         request.setDelayTime(delayTime);
+        request.setToDelay(false);
     }
 
     @Override

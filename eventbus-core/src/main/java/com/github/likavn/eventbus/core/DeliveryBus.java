@@ -276,13 +276,13 @@ public class DeliveryBus {
         if (null == toDelay) {
             return false;
         }
-        // 如果消息已经被尝试多次投递，则不再转换为延时消息
-        if (request.getDeliverCount() > 1) {
+        // 已延时投递
+        if (request.isToDelay()) {
             return false;
         }
-        // 如果配置为首次投递即转为延时消息，且当前消息属于同一主题，则不需要继续发送延时消息
-        if (request.isToDelay()) {
-            return 0 == request.getDelayTime();
+        // 如果当前消息属于同一服务，已做延时投递
+        if (config.getServiceId().equals(request.getServiceId()) && !toDelay.firstDeliver()) {
+            return false;
         }
         // 发送延时消息，并返回转换成功
         request.setToDelay(true);
