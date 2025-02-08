@@ -267,8 +267,8 @@ public class DeliveryBus {
      * @return 返回是否成功转换为延时消息，true表示成功转换，false表示未转换或不符合转换条件
      */
     private boolean toDelay(Listener listener, Request<?> request) {
-        // 如果订阅者本身是延时类型的，则不需要转换
-        if (listener.getType().isDelay()) {
+        // 如果订阅者本身是延时类型或重试消息，则不需要转换
+        if (listener.getType().isDelay() || request.isRetry()) {
             return false;
         }
         // 获取订阅者配置的延时发送信息
