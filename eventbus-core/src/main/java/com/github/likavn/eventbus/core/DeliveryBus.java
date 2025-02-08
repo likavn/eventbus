@@ -118,22 +118,20 @@ public class DeliveryBus {
             isDeliver = invoke(trigger, request);
         } else {
             // 如果订阅者设置了一开始就投递，则投递事件
-            if (toDelay.firstDeliver()) {
+            if (toDelay.firstDeliver() || request.isToDelay()) {
                 isDeliver = invoke(trigger, request);
-            } else if (request.isToDelay()) {
-                // 如果请求被标记为可延迟，并且设置了延迟时间大于0，则投递事件
-                if (request.getDelayTime() > 0) {
-                    isDeliver = invoke(trigger, request);
-                }
             }
         }
-        // 如果事件被投递，则执行投递成功后的操作
-        if (isDeliver) {
-            interceptorContainer.deliverAfterExecute(request, null);
-        }
-        // 如果订阅者不应该被延迟投递，则进行轮询操作
-        if (!toDelay(listener, request)) {
-            polling(listener, request);
+        try {
+            // 如果订阅者不应该被延迟投递，则进行轮询操作
+            if (!toDelay(listener, request)) {
+                polling(listener, request);
+            }
+        } finally {
+            // 执行投递后的拦截器
+            if (isDeliver) {
+                interceptorContainer.deliverAfterExecute(request, null);
+            }
         }
     }
 
@@ -162,30 +160,33 @@ public class DeliveryBus {
      * @param throwable throwable
      */
     private void failHandle(Listener listener, Request<?> request, Throwable throwable) {
-        // 获取真实异常
-        throwable = throwable.getCause();
-        // 获取订阅器的FailTrigger
-        FailTrigger failTrigger = listener.getFailTrigger();
-        // 每次投递消息异常时都会调用
-        interceptorContainer.deliverAfterExecute(request, throwable);
-        FailRetry failRetry = null;
-        // 如果FailTrigger不为空，则执行订阅器的异常处理
-        if (null != failTrigger) {
-            failTrigger.invoke(request, throwable);
-            // 如果FailTrigger不为空，则获取Fail对象
-            failRetry = failTrigger.getFail();
+        try {
+            // 获取真实异常
+            throwable = throwable.getCause();
+            // 获取订阅器的FailTrigger
+            FailTrigger failTrigger = listener.getFailTrigger();
+            FailRetry failRetry = null;
+            // 如果FailTrigger不为空，则执行订阅器的异常处理
+            if (null != failTrigger) {
+                failTrigger.invoke(request, throwable);
+                // 如果FailTrigger不为空，则获取Fail对象
+                failRetry = failTrigger.getFail();
+            }
+            // 获取有效的投递次数
+            int retryLimitCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
+            int failRetryCount = request.getFailRetryCount();
+            if (failRetryCount < retryLimitCount) {
+                // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
+                request.setFailRetryCount(failRetryCount + 1);
+                failReTry(request, failRetry);
+            } else {
+                // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
+                interceptorContainer.deliverThrowableLastExecute(request, throwable);
+            }
+        } finally {
+            // 每次投递消息异常时都会调用
+            interceptorContainer.deliverAfterExecute(request, throwable);
         }
-        // 获取有效的投递次数
-        int retryLimitCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
-        int failRetryCount = request.getFailRetryCount();
-        if (failRetryCount < retryLimitCount) {
-            // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
-            request.setFailRetryCount(failRetryCount + 1);
-            failReTry(request, failRetry);
-            return;
-        }
-        // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
-        interceptorContainer.deliverThrowableLastExecute(request, throwable);
     }
 
     /**
@@ -282,10 +283,13 @@ public class DeliveryBus {
         }
         // 如果当前消息属于同一服务，已做延时投递
         if (config.getServiceId().equals(request.getServiceId()) && !toDelay.firstDeliver()) {
-            return false;
+            return true;
         }
         // 发送延时消息，并返回转换成功
         request.setToDelay(true);
+        if (!toDelay.firstDeliver()) {
+            request.setDeliverCount(0);
+        }
         sendDelayMessage(request, toDelay.delayTime());
         return true;
     }

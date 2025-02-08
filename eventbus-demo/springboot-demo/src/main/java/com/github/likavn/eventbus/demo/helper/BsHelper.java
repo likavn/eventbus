@@ -219,7 +219,7 @@ public class BsHelper {
 
         // 延时时间设置1秒,所有消息重试都走延时消息
         request.setDelayTime(1L);
-        request.setRetry(Boolean.TRUE);
+        request.setRetry(true);
         log.info("重发ebs消息:requestId={},deliverId={}", request.getRequestId(), request.getDeliverId());
         msgSender.sendDelayMessage(request);
     }
