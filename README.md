@@ -423,8 +423,6 @@ public class TestStringListener implements MsgListener<String> {
 
 
 
-1. 
-
 ### 异常捕获与重试
 
 当消息投递失败时，可以自定义消息重复投递次数和下次消息投递时间间隔（系统默认重复投递3次，每次间隔10秒），即便这样，消息还是有可能会存在投递不成功的问题，可以使用注解`@FailRetry`标识在消息处理器的接收方法上。<br/>
@@ -440,14 +438,15 @@ public class TestStringListener implements MsgListener<String> {
    引用变量时使用"$"+变量名，例如"$count"。 示例：
 
    - interval=7，表示重试间隔为7秒;
-   - interval=$count*$intervalTime，表示重试间隔为当前重试次数与上次投递的时间间隔的乘积。
+   - interval=$count*$intervalTime，表示重试间隔为当前重试次数与上次投递的时间间隔的乘积；
+   - interval=$deliverCount * 2，表示随着投递次数增加，下次重试时间也随着递增。
 
 另外可通过编码`FailRetry.Keep.setNextTime()`方式动态设置下次重试时间，单位：秒。
 
 几种获取有效的（间隔时间>0）下一次重试时间的方式，优先级从上至下：
-1.通过{@link FailRetry.Keep#setNextTime(long)}设置下次重试时间；
-2.通过{@link FailRetry#nextTime()}设置下次重试时间；
-3.通过{@link FailRetry#interval()}设置下次重试时间的表达式；
+1.通过{@link FailRetry.Keep#setNextTime(long)}编码设置下次重试时间；
+2.通过{@link FailRetry#nextTime()}注解设置下次重试时间；
+3.通过{@link FailRetry#interval()}注解设置下次重试时间的表达式；
 4.根据全局配置{@link BusConfig.Fail#getNextTime()} 设置下次重试时间。
 
 如要捕获异常，需重写`failHandler`方法即可捕获投递错误异常及数据。如下：

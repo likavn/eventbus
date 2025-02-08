@@ -22,7 +22,7 @@ public class DemoSendBeforeInterceptor implements SendBeforeInterceptor {
 
     @Override
     public void execute(Request<String> request) {
-        if (request.getDeliverCount() > 1) {
+        if (request.isRetry()) {
             return;
         }
         bsHelper.saveMessage(request);
