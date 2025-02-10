@@ -431,11 +431,11 @@ public class TestStringListener implements MsgListener<String> {
 2. `nextTime` 投递失败时，下次投递触发的间隔时间,单位：秒，用于固定间隔时间；
 3. `interval` 定义了投递失败时，下次重试消息的时间间隔，可通过表达式（支持“+”、“-”、“*”、“/”等运算符）配置，表达式中可以使用三个变量：count（当前失败重试次数）、deliverCount（当前投递次数）和intervalTime（本次重试与上次投递的时间间隔，单位：秒）， 这使得可以灵活地根据重试次数和时间间隔来动态确定下一次重试的时间。
 
-   引用变量时使用"$"+变量名，例如"$count"。 示例：
+   引用变量时使用`$`+变量名，例如`$count`。 示例：
 
-   - interval=7，表示重试间隔为7秒;
-   - interval=$count*$intervalTime，表示重试间隔为当前重试次数与上次投递的时间间隔的乘积；
-   - interval=$deliverCount * 2，表示随着投递次数增加，下次重试时间也随着递增。
+    - `interval=7`表示重试间隔为7秒;
+    - `interval=$count*$intervalTime`表示重试间隔为当前重试次数与上次投递的时间间隔的乘积；
+    - `interval=$deliverCount * 2`表示随着投递次数增加，下次重试时间也随着递增。
 
 另外可通过编码`FailRetry.Keep.setNextTime()`方式动态设置下次重试时间，单位：秒。
 
