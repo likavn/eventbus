@@ -186,7 +186,7 @@ msgSender.send("testMsgSubscribe", "charging");
  */
 @Component
 @EventbusListener(codes = "testMsgSubscribe")
-public class DemoMsgListener extends MsgListener<String> {
+public class DemoMsgListener implements MsgListener<String> {
     // 接收业务消息体对象数据
     @Override
     public void onMessage(Message<String> message) {
@@ -234,7 +234,7 @@ msgSender.send(testBody);
 @Slf4j
 @Component
 @EventbusListener
-public class DemoMsgListener2 extends MsgListener<TestBody> {
+public class DemoMsgListener2 implements MsgListener<TestBody> {
 
     @Override
     public void onMessage(Message<TestBody> message) {
@@ -265,7 +265,7 @@ msgSender.send(DemoMsgListener3.class, testBody);
 ```java
 @Component
 @EventbusListener
-public class DemoMsgListener3 extends MsgListener<String> {
+public class DemoMsgListener3 implements MsgListener<String> {
     @Override
     public void onMessage(Message<String> message) {
       String body = message.getBody();
@@ -291,7 +291,7 @@ private MsgSender msgSender;
 // 第一个参数是业务消息code
 // 第二个参数是业务消息Object实体对象数据
 // 第三个参数为延时时间，单位：秒，当消息引擎为rocketMq时，延时时间对应为rocketMq的18个延时级别。
-msgSender.sendDelayMessage("testMsgSubscribe", "charging"，5);
+msgSender.sendDelayMessage("testMsgSubscribe", "charging", 5);
 ```
 
 订阅延时消息
@@ -303,7 +303,7 @@ msgSender.sendDelayMessage("testMsgSubscribe", "charging"，5);
  */
 @Component
 @EventbusListener(codes = "testMsgSubscribe")
-public class DemoDelayMsgListener extends MsgDelayListener<String> {
+public class DemoDelayMsgListener implements MsgDelayListener<String> {
     // 接收业务消息体对象数据
     @Override
     public void onMessage(Message<String> message) {
@@ -353,7 +353,7 @@ msgSender.sendDelayMessage(testBody, 2);
 @Slf4j
 @Component
 @EventbusListener
-public class DemoDelayMsgListener2 extends MsgDelayListener<TestBody> {
+public class DemoDelayMsgListener2 implements MsgDelayListener<TestBody> {
 
     @Override
     public void onMessage(Message<TestBody> message) {
@@ -384,7 +384,7 @@ msgSender.sendDelayMessage(DemoDelayMsgListener3.class, testBody, 2);
 ```java
 @Component
 @EventbusListener
-public class DemoDelayMsgListener3 extends MsgDelayListener<String> {
+public class DemoDelayMsgListener3 implements MsgDelayListener<String> {
     @Override
     public void onMessage(Message<String> message) {
       String body = message.getBody();
@@ -439,11 +439,11 @@ public class TestStringListener implements MsgListener<String> {
 
 另外可通过编码`FailRetry.Keep.setNextTime()`方式动态设置下次重试时间，单位：秒。
 
-几种获取有效的（间隔时间>0）下一次重试时间的方式，优先级从上至下：
-1.通过{@link FailRetry.Keep#setNextTime(long)}编码设置下次重试时间；
-2.通过{@link FailRetry#nextTime()}注解设置下次重试时间；
-3.通过{@link FailRetry#interval()}注解设置下次重试时间的表达式；
-4.根据全局配置{@link BusConfig.Fail#getNextTime()} 设置下次重试时间。
+几种获取有效的（间隔时间>0）下一次重试时间的方式，优先级从上至下：</br>
+1.通过{@link FailRetry.Keep#setNextTime(long)}编码设置下次重试时间；</br>
+2.通过{@link FailRetry#nextTime()}注解设置下次重试时间；</br>
+3.通过{@link FailRetry#interval()}注解设置下次重试时间的表达式；</br>
+4.根据全局配置{@link BusConfig.Fail#getNextTime()} 设置下次重试时间。</br>
 
 如要捕获异常，需重写`failHandler`方法即可捕获投递错误异常及数据。如下：
 
@@ -451,7 +451,7 @@ public class TestStringListener implements MsgListener<String> {
 @Slf4j
 @Component
 @EventbusListener(codes = "testMsgSubscribe")
-public class DemoMsgSubscribeListener extends MsgListener<String> {
+public class DemoMsgSubscribeListener implements MsgListener<String> {
     // 接收业务消息体对象数据
     // @FailRetry消息投递失败时重试，这里设置重试2次，下次重试间隔5秒（引擎为rocketMq时，此处延时时间对应为rocketMq的18个延时级别）后触发
     @Override
@@ -476,29 +476,29 @@ public class DemoMsgSubscribeListener extends MsgListener<String> {
 
 在消息监听器的方法上配置注解[@Polling](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Polling.java)
 即可让同一消息重复轮询接收，可配置count（最大轮询次数，可通过编码方式`Polling.Keep.over()`
-提前终止轮询）、interval（轮询间隔时间，单位：秒），值可以为数字也可为计算间隔时间的表达式（引用变量时使用"$"+变量名，例如"$
-count"）。
+提前终止轮询）、nextTime（下一次轮询触发的时间间隔，单位：秒，用于固定间隔时间）、interval（轮询间隔时间，单位：秒），值可以为数字也可为计算间隔时间的表达式（引用变量时使用`$`+变量名，例如`$count`）。
 
-注：表达式中可以使用以下三个变量，count（当前轮询次数）、deliverCount（当前投递次数）和intervalTime（本次轮询与上次轮询的时间间隔，单位为秒，非延时消息初始时为:1）
+注：`interval`表达式中可以使用以下三个变量，count（当前轮询次数）、deliverCount（当前投递次数）和intervalTime（本次轮询与上次轮询的时间间隔，单位为秒，非延时消息初始时为:1）
 
 示例：
 
 1. `interval=7`，表示轮询间隔为7秒。
 2. `interval=$count*$intervalTime`，表示轮询间隔为当前轮询次数与上次轮询的时间间隔的乘积。
+3. `interval=$deliverCount * 3`表示随着投递次数增加，下次重试时间也随着递增。
 
 另外可通过编码`Polling.Keep.setNextTime()`方式动态设置下次轮巡时间间隔，单位：秒。
 
-几种计算下一次轮巡时间的方式，优先级从上至下：
-1.通过{@link Polling.Keep#over()}或{@link Keep#setNextTime(long)}设置；
-2.通过{@link Polling#nextTime()}设置；
-3.通过{@link Polling#interval()}设置；
+几种计算下一次轮巡时间的方式，优先级从上至下：</br>
+1.通过{@link Polling.Keep#over()}或{@link Keep#setNextTime(long)}设置；</br>
+2.通过{@link Polling#nextTime()}设置；</br>
+3.通过{@link Polling#interval()}设置；</br>
 
 如下：
 
 ```java
 @Component
-@EventbusListener(codes = MsgConstant.DEMO_MSG_LISTENER, concurrency = 2)
-public class DemoMsgListener extends MsgListener<TestBody> {
+@EventbusListener(codes = "testMsgPolling")
+public class DemoMsgListener implements MsgListener<TestBody> {
     @Override
     @Polling(count = 2, interval = "$count * $intervalTime + 5")
     public void onMessage(Message<TestBody> message) {
@@ -528,8 +528,8 @@ firstDeliver ：是否需要及时消息进行首次投递，默认：false (第
  * concurrency : 并发数
  */
 @Component
-@EventbusListener(codes = MsgConstant.DEMO_MSG_LISTENER, concurrency = 2)
-public class DemoMsgListener extends MsgListener<TestBody> {
+@EventbusListener(codes = "testMsgToDelay")
+public class DemoMsgListener implements MsgListener<TestBody> {
 
     @Override
     @ToDelay(delayTime = 3)
@@ -679,14 +679,20 @@ eventbus:
 消息发送前拦截器：[SendBeforeInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendBeforeInterceptor.java)实现接口方法`execute`即可，如下示例是消息发送前持久化消息的实例代码，参考：[DemoSendBeforeInterceptor](eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendBeforeInterceptor.java)
 
 ```java
+@Slf4j
 @Component
 public class DemoSendBeforeInterceptor implements SendBeforeInterceptor {
+  @Lazy
   @Resource
   private BsHelper bsHelper;
 
   @Override
   public void execute(Request<String> request) {
-    bsHelper.sendMessage(request);
+    // 重试时，不记录消息
+    if (request.isRetry()) {
+      return;
+    }
+    bsHelper.saveMessage(request);
   }
 }
 ```
@@ -801,9 +807,9 @@ public class DemoDeliverThrowableLastInterceptor implements DeliverThrowableLast
 | [SendAfterInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/SendAfterInterceptor.java)                       | 发送后全局拦截器                                                                                 | [DemoSendAfterInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoSendAfterInterceptor.java)                                                                                                           |
 | [DeliverBeforeInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverBeforeInterceptor.java)               | 投递消费者前全局拦截器                                                                           |                                                                                                                                                                                                                                                               |
 | [DeliverAfterInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverAfterInterceptor.java)                 | 投递消费者后全局拦截器                                                                           | [DemoDeliverAfterInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverAfterInterceptor.java)                                                                                                     |
-| [DeliverThrowableLastInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableLastInterceptor.java) | 投递消费者异常全局拦截器<br/> * 注：消息重复投递都失败时，最后一次消息投递失败时才会调用该拦截器 | [DemoDeliverThrowableInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverThrowableInterceptor.java)                                                                                             |
-| [@ToDelay](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/ToDelay.java)                                                     | @ToDelay 注解用于接收及时消息的方法上，使得当前消息转成延时消息。                                | [DemoMsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java)                                                                                                                                |
-| [@Polling](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Polling.java)                                                     | @Polling 注解用在接收消息的方法上，以控制消息订阅的轮询行为。                                    | [DemoMsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/DemoMsgListener.java)                                                                                                                                |
+| [DeliverThrowableLastInterceptor](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/api/interceptor/DeliverThrowableLastInterceptor.java) | 投递消费者异常全局拦截器<br/> * 注：消息重复投递都失败时，最后一次消息投递失败时才会调用该拦截器 | [DemoDeliverThrowableLastInterceptor](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/interceptor/DemoDeliverThrowableLastInterceptor.java)                                                                                             |
+| [@ToDelay](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/ToDelay.java)                                                     | @ToDelay 注解用于接收及时消息的方法上，使得当前消息转成延时消息。                                | [MsgListenerClassName](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/MsgListenerClassName.java)                                                                                                                                |
+| [@Polling](./eventbus-core/src/main/java/com/github/likavn/eventbus/core/annotation/Polling.java)                                                     | @Polling 注解用在接收消息的方法上，以控制消息订阅的轮询行为。                                    | [MsgListener](./eventbus-demo/springboot-demo/src/main/java/com/github/likavn/eventbus/demo/listener/MsgListener.java)                                                                                                                                |
 
 更多信息请查阅相关接口类...
 
