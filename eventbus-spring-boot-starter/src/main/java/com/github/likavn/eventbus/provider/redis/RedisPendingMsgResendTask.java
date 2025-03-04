@@ -173,6 +173,10 @@ public class RedisPendingMsgResendTask implements Runnable, Lifecycle {
             request.setRetry(true);
             msgSender.sendDelayMessage(request);
             acknowledge(listener, message.getId());
+            // 重试队列删除消息
+            if (listener.isRetry()) {
+                stringRedisTemplate.opsForStream().delete(listener.getStreamKey(), message.getId());
+            }
         });
     }
 

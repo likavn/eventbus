@@ -153,7 +153,7 @@ public abstract class AbstractSenderAdapter implements MsgSender {
      * @param request     请求对象，包含了要发送的消息的所有信息以及配置
      * @param interceptor 一个布尔值，指示是否启用拦截器逻辑
      */
-    protected void sendDelayMessage(Request<?> request, boolean interceptor) {
+    public void sendDelayMessage(Request<?> request, boolean interceptor) {
         request.setType(null == request.getType() ? MsgType.DELAY : request.getType());
         checkBuild(request);
         // 确保延迟时间被正确设置且大于0

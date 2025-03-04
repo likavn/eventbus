@@ -18,8 +18,11 @@ package com.github.likavn.eventbus.core;
 import com.github.likavn.eventbus.core.annotation.FailRetry;
 import com.github.likavn.eventbus.core.annotation.Polling;
 import com.github.likavn.eventbus.core.annotation.ToDelay;
-import com.github.likavn.eventbus.core.api.MsgSender;
+import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
 import com.github.likavn.eventbus.core.base.InterceptorContainer;
+import com.github.likavn.eventbus.core.exception.DeliverAfterInterceptorSuccessException;
+import com.github.likavn.eventbus.core.exception.DeliverBeforeInterceptorException;
+import com.github.likavn.eventbus.core.exception.DeliverInvokeException;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.metadata.support.FailTrigger;
@@ -39,11 +42,11 @@ import lombok.extern.slf4j.Slf4j;
 public class DeliveryBus {
     private final InterceptorContainer interceptorContainer;
     private final BusConfig config;
-    private final MsgSender msgSender;
+    private final AbstractSenderAdapter msgSender;
 
     public DeliveryBus(InterceptorContainer interceptorContainer,
                        BusConfig config,
-                       MsgSender msgSender) {
+                       AbstractSenderAdapter msgSender) {
         this.interceptorContainer = interceptorContainer;
         this.config = config;
         this.msgSender = msgSender;
@@ -113,25 +116,18 @@ public class DeliveryBus {
         boolean isDeliver = false;
         // 获取订阅者的延迟投递策略
         ToDelay toDelay = listener.getToDelay();
-        // 如果订阅者没有设置延迟投递策略，则直接投递事件
-        if (null == toDelay || request.isRetry()) {
+        // 如果订阅者应该被延迟投递，或者请求已经被重试，或者请求已经被延迟投递，则调用触发器方法
+        if (null == toDelay || toDelay.firstDeliver() || request.isToDelay()
+                || request.isRetry()) {
             isDeliver = invoke(trigger, request);
-        } else {
-            // 如果订阅者设置了一开始就投递，则投递事件
-            if (toDelay.firstDeliver() || request.isToDelay()) {
-                isDeliver = invoke(trigger, request);
-            }
         }
-        try {
-            // 如果订阅者不应该被延迟投递，则进行轮询操作
-            if (!toDelay(listener, request)) {
-                polling(listener, request);
-            }
-        } finally {
-            // 执行投递后的拦截器
-            if (isDeliver) {
-                interceptorContainer.deliverAfterExecute(request, null);
-            }
+        // 执行投递后的拦截器
+        if (isDeliver) {
+            interceptorContainer.deliverAfterSuccessExecute(request);
+        }
+        // 如果订阅者不应该被延迟投递，则进行轮询操作
+        if (!toDelay(listener, request)) {
+            polling(listener, request);
         }
     }
 
@@ -160,32 +156,56 @@ public class DeliveryBus {
      * @param throwable throwable
      */
     private void failHandle(Listener listener, Request<?> request, Throwable throwable) {
-        try {
-            // 获取真实异常
+        // 抛出拦截器异常
+        throwInterceptorException(throwable);
+        FailRetry failRetry = null;
+        // 获取真实异常
+        if (throwable instanceof DeliverInvokeException) {
             throwable = throwable.getCause();
-            // 获取订阅器的FailTrigger
-            FailTrigger failTrigger = listener.getFailTrigger();
-            FailRetry failRetry = null;
-            // 如果FailTrigger不为空，则执行订阅器的异常处理
-            if (null != failTrigger) {
+        }
+        log.error("delivery error", throwable);
+        FailTrigger failTrigger = listener.getFailTrigger();
+        if (null != failTrigger) {
+            try {
                 failTrigger.invoke(request, throwable);
-                // 如果FailTrigger不为空，则获取Fail对象
-                failRetry = failTrigger.getFail();
+            } catch (DeliverInvokeException t) {
+                log.error("delivery failHandler error", t.getCause());
             }
-            // 获取有效的投递次数
-            int retryLimitCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
-            int failRetryCount = request.getFailRetryCount();
-            if (failRetryCount < retryLimitCount) {
-                // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
-                request.setFailRetryCount(failRetryCount + 1);
-                failReTry(request, failRetry);
-            } else {
-                // 如果全局拦截器配置不为空且包含投递异常拦截器，则执行全局拦截器的异常处理
+            failRetry = failTrigger.getFail();
+        }
+        // 获取有效的投递次数
+        boolean isFailRetry = false;
+        int retryLimitCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
+        int failRetryCount = request.getFailRetryCount();
+        if (failRetryCount < retryLimitCount) {
+            // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
+            request.setFailRetryCount(failRetryCount + 1);
+            isFailRetry = true;
+        }
+        try {
+            if (!isFailRetry) {
                 interceptorContainer.deliverThrowableLastExecute(request, throwable);
             }
         } finally {
             // 每次投递消息异常时都会调用
-            interceptorContainer.deliverAfterExecute(request, throwable);
+            interceptorContainer.deliverAfterExceptionExecute(request, throwable);
+        }
+        // 如果失败重试，则重新投递消息
+        if (isFailRetry) {
+            failReTry(request, failRetry);
+        }
+    }
+
+    /**
+     * 处理拦截器异常
+     *
+     * @param throwable throwable
+     */
+    private void throwInterceptorException(Throwable throwable) {
+        // 如果抛出的异常是拦截器异常，则将异常原因包装为拦截器异常
+        if (throwable instanceof DeliverBeforeInterceptorException || throwable instanceof DeliverAfterInterceptorSuccessException) {
+            log.error("delivery error", throwable.getCause());
+            throw (RuntimeException) throwable;
         }
     }
 
@@ -308,7 +328,7 @@ public class DeliveryBus {
         // 投递次数加一，表示消息已经尝试投递过一次
         request.setDeliverCount(request.getDeliverCount() + 1);
         request.setRetry(true);
-        msgSender.sendDelayMessage(request);
+        msgSender.sendDelayMessage(request, false);
     }
 
     /**

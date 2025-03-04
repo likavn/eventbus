@@ -15,7 +15,7 @@
  */
 package com.github.likavn.eventbus.core.metadata.support;
 
-import com.github.likavn.eventbus.core.exception.EventBusException;
+import com.github.likavn.eventbus.core.exception.DeliverInvokeException;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
@@ -139,10 +139,8 @@ public class Trigger {
             throwable = ex;
             if (ex instanceof InvocationTargetException) {
                 throwable = ex.getCause();
-                // 接收消息时抛出异常
-                log.error("trigger invoke error", throwable);
             }
-            throw new EventBusException(throwable);
+            throw new DeliverInvokeException(throwable);
         } finally {
             request.setBody(oldBody);
         }

@@ -17,6 +17,8 @@ package com.github.likavn.eventbus.core.base;
 
 import com.github.likavn.eventbus.core.annotation.Order;
 import com.github.likavn.eventbus.core.api.interceptor.*;
+import com.github.likavn.eventbus.core.exception.DeliverAfterInterceptorSuccessException;
+import com.github.likavn.eventbus.core.exception.DeliverBeforeInterceptorException;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.Setter;
@@ -88,8 +90,28 @@ public class InterceptorContainer {
      */
     public void deliverBeforeExecute(Request<?> request) {
         if (deliverBeforeInterceptors != null) {
-            convertRequest(request);
-            deliverBeforeInterceptors.forEach(interceptor -> interceptor.execute((Request<String>) request));
+            try {
+                convertRequest(request);
+                deliverBeforeInterceptors.forEach(interceptor -> interceptor.execute((Request<String>) request));
+            } catch (Exception e) {
+                throw new DeliverBeforeInterceptorException(e);
+            }
+        }
+    }
+
+    /**
+     * 接收后拦截
+     *
+     * @param request 请求
+     */
+    public void deliverAfterSuccessExecute(Request<?> request) {
+        if (deliverAfterInterceptors != null) {
+            try {
+                convertRequest(request);
+                deliverAfterInterceptors.forEach(interceptor -> interceptor.execute((Request<String>) request, null));
+            } catch (Exception e) {
+                throw new DeliverAfterInterceptorSuccessException(e);
+            }
         }
     }
 
@@ -99,7 +121,7 @@ public class InterceptorContainer {
      * @param request   请求
      * @param throwable 异常
      */
-    public void deliverAfterExecute(Request<?> request, Throwable throwable) {
+    public void deliverAfterExceptionExecute(Request<?> request, Throwable throwable) {
         if (deliverAfterInterceptors != null) {
             convertRequest(request);
             deliverAfterInterceptors.forEach(interceptor -> interceptor.execute((Request<String>) request, throwable));
@@ -141,12 +163,17 @@ public class InterceptorContainer {
         if (Func.isEmpty(interceptors)) {
             return;
         }
-        interceptors.sort((o1, o2) -> {
-            Order order1 = o1.getClass().getAnnotation(Order.class);
-            int sort1 = order1 == null ? Integer.MAX_VALUE : order1.value();
-            Order order2 = o2.getClass().getAnnotation(Order.class);
-            int sort2 = order2 == null ? Integer.MAX_VALUE : order2.value();
-            return sort1 - sort2;
-        });
+        interceptors.sort((o1, o2) -> getOrder(o1) - getOrder(o2));
+    }
+
+    /**
+     * 获取排序
+     *
+     * @param o 对象
+     * @return 排序
+     */
+    private int getOrder(Object o) {
+        Order order = o.getClass().getAnnotation(Order.class);
+        return order == null ? Integer.MAX_VALUE : order.value();
     }
 }

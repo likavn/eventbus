@@ -22,12 +22,13 @@ import com.github.likavn.eventbus.core.ListenerRegistry;
 import com.github.likavn.eventbus.core.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.interceptor.*;
+import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
+import com.github.likavn.eventbus.core.base.InterceptorContainer;
 import com.github.likavn.eventbus.core.base.Lifecycle;
 import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.BusType;
-import com.github.likavn.eventbus.core.base.InterceptorContainer;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.rabbit.config.BusBootRabbitConfiguration;
 import com.github.likavn.eventbus.provider.redis.config.BusBootRedisConfiguration;
@@ -115,7 +116,7 @@ public class EventBusAutoConfiguration {
     @Bean
     @ConditionalOnBean(MsgSender.class)
     @ConditionalOnMissingBean(DeliveryBus.class)
-    public DeliveryBus deliveryBus(InterceptorContainer interceptorContainer, BusConfig busConfig, MsgSender msgSender) {
+    public DeliveryBus deliveryBus(InterceptorContainer interceptorContainer, BusConfig busConfig, AbstractSenderAdapter msgSender) {
         return new DeliveryBus(interceptorContainer, busConfig, msgSender);
     }
 
