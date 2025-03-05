@@ -164,26 +164,21 @@ public class DeliveryBus {
             throwable = throwable.getCause();
         }
         log.error("delivery error", throwable);
-        FailTrigger failTrigger = listener.getFailTrigger();
-        if (null != failTrigger) {
-            try {
-                failTrigger.invoke(request, throwable);
-            } catch (DeliverInvokeException t) {
-                log.error("delivery failHandler error", t.getCause());
-            }
-            failRetry = failTrigger.getFail();
-        }
-        // 获取有效的投递次数
         boolean isFailRetry = false;
-        int retryLimitCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
-        int failRetryCount = request.getFailRetryCount();
-        if (failRetryCount < retryLimitCount) {
-            // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
-            request.setFailRetryCount(failRetryCount + 1);
-            isFailRetry = true;
-        }
         try {
-            if (!isFailRetry) {
+            FailTrigger failTrigger = listener.getFailTrigger();
+            if (null != failTrigger) {
+                failTrigger.invoke(request, throwable);
+                failRetry = failTrigger.getFail();
+            }
+            // 获取有效的投递次数
+            int retryLimitCount = (null != failRetry && failRetry.count() >= 0) ? failRetry.count() : config.getFail().getRetryCount();
+            int failRetryCount = request.getFailRetryCount();
+            if (failRetryCount < retryLimitCount) {
+                // 如果请求的投递次数小于等于有效的投递次数，则重新尝试投递
+                request.setFailRetryCount(failRetryCount + 1);
+                isFailRetry = true;
+            } else {
                 interceptorContainer.deliverThrowableLastExecute(request, throwable);
             }
         } finally {
