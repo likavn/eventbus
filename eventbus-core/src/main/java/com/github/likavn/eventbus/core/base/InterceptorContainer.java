@@ -15,7 +15,7 @@
  */
 package com.github.likavn.eventbus.core.base;
 
-import com.github.likavn.eventbus.core.annotation.Order;
+import com.github.likavn.eventbus.annotation.Order;
 import com.github.likavn.eventbus.core.api.interceptor.*;
 import com.github.likavn.eventbus.core.exception.DeliverAfterInterceptorSuccessException;
 import com.github.likavn.eventbus.core.exception.DeliverBeforeInterceptorException;

@@ -15,10 +15,10 @@
  */
 package com.github.likavn.eventbus.core;
 
-import com.github.likavn.eventbus.core.annotation.EventbusListener;
-import com.github.likavn.eventbus.core.annotation.FailRetry;
-import com.github.likavn.eventbus.core.annotation.Polling;
-import com.github.likavn.eventbus.core.annotation.ToDelay;
+import com.github.likavn.eventbus.annotation.EventbusListener;
+import com.github.likavn.eventbus.annotation.FailRetry;
+import com.github.likavn.eventbus.annotation.Polling;
+import com.github.likavn.eventbus.annotation.ToDelay;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.constant.BusConstant;
@@ -144,6 +144,16 @@ public class ListenerRegistry {
         // 处理失败策略
         FailRetry failRetry = originalMethod.getAnnotation(FailRetry.class);
         FailTrigger failTrigger = FailTrigger.of(failRetry, getTrigger(obj, BusConstant.FAIL_HANDLER));
+
+        // 确定消息分发ID
+        String deliverId = eventbusListener.value();
+        if (!Func.isEmpty(deliverId)) {
+            Assert.isTrue(Func.valid(deliverId), "监听器ID[%s]%s", deliverId, BusConstant.TIPS_VALID_NAME);
+            trigger.setDeliverId(deliverId);
+            if (null != failTrigger) {
+                failTrigger.setDeliverId(deliverId);
+            }
+        }
         // 处理轮询策略
         Polling polling = originalMethod.getAnnotation(Polling.class);
         // 创建监听器实例

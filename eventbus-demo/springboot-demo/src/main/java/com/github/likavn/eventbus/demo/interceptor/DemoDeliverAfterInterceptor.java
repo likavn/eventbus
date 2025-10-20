@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.demo.interceptor;
 
-import com.github.likavn.eventbus.core.annotation.Order;
+import com.github.likavn.eventbus.annotation.Order;
 import com.github.likavn.eventbus.core.api.interceptor.DeliverAfterInterceptor;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.demo.helper.BsHelper;

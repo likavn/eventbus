@@ -19,7 +19,7 @@ import com.github.likavn.eventbus.BootConnectionWatchdog;
 import com.github.likavn.eventbus.core.ConnectionWatchdog;
 import com.github.likavn.eventbus.core.DeliveryBus;
 import com.github.likavn.eventbus.core.ListenerRegistry;
-import com.github.likavn.eventbus.core.annotation.EventbusListener;
+import com.github.likavn.eventbus.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.api.MsgSender;
 import com.github.likavn.eventbus.core.api.interceptor.*;
 import com.github.likavn.eventbus.core.base.AbstractSenderAdapter;
@@ -29,6 +29,7 @@ import com.github.likavn.eventbus.core.base.NodeTestConnect;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.BusType;
+import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.rabbit.config.BusBootRabbitConfiguration;
 import com.github.likavn.eventbus.provider.redis.config.BusBootRedisConfiguration;
@@ -61,9 +62,11 @@ import java.util.Map;
 @Import({RequestIdGeneratorConfiguration.class, BusBootRabbitConfiguration.class, BusBootRedisConfiguration.class, BusBootRocketConfiguration.class})
 public class EventBusAutoConfiguration {
     private final BusProperties config;
+    private final ApplicationContext applicationContext;
 
-    public EventBusAutoConfiguration(BusProperties config) {
+    public EventBusAutoConfiguration(BusProperties config, ApplicationContext applicationContext) {
         this.config = config;
+        this.applicationContext = applicationContext;
         initializing();
     }
 
@@ -73,14 +76,19 @@ public class EventBusAutoConfiguration {
     private void initializing() {
         log.info("Eventbus Initializing... {}", config.getType());
         BusType.isValid(config.getType());
-        if (!config.getType().equals(config.getOldType())) {
+        if (!config.getType().equals(config.getOldType()) && !Func.isEmpty(config.getOldType())) {
             log.info("Eventbus compatibility type by {}", config.getOldType());
         }
         // 自动获取服务名
         String serviceId = config.getServiceId();
         if (!StringUtils.hasLength(serviceId)) {
-            serviceId = System.getProperties().getProperty("sun.java.command");
+            // 先尝试从Spring环境获取spring.application.name
+            serviceId = applicationContext.getEnvironment().getProperty("spring.application.name");
+            if (!StringUtils.hasLength(serviceId)) {
+                serviceId = System.getProperties().getProperty("sun.java.command");
+            }
         }
+        log.info("Eventbus serviceId: {}", serviceId);
         config.setServiceId(serviceId);
     }
 
@@ -107,7 +115,7 @@ public class EventBusAutoConfiguration {
             @Autowired(required = false) List<DeliverBeforeInterceptor> deliverBeforeInterceptors,
             @Autowired(required = false) List<DeliverAfterInterceptor> deliverAfterInterceptors,
             @Autowired(required = false) List<DeliverThrowableLastInterceptor> deliverThrowableLastInterceptors) {
-        return new InterceptorContainer(sendBeforeInterceptors, sendAfterInterceptors,deliverBeforeInterceptors, deliverAfterInterceptors, deliverThrowableLastInterceptors);
+        return new InterceptorContainer(sendBeforeInterceptors, sendAfterInterceptors, deliverBeforeInterceptors, deliverAfterInterceptors, deliverThrowableLastInterceptors);
     }
 
     /**

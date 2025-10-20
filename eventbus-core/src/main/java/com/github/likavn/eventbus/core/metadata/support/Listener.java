@@ -15,9 +15,9 @@
  */
 package com.github.likavn.eventbus.core.metadata.support;
 
-import com.github.likavn.eventbus.core.annotation.FailRetry;
-import com.github.likavn.eventbus.core.annotation.Polling;
-import com.github.likavn.eventbus.core.annotation.ToDelay;
+import com.github.likavn.eventbus.annotation.FailRetry;
+import com.github.likavn.eventbus.annotation.Polling;
+import com.github.likavn.eventbus.annotation.ToDelay;
 import com.github.likavn.eventbus.core.constant.BusConstant;
 import com.github.likavn.eventbus.core.metadata.BusConfig;
 import com.github.likavn.eventbus.core.metadata.MsgType;

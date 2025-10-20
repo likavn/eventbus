@@ -15,11 +15,11 @@
  */
 package com.github.likavn.eventbus.core.utils;
 
-import com.github.likavn.eventbus.core.annotation.EventbusListener;
+import com.github.likavn.eventbus.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.api.MsgDelayListener;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.exception.EventBusException;
-import com.github.likavn.eventbus.core.metadata.data.MsgBody;
+import com.github.likavn.eventbus.annotation.MsgBody;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.support.spi.IJson;
 import lombok.experimental.UtilityClass;

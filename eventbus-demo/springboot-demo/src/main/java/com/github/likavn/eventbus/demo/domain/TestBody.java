@@ -1,6 +1,6 @@
 package com.github.likavn.eventbus.demo.domain;
 
-import com.github.likavn.eventbus.core.metadata.data.MsgBody;
+import com.github.likavn.eventbus.annotation.MsgBody;
 import com.github.likavn.eventbus.demo.constant.MsgConstant;
 import lombok.AllArgsConstructor;
 import lombok.Data;

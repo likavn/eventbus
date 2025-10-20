@@ -10,6 +10,32 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>eventbus-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
+    <name>eventbus-spring-boot-starter</name>
+    <description>Spring Boot Starter for EventBus</description>
+    <url>https://github.com/likavn/eventbus</url>
+
+    <licenses>
+        <license>
+            <name>Apache-2.0 license</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>likavn</name>
+            <email>likavn@163.com</email>
+            <url>https://github.com/likavn</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>https://github.com/likavn/eventbus.git</connection>
+        <developerConnection>https://github.com/likavn/eventbus.git</developerConnection>
+        <url>https://github.com/likavn/eventbus</url>
+    </scm>
+
     <properties>
         <!--SpringBoot版本-->
         <spring-boot.version>2.3.0.RELEASE</spring-boot.version>

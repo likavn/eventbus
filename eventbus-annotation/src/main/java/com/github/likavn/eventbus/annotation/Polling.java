@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.annotation;
+package com.github.likavn.eventbus.annotation;
 
 import lombok.experimental.UtilityClass;
 
@@ -26,9 +26,9 @@ import java.lang.annotation.*;
  * 轮询可以通过注解的属性count设置轮巡次数，nextTime或interval进行配置轮巡时间。
  * <p>
  * 计算下一次轮巡时间，优先级从上至下：
- * 1.通过{@link Polling.Keep#over()}或{@link Keep#setNextTime(long)}设置；
- * 2.通过{@link Polling#nextTime()}设置；
- * 3.通过{@link Polling#interval()}设置；
+ * 1.通过<code>Polling.Keep#over()</code>或<code>Keep#setNextTime(long)</code>设置；
+ * 2.通过<code>Polling#nextTime()</code>设置；
+ * 3.通过<code>Polling#interval()</code>设置；
  *
  * @author likavn
  * @date 2024/07/27
@@ -41,7 +41,7 @@ public @interface Polling {
     /**
      * 定义了轮询的次数。默认值为-1，表示不进行轮询。
      * 如果设置了具体的轮询次数，则方法会在接收到消息后按照指定次数进行轮询。
-     * 可通过{@link Polling.Keep#over()}编码方式调用，提前结束轮询任务。
+     * 可通过<code>Polling.Keep#over()</code>编码方式调用，提前结束轮询任务。   
      *
      * @return 轮询次数。
      */

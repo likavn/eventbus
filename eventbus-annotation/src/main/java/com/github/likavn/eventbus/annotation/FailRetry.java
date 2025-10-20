@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.annotation;
+package com.github.likavn.eventbus.annotation;
 
-import com.github.likavn.eventbus.core.metadata.BusConfig;
 import lombok.experimental.UtilityClass;
 
 import java.lang.annotation.*;
@@ -27,10 +26,10 @@ import java.lang.annotation.*;
  * 轮询可以通过注解的属性count设置重试次数，nextTime或interval进行配置下次消息的重试时间。
  * <p>
  * 获取有效的（间隔时间>0）下一次重试时间，优先级从上至下：
- * 1.通过{@link FailRetry.Keep#setNextTime(long)}设置下次重试时间；
- * 2.通过{@link FailRetry#nextTime()}设置下次重试时间；
- * 3.通过{@link FailRetry#interval()}设置下次重试时间的表达式；
- * 4.根据全局配置{@link BusConfig.Fail#getNextTime()} 设置下次重试时间。
+ * 1.通过<code>FailRetry.Keep#setNextTime(long)</code>设置下次重试时间；
+ * 2.通过<code>FailRetry#nextTime()</code>设置下次重试时间；
+ * 3.通过<code>FailRetry#interval()</code>设置下次重试时间的表达式；
+ * 4.根据全局配置<code>BusConfig.Fail#getNextTime()</code> 设置下次重试时间。   
  *
  * @author likavn
  * @date 2024/01/01
@@ -41,7 +40,7 @@ import java.lang.annotation.*;
 public @interface FailRetry {
     /**
      * 消息投递失败时，一定时间内再次进行投递的次数
-     * <code>count < 0</code> 时根据全局配置{@link BusConfig.Fail#getRetryCount()} 默认为3次
+     * <code>count < 0</code> 时根据全局配置<code>BusConfig.Fail#getRetryCount()</code> 默认为3次   
      */
     int count() default -1;
 

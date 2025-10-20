@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.github.likavn</groupId>
+        <artifactId>eventbus</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>eventbus-annotation</artifactId>
+    <packaging>jar</packaging>
+    <name>eventbus-annotation</name>
+    <description>eventbus annotation包</description>
+    <url>https://github.com/likavn/eventbus</url>
+
+    <licenses>
+        <license>
+            <name>Apache-2.0 license</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>likavn</name>
+            <email>likavn@163.com</email>
+            <url>https://github.com/likavn</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>https://github.com/likavn/eventbus.git</connection>
+        <developerConnection>https://github.com/likavn/eventbus.git</developerConnection>
+        <url>https://github.com/likavn/eventbus</url>
+    </scm>
+</project>

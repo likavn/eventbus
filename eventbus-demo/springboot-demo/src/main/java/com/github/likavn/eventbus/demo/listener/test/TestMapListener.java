@@ -15,7 +15,7 @@
  */
 package com.github.likavn.eventbus.demo.listener.test;
 
-import com.github.likavn.eventbus.core.annotation.EventbusListener;
+import com.github.likavn.eventbus.annotation.EventbusListener;
 import com.github.likavn.eventbus.core.api.MsgListener;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 

@@ -10,14 +10,45 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>eventbus-core</artifactId>
     <packaging>jar</packaging>
+    <name>eventbus-core</name>
     <description>eventbus核心包</description>
+    <url>https://github.com/likavn/eventbus</url>
+
+    <licenses>
+        <license>
+            <name>Apache-2.0 license</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>likavn</name>
+            <email>likavn@163.com</email>
+            <url>https://github.com/likavn</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>https://github.com/likavn/eventbus.git</connection>
+        <developerConnection>https://github.com/likavn/eventbus.git</developerConnection>
+        <url>https://github.com/likavn/eventbus</url>
+    </scm>
+
     <properties>
         <fastjson2.version>2.0.48</fastjson2.version>
         <fastjson.version>1.2.48</fastjson.version>
         <gson.version>2.7</gson.version>
         <jackson.version>2.9.6</jackson.version>
     </properties>
+
     <dependencies>
+        <dependency>
+            <groupId>com.github.likavn</groupId>
+            <artifactId>eventbus-annotation</artifactId>
+            <version>${revision}</version>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>

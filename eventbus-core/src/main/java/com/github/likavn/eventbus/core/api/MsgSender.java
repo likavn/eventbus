@@ -15,7 +15,7 @@
  */
 package com.github.likavn.eventbus.core.api;
 
-import com.github.likavn.eventbus.core.metadata.data.MsgBody;
+import com.github.likavn.eventbus.annotation.MsgBody;
 import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Func;
 

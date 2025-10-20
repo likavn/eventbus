@@ -13,10 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.annotation;
-
-import com.github.likavn.eventbus.core.metadata.BusConfig;
-import com.github.likavn.eventbus.core.metadata.data.MsgBody;
+package com.github.likavn.eventbus.annotation;
 
 import java.lang.annotation.*;
 
@@ -35,9 +32,13 @@ import java.lang.annotation.*;
 public @interface EventbusListener {
 
     /**
-     * 消息所属来源服务ID或服务名。默认订阅本服务{@link BusConfig#getServiceId()}配置的ID
+     * 监听器ID/消费者ID/投递ID，默认为接听器的全路径名称
+     */
+    String value() default "";
+
+    /**
+     * 消息所属来源服务ID或服务名。默认订阅本服务<code>BusConfig#getServiceId()</code>配置的ID
      *
-     * @see BusConfig#getServiceId()
      */
     String serviceId() default "";
 
@@ -45,13 +46,13 @@ public @interface EventbusListener {
      * 监听器订阅的消息类型，用于区分不同的消息类型。
      * <p>
      * 为空时：
-     * 1.如果消息实体不继承接口{@link MsgBody}，则默认为当前监听器的类名。
-     * 2.如果消息实体继承接口{@link MsgBody}，则默认为{@link MsgBody#code()}。
+     * 1.如果消息实体不继承接口<code>MsgBody</code>，则默认为当前监听器的类名。
+     * 2.如果消息实体继承接口<code>MsgBody</code>，则默认为<code>MsgBody#code()</code>。
      * <p>
      * 监听器订阅code优先如下：
      *
      * @see #codes
-     * @see MsgBody#code()
+     * see <code>MsgBody#code()</code>
      * 当前监听器类名
      */
     String[] codes() default {};
@@ -59,14 +60,14 @@ public @interface EventbusListener {
     /**
      * 消息接收并发数，默认值为-1。
      *
-     * @return 返回并发级别的整数值。设置-1表示未设置，默认{@link BusConfig#getConcurrency()}。
+     * @return 返回并发级别的整数值。设置-1表示未设置，默认<code>BusConfig#getConcurrency()</code>。
      */
     int concurrency() default -1;
 
     /**
      * 重发/重试消息接收并发数，默认值为-1。
      *
-     * @return 返回并发级别的整数值。设置-1表示未设置，默认{@link BusConfig#getRetryConcurrency()} ()}。
+     * @return 返回并发级别的整数值。设置-1表示未设置，默认<code>BusConfig#getRetryConcurrency()</code>。
      */
     int retryConcurrency() default -1;
 }

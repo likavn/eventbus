@@ -15,7 +15,7 @@
  */
 package com.github.likavn.eventbus.core.metadata.support;
 
-import com.github.likavn.eventbus.core.annotation.FailRetry;
+import com.github.likavn.eventbus.annotation.FailRetry;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 

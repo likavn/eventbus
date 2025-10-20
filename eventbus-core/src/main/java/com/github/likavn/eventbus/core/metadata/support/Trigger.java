@@ -21,6 +21,7 @@ import com.github.likavn.eventbus.core.metadata.data.Request;
 import com.github.likavn.eventbus.core.utils.Assert;
 import com.github.likavn.eventbus.core.utils.Func;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.*;
@@ -75,7 +76,8 @@ public class Trigger {
      * 投递ID
      */
     @Getter
-    private final String deliverId;
+    @Setter
+    private String deliverId;
 
     protected Trigger(Object invokeBean, Method method) {
         this.invokeBean = invokeBean;

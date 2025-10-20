@@ -13,25 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.annotation;
-
-import java.lang.annotation.*;
+package com.github.likavn.eventbus.annotation;
 
 /**
- * 顺序注解
+ * 业务消息体编码接口
  * <p>
- * 值越小则优先级越高
- * 可用于拦截器上, 多个同类型拦截器按顺序执行
+ * 发送消息时避免每次都要写code编码
+ * 备注：实现类必须存在无参构造器
  *
  * @author likavn
- * @date 2024/11/19
+ * @date 2024/04/19
  */
-@Documented
-@Target({ElementType.TYPE})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Order {
+public interface MsgBody {
+
     /**
-     * 值越小则优先级越高
+     * 消息体code
+     *
+     * @return code编码
      */
-    int value();
+    default String code() {
+        return this.getClass().getSimpleName();
+    }
 }

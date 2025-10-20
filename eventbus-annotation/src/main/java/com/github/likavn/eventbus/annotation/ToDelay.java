@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.likavn.eventbus.core.annotation;
-
-import com.github.likavn.eventbus.core.metadata.data.Message;
+package com.github.likavn.eventbus.annotation;
 
 import java.lang.annotation.*;
 
@@ -43,7 +41,7 @@ public @interface ToDelay {
 
     /**
      * 是否需要接收首次投递的及时消息
-     * 默认：false (第一次接收到及时消息时不执行接收方法{@link com.github.likavn.eventbus.core.api.MsgListener#onMessage(Message)})
+     * 默认：false (第一次接收到及时消息时不执行接收方法<code>com.github.likavn.eventbus.core.api.MsgListener#onMessage(Message)</code>)
      *
      * @return 是否接收第一次投递的及时消息
      */

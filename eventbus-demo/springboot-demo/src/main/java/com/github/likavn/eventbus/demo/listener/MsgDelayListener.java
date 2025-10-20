@@ -1,8 +1,8 @@
 package com.github.likavn.eventbus.demo.listener;
 
-import com.github.likavn.eventbus.core.annotation.EventbusListener;
-import com.github.likavn.eventbus.core.annotation.FailRetry;
-import com.github.likavn.eventbus.core.annotation.Polling;
+import com.github.likavn.eventbus.annotation.EventbusListener;
+import com.github.likavn.eventbus.annotation.FailRetry;
+import com.github.likavn.eventbus.annotation.Polling;
 import com.github.likavn.eventbus.core.metadata.data.Message;
 import com.github.likavn.eventbus.demo.domain.TestDelayBody;
 import lombok.extern.slf4j.Slf4j;
