@@ -32,7 +32,6 @@ import com.github.likavn.eventbus.core.metadata.BusType;
 import com.github.likavn.eventbus.core.utils.Func;
 import com.github.likavn.eventbus.prop.BusProperties;
 import com.github.likavn.eventbus.provider.rabbit.config.BusBootRabbitConfiguration;
-import com.github.likavn.eventbus.provider.redis.config.BusBootRedisConfiguration;
 import com.github.likavn.eventbus.provider.rocket.config.BusBootRocketConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +58,7 @@ import java.util.Map;
 @Configuration
 @EnableConfigurationProperties(BusProperties.class)
 @ConditionalOnProperty(prefix = BusConstant.CONFIG_PREFIX, name = "enable", havingValue = "true", matchIfMissing = true)
-@Import({RequestIdGeneratorConfiguration.class, BusBootRabbitConfiguration.class, BusBootRedisConfiguration.class, BusBootRocketConfiguration.class})
+@Import({RequestIdGeneratorConfiguration.class, BusBootRabbitConfiguration.class, BusBootRocketConfiguration.class})
 public class EventBusAutoConfiguration {
     private final BusProperties config;
     private final ApplicationContext applicationContext;
